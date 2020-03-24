@@ -1,5 +1,7 @@
 
-version = "v.0.0.1"
+version = "v.0.0.2"
+
+allowed_ppm_error = 5
 
 amino_acids = [
         ["Alanine", "C3H7NO2"],
