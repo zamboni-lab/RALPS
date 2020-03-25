@@ -1,7 +1,9 @@
 
-version = "v.0.0.3"
+version = "v.0.0.4"
 
 allowed_ppm_error = 5
+
+tic_normalization_scaling_factor = 10 ** 5
 
 amino_acids = [
         ["Alanine", "C3H7NO2"],

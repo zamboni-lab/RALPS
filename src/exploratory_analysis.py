@@ -2,6 +2,7 @@
 import h5py, numpy
 from pyopenms import EmpiricalFormula, CoarseIsotopePatternGenerator
 from src.constants import amino_acids, allowed_ppm_error
+from src.constants import tic_normalization_scaling_factor as scaling_factor
 from matplotlib import pyplot
 
 
@@ -56,6 +57,24 @@ def plot_amino_acids_over_experiments(aa_intensities):
         pyplot.show()
 
 
+def get_tic_normalized_amino_acid_values(aa_intensities, experiment_ids, data):
+    """ This method does simplistic normalization to compare intensities of amino acids
+        of batches of different experiments. For each AA, intensities are divided by the TIC
+        of the corresponding experiment. """
+
+    normalized_intensities = []
+    for i in range(len(aa_intensities)):
+        experiments = []
+        for j in range(len(experiment_ids)):
+            # get indices of current experiment in data (its columns)
+            j_experiment_indices = numpy.where(numpy.array(cols) == experiment_ids[j])[0]
+            # normalize by TIC, i.e. by corresponding column in data
+            aa_values = aa_intensities[i][j] / numpy.sum(data[:, j_experiment_indices]) * scaling_factor
+            experiments.append(aa_values)
+        normalized_intensities.append(experiments)
+
+    return normalized_intensities
+
 
 if __name__ == "__main__":
 
@@ -93,9 +112,11 @@ if __name__ == "__main__":
             experiments.append(data[mz_index, numpy.where(numpy.array(cols) == id)[0]])
         aa_intensities.append(experiments)
 
-    # TODO: try simplest normalisation strategies to reproduce intensities better
+    # try simplest normalisation strategies to reproduce intensities better
+    normalized_intensities = get_tic_normalized_amino_acid_values(aa_intensities, experiment_ids, data)
 
     if True:
-        plot_amino_acids_over_experiments(aa_intensities)
+        # plot_amino_acids_over_experiments(aa_intensities)  # raw data
+        plot_amino_acids_over_experiments(normalized_intensities)  # tic normalized data
 
     pass
