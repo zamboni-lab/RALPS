@@ -1,9 +1,12 @@
 
-import h5py, numpy
+import h5py, numpy, pandas
 from pyopenms import EmpiricalFormula, CoarseIsotopePatternGenerator
 from src.constants import amino_acids, allowed_ppm_error
 from src.constants import tic_normalization_scaling_factor as scaling_factor
+from src.constants import experiment_name_delimeter as sharp
+from src.constants import number_of_replicates as n
 from matplotlib import pyplot
+from src.utils.combat import combat
 
 
 def find_closest_ion_mz_index(mz_axis, ion_mz):
@@ -57,17 +60,19 @@ def plot_amino_acids_over_experiments(aa_intensities):
         pyplot.show()
 
 
-def get_tic_normalized_amino_acid_values(aa_intensities, experiment_ids, data):
+def get_tic_normalized_amino_acid_values(data, colnames, aa_intensities):
     """ This method does simplistic normalization to compare intensities of amino acids
         of batches of different experiments. For each AA, intensities are divided by the TIC
         of the corresponding experiment. """
+
+    experiment_ids = list(set(colnames))
 
     normalized_intensities = []
     for i in range(len(aa_intensities)):
         experiments = []
         for j in range(len(experiment_ids)):
             # get indices of current experiment in data (its columns)
-            j_experiment_indices = numpy.where(numpy.array(cols) == experiment_ids[j])[0]
+            j_experiment_indices = numpy.where(numpy.array(colnames) == experiment_ids[j])[0]
             # normalize by TIC, i.e. by corresponding column in data
             aa_values = aa_intensities[i][j] / numpy.sum(data[:, j_experiment_indices]) * scaling_factor
             experiments.append(aa_values)
@@ -76,21 +81,56 @@ def get_tic_normalized_amino_acid_values(aa_intensities, experiment_ids, data):
     return normalized_intensities
 
 
-if __name__ == "__main__":
+def get_combat_normalized_amino_acid_values(data, colnames, aa_mz_indices):
+    """ This method performs ComBat normalization to compare intensities of amino acids
+        of batches of different experiments. """
 
-    filename = '/Volumes/biol_imsb_sauer_1/users/nicola/6550_harm_4GHz/harm_4_all_short_DATA.h5'
+    # try combat normalisation
+    data = pandas.DataFrame(data)
+    unique_cols = [colnames[i] + sharp + str(i) for i in range(len(colnames))]  # make colnames unique
+    data.columns = unique_cols
 
-    with h5py.File(filename, 'r') as f:
+    # assign batches
+    flatten = lambda l: [item for sublist in l for item in sublist]
+    batches = flatten([[i, i, i] for i in range(len(colnames) // n)])
 
-        ions_names = [str(name).replace('b\'','')[0:-1] for name in list(f["annotation"]["name"])]
-        ions_mzs = [float(str(mz).replace('b\'mz','')[0:-1]) for mz in list(f["annotation"]["mzLabel"])]
+    batches = pandas.DataFrame(batches)
+    batches.columns = ["batch"]
+    batches.index = unique_cols
+
+    normalized_data = combat(data, batches["batch"], None)
+
+    normalized_intensities = get_intensities_data_structure(numpy.array(normalized_data), colnames, aa_mz_indices)
+
+    return normalized_intensities
+
+
+def get_all_data_from_h5(path):
+    """ This method parses h5 file to extract all necessary data. """
+
+    with h5py.File(path, 'r') as f:
+
+        ions_names = [str(name).replace('b\'', '')[0:-1] for name in list(f["annotation"]["name"])]
+        ions_mzs = [float(str(mz).replace('b\'mz', '')[0:-1]) for mz in list(f["annotation"]["mzLabel"])]
 
         mz_axis = list(f["ions"]["mz"])
         data = f["data"][()].T
-        cols = [str(p).replace('b\'','')[0:-1] for p in list(f["samples"]["perturbation"])]
-        experiment_ids = list(set(cols))
+        colnames = [str(p).replace('b\'', '')[0:-1] for p in list(f["samples"]["perturbation"])]
 
-    aa_mzs_indices = []  # indices of amino acid mz values on the mz_axis
+    all_data = {
+        "annotation": {"mzs": ions_mzs, "names": ions_names},
+        "samples": {"data": data, "mzs": mz_axis, "names": colnames}
+    }
+
+    return all_data
+
+
+def get_amino_acids_indices_in_data(ions_mzs, ions_names, mz_axis):
+    """ This method locates amino acids by name in the list of detected ions peaks.
+        It finds the closest peak on the spectrum to the aligned mz of each amino acid
+        and returns a list of mz indices and its names. """
+
+    aa_mz_indices = []  # indices of amino acid mz values on the mz_axis
     aa_names = []
 
     # get mz values of amino acids
@@ -98,25 +138,51 @@ if __name__ == "__main__":
         # if this amino acid appears on the spectra
         if name in ions_names:
             aa_index = ions_names.index(name)
-            aa_mzs_indices.append(find_closest_ion_mz_index(mz_axis, ions_mzs[aa_index]))
+            aa_mz_indices.append(find_closest_ion_mz_index(mz_axis, ions_mzs[aa_index]))
             aa_names.append(name)
             # TODO: ask Nicola, why his AA mz values do not fully coincide with mine
         else:
             print(name, "is not in ions names")
 
+    return aa_mz_indices, aa_names
+
+
+def get_intensities_data_structure(data, colnames, aa_mz_indices):
+    """ This method forms and returns a convenient data structure to work with. """
+
+    experiment_ids = list(set(colnames))
+
     # now create a convenient data structure with all intensities of amino acids
     aa_intensities = []
-    for mz_index in aa_mzs_indices:
+    for mz_index in aa_mz_indices:
         experiments = []
         for id in experiment_ids:
-            experiments.append(data[mz_index, numpy.where(numpy.array(cols) == id)[0]])
+            experiments.append(data[mz_index, numpy.where(numpy.array(colnames) == id)[0]])
         aa_intensities.append(experiments)
 
-    # try simplest normalisation strategies to reproduce intensities better
-    normalized_intensities = get_tic_normalized_amino_acid_values(aa_intensities, experiment_ids, data)
+    return aa_intensities
 
+
+if __name__ == "__main__":
+
+    filename = '/Volumes/biol_imsb_sauer_1/users/nicola/6550_harm_4GHz/harm_4_all_short_DATA.h5'
+    all_data = get_all_data_from_h5(filename)
+
+    aa_mz_indices, aa_names = get_amino_acids_indices_in_data(all_data["annotation"]["mzs"],
+                                                              all_data["annotation"]["names"],
+                                                              all_data["samples"]["mzs"])
+    data = all_data["samples"]["data"]
+    aa_intensities = get_intensities_data_structure(data, all_data["samples"]["names"], aa_mz_indices)
+
+    # try tic normalisation
+    tic_normalized = get_tic_normalized_amino_acid_values(data, all_data["samples"]["names"], aa_intensities)
+
+    # try combat normalisation
+    combat_normalized = get_combat_normalized_amino_acid_values(data, all_data["samples"]["names"], aa_mz_indices)
+    
     if True:
         # plot_amino_acids_over_experiments(aa_intensities)  # raw data
-        plot_amino_acids_over_experiments(normalized_intensities)  # tic normalized data
+        # plot_amino_acids_over_experiments(normalized_intensities)  # shows that tic normalization doesn't work properly
+        plot_amino_acids_over_experiments(combat_normalized)  # combat normalisation
 
     pass
