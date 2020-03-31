@@ -1,5 +1,5 @@
 
-version = "v.0.0.5"
+version = "v.0.0.6"
 
 allowed_ppm_error = 5
 
@@ -16,7 +16,7 @@ amino_acids = [
         ["Aspartate", "C4H7NO4"],
         ["Cysteine", "C3H7NO2S"],
         ['Glutamine', "C5H10N2O3"],
-        ["Glutamic acid", "C5H9NO4"],
+        ["Glutamate", "C5H9NO4"],  # Glutamic acid
         ["Glycine", "C2H5NO2"],
         ["Histidine", "C6H9N3O2"],
         ["Isoleucine", "C6H13NO2"],
