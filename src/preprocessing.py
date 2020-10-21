@@ -2,9 +2,9 @@
 import numpy, pandas, scipy, seaborn, math, time, umap, h5py
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from matplotlib import pyplot
 from src.constants import batches as bids
 from src.constants import shared_perturbations as sps
-
 
 
 def run_pca(data):
@@ -18,9 +18,52 @@ def run_pca(data):
     print(reduced_data.shape)
 
     # percent of variance explained
-    print(transformer.explained_variance_ratio_ * 100)
+    print(list(transformer.explained_variance_ratio_ * 100))
 
     return reduced_data
+
+
+def run_umap(data, full_samples_names, neighbors=15, metric='cosine', min_dist=0.1, scale=False, annotate=False):
+
+    random_seed = 905
+
+    if scale:
+        start = time.time()
+        data = StandardScaler().fit_transform(data)
+        print('scaling took {} s'.format(time.time() - start))
+
+    seaborn.set(font_scale=.8)
+    seaborn.color_palette('colorblind')
+    # seaborn.axes_style('whitegrid')
+
+    reducer = umap.UMAP(n_neighbors=neighbors, metric=metric, min_dist=min_dist, random_state=random_seed)
+    start = time.time()
+    embedding = reducer.fit_transform(data)
+    print('umap transform with n = {} took {} s'.format(neighbors, time.time() - start))
+
+    # for batch coloring
+    batch_ids = [name.split('_')[3] for name in full_samples_names]
+
+    pyplot.figure(figsize=(8, 6))
+    seaborn.scatterplot(x=embedding[:, 0], y=embedding[:, 1], hue=batch_ids, alpha=1., palette=seaborn.color_palette('colorblind', n_colors=len(set(batch_ids))))
+    pyplot.title('UMAP on QC features: n={}, metric={}'.format(neighbors, metric), fontsize=12)
+
+    if annotate:
+        # for sample annotation
+        sample_types = ["_".join(name.split('_')[:3]) for name in full_samples_names]
+
+        # annotate points
+        for i in range(len(sample_types)):
+            pyplot.annotate(sample_types[i],  # this is the text
+                            (embedding[i, 0], embedding[i, 1]),  # this is the point to label
+                            textcoords="offset points",  # how to position the text
+                            xytext=(0, 3),  # distance from text to points (x,y)
+                            ha='center',  # horizontal alignment can be left, right or center
+                            fontsize=6)
+
+    pyplot.legend(title='Harm 4GHz: batches', bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=10)
+    pyplot.tight_layout()
+    pyplot.show()
 
 
 def get_all_data_from_h5(path):
@@ -90,6 +133,36 @@ def get_shared_perturbations_ids_for_batch(batch):
     return ids, names
 
 
+def collapse_same_mzs(all_data, precision=2):
+    """ Every ion has >6 digits of precision, though annotation has precision of 2-3 digit.
+        E.g.:
+            57.03213    - Acetone
+            57.0328315  - Acetone
+            57.03221421 - Acetone
+            57.03256512 - Acetone
+
+        This method collapses this to 57.03 - Acetone in the 7-batch dataset supplied.
+    """
+
+    intensities = all_data.iloc[:, 3:].values
+
+    round_mz = numpy.round(all_data.mz.values, precision)
+    unique_round_mz = numpy.unique(round_mz)
+
+    new_data = pandas.DataFrame()
+    for mz in unique_round_mz:
+        indices = numpy.where(round_mz == mz)[0]
+        summed_intensities = intensities[indices, :].sum(axis=0)
+
+        u_names = numpy.unique(all_data.name.values[indices])
+        merged_entry_meta = pandas.DataFrame({'name': "__".join(u_names), 'mz': [mz], 'rt': [1]})
+        merged_entry_data = pandas.DataFrame([summed_intensities], columns=all_data.columns[3:])
+        merged_entry = pandas.concat([merged_entry_meta, merged_entry_data], axis=1)
+
+        new_data = pandas.concat([new_data, merged_entry], ignore_index=True)
+
+    return new_data
+
 def merge_batches_and_save_dataset():
     """ It gets all batches, merges mz axis
     and makes a single dataset of shared perturbations (samples with spike-ins). """
@@ -106,8 +179,7 @@ def merge_batches_and_save_dataset():
         merged_mz.update(data['samples']['mzs'])
 
     merged_mz = sorted(list(merged_mz))
-
-    all_data = pandas.DataFrame({'name': ['' for x in merged_mz], 'mz': merged_mz, 'rt': [1 for x in merged_mz]})
+    annotation = []
 
     shared_mz_df = pandas.DataFrame()
     for mz in merged_mz:
@@ -121,6 +193,10 @@ def merge_batches_and_save_dataset():
                 # if this mz appears in batch, use intensities
                 index = batch['data']['samples']['mzs'].index(mz)
                 bdf = pandas.DataFrame([batch['data']['samples']['data'][index, columns]], columns=names)
+
+                # each mz appears in one batch only, so annotation can be assigned only here
+                anno_index = batch['data']['annotation']['mzs'].index(round(mz, 4))
+                annotation.append(batch['data']['annotation']['names'][anno_index])
             else:
                 # if not, fill up with zeros
                 bdf = pandas.DataFrame([numpy.zeros(len(columns))], columns=names)
@@ -129,7 +205,14 @@ def merge_batches_and_save_dataset():
 
         shared_mz_df = pandas.concat([shared_mz_df, mz_df], ignore_index=True)
 
+    assert len(merged_mz) == len(annotation)
+
+    all_data = pandas.DataFrame({'name': annotation, 'mz': merged_mz, 'rt': [1 for x in merged_mz]})
     all_data = pandas.concat([all_data, shared_mz_df], axis=1)
+
+    # collapse the same mzs
+    all_data = collapse_same_mzs(all_data)
+
     all_data.to_csv(path + "all_data.csv", index=False)
 
 
@@ -137,7 +220,16 @@ if __name__ == '__main__':
     """
     # check which samples / perturbations are common for each batch
     check_shared_perturbations()
+    
+    # collect and merge batches along mz axis
+    merge_batches_and_save_dataset()
+    
+    # collect merged dataset
+    data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/all_data.csv')
+    # perform PCA to reduce from 2800+ to 30 variables preserving >90% of variation
+    reduced_data = run_pca(data.iloc[:, 3:].values.T)
+    # run UMAP to see batch effects and clustering of P1_PP_000X regardless of the batch
+    run_umap(reduced_data[:, :30], data.columns.values[3:], neighbors=100, metric='correlation', scale=True, annotate=True)
     """
-
 
     pass

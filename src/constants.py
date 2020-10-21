@@ -1,5 +1,5 @@
 
-version = "v.0.0.7"
+version = "v.0.0.8"
 
 allowed_ppm_error = 5
 
