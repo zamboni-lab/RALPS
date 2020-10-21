@@ -5,6 +5,7 @@ from sklearn.preprocessing import StandardScaler
 from matplotlib import pyplot
 from src.constants import batches as bids
 from src.constants import shared_perturbations as sps
+from src.constants import controls
 
 
 def run_pca(data):
@@ -163,6 +164,7 @@ def collapse_same_mzs(all_data, precision=2):
 
     return new_data
 
+
 def merge_batches_and_save_dataset():
     """ It gets all batches, merges mz axis
     and makes a single dataset of shared perturbations (samples with spike-ins). """
@@ -213,23 +215,78 @@ def merge_batches_and_save_dataset():
     # collapse the same mzs
     all_data = collapse_same_mzs(all_data)
 
+    # filter out small intensities
+    filtered_data = all_data[(all_data.iloc[:, 3:] > 1000).all(axis=1)]
+
+    # save
     all_data.to_csv(path + "all_data.csv", index=False)
+    filtered_data.to_csv(path + "filtered_data.csv", index=False)
 
 
-if __name__ == '__main__':
+def generate_batch_info(file, path='/Users/andreidm/ETH/projects/normalization/data/'):
+    """ Creates batch info file in format:
+
+        sample.name, injection.order, batch, group,class \n
+        QC1, 1, 1, QC, QC\n
+        A1, 2, 1, 0, Subject\n
+        A2, 3, 1, 1, Subject\n
+        A3, 4, 1, 1, Subject\n
+        QC2, 5, 2, QC, QC\n
+        A4, 6, 2, 0, Subject\n
+        A5, 7, 2, 1, Subject\n
+        A6, 8, 2, 1, Subject\n
     """
+
+    data = pandas.read_csv(path + file)
+
+    full_samples_names = data.columns.values[3:]
+
+    injections = [1 for x in full_samples_names]
+
+    batches = [bids.index(name.split('_')[3]) + 1 for name in full_samples_names]
+
+    groups = []
+    for name in full_samples_names:
+        group = 'QC' if "_".join(name.split('_')[:3]) in controls else '1'
+        groups.append(group)
+
+    classes = []
+    for name in full_samples_names:
+        class_ = 'QC' if "_".join(name.split('_')[:3]) in controls else 'Subject'
+        classes.append(class_)
+
+    batch_information = pandas.DataFrame({'sample.name': full_samples_names,
+                                          'injection.order': injections,
+                                          'batch': batches,
+                                          'group': groups,
+                                          'class': classes})
+
+    batch_information.to_csv(path + 'batch_info.csv', index=False)
+
+
+def implement_pipeline():
+    """ A collection of retrospective steps. """
+
     # check which samples / perturbations are common for each batch
     check_shared_perturbations()
-    
+
     # collect and merge batches along mz axis
     merge_batches_and_save_dataset()
-    
+
     # collect merged dataset
     data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/all_data.csv')
     # perform PCA to reduce from 2800+ to 30 variables preserving >90% of variation
     reduced_data = run_pca(data.iloc[:, 3:].values.T)
     # run UMAP to see batch effects and clustering of P1_PP_000X regardless of the batch
     run_umap(reduced_data[:, :30], data.columns.values[3:], neighbors=100, metric='correlation', scale=True, annotate=True)
-    """
 
-    pass
+    # collect filtered dataset
+    filtered_data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv')
+    # no PCA happening, since the dataset is much smaller
+    # run UMAP to see batch effects
+    run_umap(filtered_data.values[:, 3:].T, filtered_data.columns.values[3:], neighbors=100, metric='correlation', scale=True, annotate=True)
+
+
+if __name__ == '__main__':
+
+    generate_batch_info('filtered_data.csv')
