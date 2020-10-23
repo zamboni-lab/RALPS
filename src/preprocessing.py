@@ -264,8 +264,23 @@ def generate_batch_info(file, path='/Users/andreidm/ETH/projects/normalization/d
     batch_information.to_csv(path + 'batch_info.csv', index=False)
 
 
+def filter_out_diluted_samples(data):
+    """ I had an idea to filter them out. But not sure. """
+
+    less_diluted_samples = []
+    for sample in data.columns.values:
+        if '2048' in sample or '1024' in sample or '0512' in sample or '0256' in sample:
+            continue
+        else:
+            less_diluted_samples.append(sample)
+
+    return data.loc[:, numpy.array(less_diluted_samples)]
+
+
 def implement_pipeline():
     """ A collection of retrospective steps. """
+
+    path = '/Users/andreidm/ETH/projects/normalization/data/'
 
     # check which samples / perturbations are common for each batch
     check_shared_perturbations()
@@ -274,19 +289,30 @@ def implement_pipeline():
     merge_batches_and_save_dataset()
 
     # collect merged dataset
-    data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/all_data.csv')
+    data = pandas.read_csv(path + 'all_data.csv')
     # perform PCA to reduce from 2800+ to 30 variables preserving >90% of variation
     reduced_data = run_pca(data.iloc[:, 3:].values.T)
     # run UMAP to see batch effects and clustering of P1_PP_000X regardless of the batch
     run_umap(reduced_data[:, :30], data.columns.values[3:], neighbors=100, metric='correlation', scale=True, annotate=True)
 
     # collect filtered dataset
-    filtered_data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv')
+    filtered_data = pandas.read_csv(path + 'filtered_data.csv')
     # no PCA happening, since the dataset is much smaller
     # run UMAP to see batch effects
     run_umap(filtered_data.values[:, 3:].T, filtered_data.columns.values[3:], neighbors=100, metric='correlation', scale=True, annotate=True)
 
+    # generate file with batch information
+    generate_batch_info('filtered_data.csv', path=path)
+
 
 if __name__ == '__main__':
 
-    generate_batch_info('filtered_data.csv')
+    path = '/Users/andreidm/ETH/projects/normalization/data/'
+
+    # collect merged dataset
+    data = pandas.read_csv(path + 'all_data.csv')
+    # perform PCA to reduce from 2800+ to 30 variables preserving >90% of variation
+    reduced_data = run_pca(data.iloc[:, 3:].values.T)
+    # run UMAP to see batch effects and clustering of P1_PP_000X regardless of the batch
+    run_umap(reduced_data[:, :30], data.columns.values[3:], neighbors=100, metric='cosine', scale=True,
+             annotate=False)
