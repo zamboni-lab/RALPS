@@ -1,6 +1,7 @@
 
 import pandas, numpy
 from src import preprocessing
+from src.constants import data_path as path
 
 import tensorflow as tf
 
@@ -16,7 +17,6 @@ from tensorflow.keras.optimizers import Adam
 if __name__ == "__main__":
 
     # collect merged dataset
-    path = '/Users/andreidm/ETH/projects/normalization/data/'
     data = pandas.read_csv(path + 'filtered_data.csv')
     batch_info = pandas.read_csv(path + 'batch_info.csv')
 

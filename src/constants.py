@@ -1,13 +1,12 @@
 
-version = "v.0.0.10"
+version = "v.0.0.11"
 
 allowed_ppm_error = 5
-
 tic_normalization_scaling_factor = 10 ** 5
-
 experiment_name_delimeter = '#'
-
 number_of_replicates = 3
+
+data_path = '/Users/andreidm/ETH/projects/normalization/data/'
 
 amino_acids = [
         ["Alanine", "C3H7NO2"],
