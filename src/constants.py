@@ -1,5 +1,5 @@
 
-version = "v.0.0.11"
+version = "v.0.0.12"
 
 allowed_ppm_error = 5
 tic_normalization_scaling_factor = 10 ** 5

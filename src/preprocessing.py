@@ -277,6 +277,28 @@ def filter_out_diluted_samples(data):
     return data.loc[:, numpy.array(less_diluted_samples)]
 
 
+def split_data_to_train_and_test():
+
+    path = '/Users/andreidm/ETH/projects/normalization/data/'
+
+    # collect merged dataset
+    data = pandas.read_csv(path + 'filtered_data.csv')
+    batch_info = pandas.read_csv(path + 'batch_info.csv')
+
+    # transpose and remove metainfo
+    data = data.iloc[:, 3:].T
+
+    # add batch and shuffle
+    data.insert(0, 'batch', batch_info['batch'].values)
+    data = data.sample(frac=1)
+
+    train_data = data.iloc[:int(0.8 * data.shape[0]), :]
+    test_data = data.iloc[int(0.8 * data.shape[0]):, :]
+
+    train_data.to_csv(path + 'train.csv')
+    test_data.to_csv(path + 'test.csv')
+
+
 def implement_pipeline():
     """ A collection of retrospective steps. """
 
@@ -304,15 +326,10 @@ def implement_pipeline():
     # generate file with batch information
     generate_batch_info('filtered_data.csv', path=path)
 
+    # split data to train and test, to easily form the Dataset structures in TensorFlow
+    split_data_to_train_and_test()
+
 
 if __name__ == '__main__':
 
-    path = '/Users/andreidm/ETH/projects/normalization/data/'
-
-    # collect merged dataset
-    data = pandas.read_csv(path + 'all_data.csv')
-    # perform PCA to reduce from 2800+ to 30 variables preserving >90% of variation
-    reduced_data = run_pca(data.iloc[:, 3:].values.T)
-    # run UMAP to see batch effects and clustering of P1_PP_000X regardless of the batch
-    run_umap(reduced_data[:, :30], data.columns.values[3:], neighbors=100, metric='cosine', scale=True,
-             annotate=False)
+    pass

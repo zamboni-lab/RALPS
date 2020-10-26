@@ -20,7 +20,7 @@ if __name__ == "__main__":
     data = pandas.read_csv(path + 'filtered_data.csv')
     batch_info = pandas.read_csv(path + 'batch_info.csv')
 
-    # transpose and filter
+    # transpose and remove metainfo
     data = data.iloc[:, 3:].T
     # add batch and shuffle
     data.insert(0, 'batch', batch_info['batch'].values)
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     decoder_layer = autoencoder.layers[-1]
     decoder = tf.keras.Model(encoded_input, decoder_layer(encoded_input))
 
-    autoencoder.compile(optimizer=Adam(learning_rate=0.0003), loss='mse')
+    autoencoder.compile(optimizer=Adam(learning_rate=0.0003), loss='mae')
     autoencoder.summary()
 
     # 2000 epochs -> loss: 51.7836 - val_loss: 52.1401
@@ -64,10 +64,10 @@ if __name__ == "__main__":
     # val_before = scaler.inverse_transform(x_val)
     # val_after = scaler.inverse_transform(val_decoded)
 
-    scaled_encoded = encoder.predict(scaled)
-    encodings = pandas.DataFrame(scaled_encoded, index=data.index)
-    encodings.insert(0, 'batch', batches)
-
-    encodings.to_csv(path.replace('data', 'res') + 'samples_encodings.csv')
+    # scaled_encoded = encoder.predict(scaled)
+    # encodings = pandas.DataFrame(scaled_encoded, index=data.index)
+    # encodings.insert(0, 'batch', batches)
+    #
+    # encodings.to_csv(path.replace('data', 'res') + 'samples_encodings.csv')
 
     print()
