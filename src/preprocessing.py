@@ -1,12 +1,13 @@
 
-import numpy, pandas, scipy, seaborn, math, time, umap, h5py
+import numpy, pandas, scipy, seaborn, math, time, umap, h5py, json
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from matplotlib import pyplot
 from src.constants import batches as bids
 from src.constants import shared_perturbations as sps
 from src.constants import controls
-
+from sklearn.preprocessing import RobustScaler
+from src.constants import data_path as path
 
 def run_pca(data):
 
@@ -295,8 +296,27 @@ def split_data_to_train_and_test():
     train_data = data.iloc[:int(0.8 * data.shape[0]), :]
     test_data = data.iloc[int(0.8 * data.shape[0]):, :]
 
-    train_data.to_csv(path + 'train.csv')
-    test_data.to_csv(path + 'test.csv')
+    samples = {'train': list(train_data.index), 'test': list(test_data.index)}
+
+    train_data.to_csv(path + 'train.csv', index=False)
+    test_data.to_csv(path + 'test.csv', index=False)
+
+    with open(path + 'samples.json', 'w') as file:
+        json.dump(samples, file)
+
+
+def get_fitted_scaler():
+
+    # collect merged dataset
+    data = pandas.read_csv(path + 'filtered_data.csv')
+
+    # transpose and remove metainfo
+    data = data.iloc[:, 3:].T.values
+
+    # fit scaler
+    scaler = RobustScaler().fit(data)
+
+    return scaler
 
 
 def implement_pipeline():
@@ -329,7 +349,11 @@ def implement_pipeline():
     # split data to train and test, to easily form the Dataset structures in TensorFlow
     split_data_to_train_and_test()
 
+    # get full data, fit and return the scaler
+    get_fitted_scaler()
 
 if __name__ == '__main__':
-
     pass
+
+
+
