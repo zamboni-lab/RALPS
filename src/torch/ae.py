@@ -57,6 +57,11 @@ def get_data():
     data.insert(0, 'batch', batch_info['batch'].values)
     data = data.sample(frac=1)
 
+    return data
+
+
+def split_to_train_and_test(data):
+
     # split to values and batches
     batches = data.iloc[:, 0].values
     values = data.iloc[:, 1:].values
@@ -69,8 +74,10 @@ def get_data():
     # split values to train and val
     x_train = scaled[:int(0.7 * n_samples), :]
     x_val = scaled[int(0.7 * n_samples):, :]
+    y_train = batches[:int(0.7 * n_samples)]
+    y_val = batches[int(0.7 * n_samples):]
 
-    return x_train, x_val
+    return x_train, x_val, y_train, y_val
 
 
 if __name__ == "__main__":
@@ -94,11 +101,13 @@ if __name__ == "__main__":
     # mean-squared error loss
     criterion = nn.MSELoss()
 
-    train_data, test_data = get_data()
+    # get data and do train test split
+    data = get_data()
+    X_train, X_test, y_train, y_test = split_to_train_and_test(data)
 
     # make datasets
-    train_dataset = TensorDataset(torch.Tensor(train_data))
-    test_dataset = TensorDataset(torch.Tensor(test_data))
+    train_dataset = TensorDataset(torch.Tensor(X_train))
+    test_dataset = TensorDataset(torch.Tensor(X_test))
 
     train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=4, pin_memory=False)
     test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False, num_workers=4)
@@ -138,9 +147,10 @@ if __name__ == "__main__":
         # display the epoch training loss
         print("epoch : {}/{}, loss = {:.6f}, test_loss = {:.6f}".format(epoch + 1, epochs, loss, test_loss))
 
-    encoded = model.encode(torch.Tensor(test_data))
-    decoded = model.decode(encoded).detach().numpy()
-
-    # TODO: get all dataset, apply autoencoder, apply inverse tranform, save for classification
-
-    print()
+    # encode full dataset
+    X = numpy.concatenate([X_train, X_test])
+    X_encoded = model.encode(torch.Tensor(X)).detach().numpy()
+    # save encodings with corresponding batches for classification
+    encodings = pandas.DataFrame(X_encoded, index=data.index)
+    encodings.insert(0, 'batch', data.batch.values)
+    encodings.to_csv(path.replace('data', 'res') + 'encodings.csv')
