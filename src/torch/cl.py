@@ -4,7 +4,6 @@ from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 from src.constants import data_path as path
 from sklearn.preprocessing import StandardScaler, RobustScaler
-import pandas, numpy
 
 
 class Classifier(nn.Module):
@@ -88,9 +87,9 @@ if __name__ == "__main__":
             # reset the gradients back to zero
             # PyTorch accumulates gradients on subsequent backward passes
             optimizer.zero_grad()
-            # compute reconstructions
+            # predict batches
             outputs = model(batch_features)
-            # compute training reconstruction loss
+            # compute training classification loss
             train_loss = criterion(outputs, labels)
             # compute accumulated gradients
             train_loss.backward()

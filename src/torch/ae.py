@@ -6,7 +6,7 @@ from src.constants import data_path as path
 from sklearn.preprocessing import StandardScaler, RobustScaler
 
 
-class AE(nn.Module):
+class Autoencoder(nn.Module):
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -77,6 +77,9 @@ def split_to_train_and_test(data):
     y_train = batches[:int(0.7 * n_samples)]
     y_val = batches[int(0.7 * n_samples):]
 
+    y_train -= 1
+    y_val -= 1
+
     return x_train, x_val, y_train, y_val
 
 
@@ -90,7 +93,7 @@ if __name__ == "__main__":
 
     # create a model from `AE` autoencoder class
     # load it to the specified device, either gpu or cpu
-    model = AE(input_shape=n_features, latent_dim=latent_dim).to(device)
+    model = Autoencoder(input_shape=n_features, latent_dim=latent_dim).to(device)
 
     print(model)
     print('Total number of parameters: ', model.count_parameters())
@@ -147,7 +150,11 @@ if __name__ == "__main__":
         # display the epoch training loss
         print("epoch : {}/{}, loss = {:.6f}, test_loss = {:.6f}".format(epoch + 1, epochs, loss, test_loss))
 
-    # encode full dataset
+    print('saving model\n')
+    saving_path = path.replace('data', 'res')
+    torch.save(model.state_dict(), path + 'autoencoder.torch')
+
+    print('encoding and saving full dataset')
     X = numpy.concatenate([X_train, X_test])
     X_encoded = model.encode(torch.Tensor(X)).detach().numpy()
     # save encodings with corresponding batches for classification
