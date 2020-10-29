@@ -1,5 +1,5 @@
 
-import numpy, pandas, seaborn
+import numpy, pandas, seaborn, umap
 from matplotlib import pyplot
 
 
@@ -74,18 +74,63 @@ def compute_cv_for_samples_types(data, sample_types_of_interest=None):
     return cv_dict
 
 
+def plot_batch_effects_with_umap(encodings, method_name, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+
+    if sample_types_of_interest is None:
+        sample_types_of_interest = ['P1_FA_0001', 'P2_SF_0001', 'P2_SFA_0001', 'P2_SRM_0001', 'P2_SFA_0002', 'P1_FA_0008']
+
+    samples_by_types = get_samples_by_types_dict(encodings.index.values, sample_types_of_interest)
+
+    batches = encodings['batch'].values - 1
+    values = encodings.iloc[:, 1:].values
+
+    random_seed = 831
+    metric = 'braycurtis'
+    n = 20
+
+    reducer = umap.UMAP(n_neighbors=n, metric=metric, min_dist=0.1, random_state=random_seed)
+    embedding = reducer.fit_transform(values)
+
+    seaborn.set()
+    pyplot.figure(figsize=(12, 8))
+    for i, type in enumerate(samples_by_types):
+        indices_of_type = [list(encodings.index.values).index(x) for x in samples_by_types[type]]
+        type_embedding = embedding[numpy.array(indices_of_type), :]
+        type_batches = batches[numpy.array(indices_of_type)]
+
+        ax = pyplot.subplot(2, 3, i + 1)
+        seaborn.scatterplot(x=type_embedding[:, 0], y=type_embedding[:, 1], hue=type_batches, s=50, alpha=.8,
+                            palette=seaborn.color_palette('colorblind', n_colors=len(set(type_batches))))
+        ax.set_title(type)
+        ax.get_legend().remove()
+
+    pyplot.legend(title='Batch', bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=10)
+    pyplot.suptitle('{}'.format(method_name, n, metric))
+    pyplot.tight_layout()
+    # pyplot.show()
+    pyplot.savefig(save_to + 'umap_batch_effects_{}.pdf'.format(method_name.replace(' ', '_')))
+
+
 if __name__ == '__main__':
 
-    data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv')
-    data = data.iloc[:, 3:]
+    # data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv')
+    # data = data.iloc[:, 3:]
 
     # plot_batch_cross_correlations(data, 'original samples',
     #                               sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
     #                                                         'P2_SFA_0001', 'P2_SRM_0001',
     #                                                         'P2_SFA_0002', 'P1_FA_0008'])
 
-    res = compute_cv_for_samples_types(data, sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-                                                                       'P2_SFA_0001', 'P2_SRM_0001',
-                                                                       'P2_SFA_0002', 'P1_FA_0008'])
+    # res = compute_cv_for_samples_types(data, sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+    #                                                                    'P2_SFA_0001', 'P2_SRM_0001',
+    #                                                                    'P2_SFA_0002', 'P1_FA_0008'])
+    # print(res)
 
-    print(res)
+    encodings = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/encodings.csv', index_col=0)
+
+    plot_batch_effects_with_umap(encodings, 'original samples',
+                                 sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+                                                           'P2_SFA_0001', 'P2_SRM_0001',
+                                                           'P2_SFA_0002', 'P1_FA_0008'])
+
+

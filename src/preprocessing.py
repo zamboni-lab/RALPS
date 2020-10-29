@@ -334,7 +334,7 @@ def implement_pipeline():
     data = pandas.read_csv(path + 'all_data.csv')
     # perform PCA to reduce from 2800+ to 30 variables preserving >90% of variation
     reduced_data = run_pca(data.iloc[:, 3:].values.T)
-    # run UMAP to see batch effects and clustering of P1_PP_000X regardless of the batch
+    # run UMAP to see batch effects and clustering
     run_umap(reduced_data[:, :30], data.columns.values[3:], neighbors=100, metric='correlation', scale=True, annotate=True)
 
     # collect filtered dataset
@@ -351,6 +351,7 @@ def implement_pipeline():
 
     # get full data, fit and return the scaler
     get_fitted_scaler()
+
 
 if __name__ == '__main__':
     pass
