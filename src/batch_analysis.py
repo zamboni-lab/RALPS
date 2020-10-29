@@ -1,6 +1,7 @@
 
 import numpy, pandas, seaborn, umap
 from matplotlib import pyplot
+import hdbscan
 
 
 def get_samples_by_types_dict(samples_names, types_of_interest):
@@ -111,6 +112,41 @@ def plot_batch_effects_with_umap(encodings, method_name, sample_types_of_interes
     pyplot.savefig(save_to + 'umap_batch_effects_{}.pdf'.format(method_name.replace(' ', '_')))
 
 
+def compute_number_of_clusters_with_hdbscan(encodings, print_info=True, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+
+    samples_by_types = get_samples_by_types_dict(encodings.index.values, sample_types_of_interest)
+
+    batches = encodings['batch'].values - 1
+    values = encodings.iloc[:, 1:].values
+
+    random_seed = 831
+    metric = 'braycurtis'
+    n = 20
+
+    reducer = umap.UMAP(n_components=30, n_neighbors=n, metric=metric, min_dist=0.1, random_state=random_seed)
+    embeddings = reducer.fit_transform(values)
+
+    n_clusters_dict = {}
+    for i, type in enumerate(samples_by_types):
+        indices_of_type = [list(encodings.index.values).index(x) for x in samples_by_types[type]]
+        type_embeddings = embeddings[numpy.array(indices_of_type), :]
+        type_batches = batches[numpy.array(indices_of_type)]
+
+        clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=3, allow_single_cluster=True)
+        clusterer.fit(type_embeddings)
+
+        if print_info:
+            print('CLUSTERING INFO:', type)
+            print('n clusters: ', clusterer.labels_.max() + 1)
+            print('labels:', list(clusterer.labels_))
+            print('probs:', list(clusterer.probabilities_))
+            print('outlier probs:', list(clusterer.outlier_scores_), '\n')
+
+        n_clusters_dict[type] = clusterer.labels_.max() + 1
+
+    return n_clusters_dict
+
+
 if __name__ == '__main__':
 
     # data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv')
@@ -128,9 +164,21 @@ if __name__ == '__main__':
 
     encodings = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/encodings.csv', index_col=0)
 
-    plot_batch_effects_with_umap(encodings, 'original samples',
-                                 sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-                                                           'P2_SFA_0001', 'P2_SRM_0001',
-                                                           'P2_SFA_0002', 'P1_FA_0008'])
+    # plot_batch_effects_with_umap(encodings, 'original samples',
+    #                              sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+    #                                                        'P2_SFA_0001', 'P2_SRM_0001',
+    #                                                        'P2_SFA_0002', 'P1_FA_0008'])
+
+    res = compute_number_of_clusters_with_hdbscan(encodings, print_info=False,
+                                                  sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+                                                                            'P2_SFA_0001', 'P2_SRM_0001',
+                                                                            'P2_SFA_0002', 'P1_FA_0008'])
+
+    print(res)
+
+
+
+
+
 
 
