@@ -75,6 +75,31 @@ def compute_cv_for_samples_types(data, sample_types_of_interest=None):
     return cv_dict
 
 
+def plot_full_dataset_umap(encodings, method_name, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+
+    random_seed = 666
+    metric = 'cosine'
+    n = 100
+
+    batches = encodings['batch'].values - 1
+    values = encodings.iloc[:, 1:].values
+
+    reducer = umap.UMAP(n_neighbors=n, metric=metric, min_dist=0.1, random_state=random_seed)
+    embeddings = reducer.fit_transform(values)
+
+    seaborn.set()
+    pyplot.figure(figsize=(8, 6))
+
+    seaborn.scatterplot(x=embeddings[:, 0], y=embeddings[:, 1], hue=batches, alpha=.8,
+                        palette=seaborn.color_palette('colorblind', n_colors=len(set(batches))))
+
+    pyplot.legend(title='Batch', bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=10)
+    pyplot.title('UMAP: {}: n={}, metric={}'.format(method_name, n, metric))
+    pyplot.tight_layout()
+    # pyplot.show()
+    pyplot.savefig(save_to + 'umap_full_{}.pdf'.format(method_name.replace(' ', '_')))
+
+
 def plot_batch_effects_with_umap(encodings, method_name, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     if sample_types_of_interest is None:
@@ -106,13 +131,13 @@ def plot_batch_effects_with_umap(encodings, method_name, sample_types_of_interes
         ax.get_legend().remove()
 
     pyplot.legend(title='Batch', bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=10)
-    pyplot.suptitle('{}'.format(method_name, n, metric))
+    pyplot.suptitle('{}'.format(method_name))
     pyplot.tight_layout()
     # pyplot.show()
     pyplot.savefig(save_to + 'umap_batch_effects_{}.pdf'.format(method_name.replace(' ', '_')))
 
 
-def compute_number_of_clusters_with_hdbscan(encodings, print_info=True, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def compute_number_of_clusters_with_hdbscan(encodings, print_info=True, sample_types_of_interest=None):
 
     samples_by_types = get_samples_by_types_dict(encodings.index.values, sample_types_of_interest)
 
@@ -169,12 +194,11 @@ if __name__ == '__main__':
     #                                                        'P2_SFA_0001', 'P2_SRM_0001',
     #                                                        'P2_SFA_0002', 'P1_FA_0008'])
 
-    res = compute_number_of_clusters_with_hdbscan(encodings, print_info=False,
-                                                  sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-                                                                            'P2_SFA_0001', 'P2_SRM_0001',
-                                                                            'P2_SFA_0002', 'P1_FA_0008'])
-
-    print(res)
+    # res = compute_number_of_clusters_with_hdbscan(encodings, print_info=False,
+    #                                               sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+    #                                                                         'P2_SFA_0001', 'P2_SRM_0001',
+    #                                                                         'P2_SFA_0002', 'P1_FA_0008'])
+    # print(res)
 
 
 

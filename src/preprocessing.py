@@ -236,6 +236,8 @@ def generate_batch_info(file, path='/Users/andreidm/ETH/projects/normalization/d
         A4, 6, 2, 0, Subject\n
         A5, 7, 2, 1, Subject\n
         A6, 8, 2, 1, Subject\n
+
+        This was done for NormAE (which doesn't work), but kept anyways.
     """
 
     data = pandas.read_csv(path + file)
