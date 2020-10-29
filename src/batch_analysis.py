@@ -1,10 +1,65 @@
 
-import numpy, pandas
+import numpy, pandas, seaborn
+from matplotlib import pyplot
+
+
+def plot_batch_cross_correlations(data, method_name, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+
+    samples_names = data.columns.values
+    if sample_types_of_interest is None:
+        # get unique types + filter out diluted samples
+        sample_types_of_interest = list(set(['_'.join(x.split('_')[:3]) for x in samples_names if x.split('_')[2] == '0001']))
+
+    samples_by_types = {}
+    for i, sample in enumerate(samples_names):
+        # check which type this sample has
+        for type in sample_types_of_interest:
+            if type in sample and type not in samples_by_types:
+                # if new type, putt in the dict, create a list
+                samples_by_types[type] = [sample]
+                break
+            elif type in sample and type in samples_by_types:
+                # if type already exists in the dict, append sample
+                samples_by_types[type].append(sample)
+                break
+            else:
+                pass
+
+    if sample_types_of_interest is None:
+        for i, type in enumerate(samples_by_types):
+            sample_df = data.loc[:, numpy.array(samples_by_types[type])]
+            sample_df.columns = [x[-6:] for x in sample_df.columns]
+            sample_df = sample_df.corr()
+
+            seaborn.heatmap(sample_df)
+            pyplot.title('Cross correlations: {}: {}'.format(type, method_name))
+            pyplot.tight_layout()
+            pyplot.show()
+
+    else:
+        pyplot.figure(figsize=(12,8))
+
+        for i, type in enumerate(samples_by_types):
+            sample_df = data.loc[:, numpy.array(samples_by_types[type])]
+            sample_df.columns = [x[-6:] for x in sample_df.columns]
+            sample_df = sample_df.corr()
+
+            ax = pyplot.subplot(2, 3, i+1)
+            seaborn.heatmap(sample_df)
+            ax.set_title(type)
+
+        pyplot.suptitle('Cross correlations: {}'.format(method_name))
+        pyplot.tight_layout()
+        # pyplot.show()
+        pyplot.savefig(save_to + 'correlations_{}.pdf'.format(method_name.replace(' ', '_')))
+
 
 if __name__ == '__main__':
 
-    f_data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/all_data.csv')
-    f_data_ori = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/running_on_all/Ori.csv')
-    f_data_nobe = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/running_on_all/Rec_nobe.csv')
+    data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv')
+    data = data.iloc[:, 3:]
 
-    print()
+    plot_batch_cross_correlations(data, 'original samples',
+                                  sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+                                                            'P2_SFA_0001', 'P2_SRM_0001',
+                                                            'P2_SFA_0002', 'P1_FA_0008'])

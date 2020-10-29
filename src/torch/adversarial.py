@@ -186,3 +186,17 @@ if __name__ == "__main__":
     pyplot.tight_layout()
     pyplot.show()
 
+    # TODO: ideas:
+    #   ii) plot umaps of encodings before and after training (better every n epochs)
+    #    i) experiment with coefficient at g_loss -= d_loss
+    #  iii) try adding regularizations to g_loss and d_loss
+    #   iv) come up with a criterion: what does it mean exactly to remove batch effects in this case? is it generalizable?
+    #
+    #    in NormAE they have:
+    #    1. correlations between the same samples (high) - fine
+    #    2. relative std for some samples (low) - ok
+    #    3. distance in PCA between QC samples - I'd rather have score of HDBSCAN based on UMAP embeddings
+    #    4. something with numbers of peaks of certain quality... - not very clear, but I can think myself of similar metric
+    #
+
+
