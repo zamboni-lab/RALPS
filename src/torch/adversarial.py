@@ -50,7 +50,7 @@ def get_data(path):
 
 def plot_losses(d_loss, g_loss, val_acc, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
-    fig, axs = pyplot.subplots(3)
+    fig, axs = pyplot.subplots(3, figsize=(6,9))
 
     fig.suptitle('Adversarial training loop')
 
@@ -58,26 +58,25 @@ def plot_losses(d_loss, g_loss, val_acc, save_to='/Users/andreidm/ETH/projects/n
     axs[0].set_title('Classifier loss')
     axs[0].set_xlabel('Epochs')
     axs[0].set_ylabel('CrossEntropy')
-    axs[0].grid()
+    axs[0].grid(True)
 
     axs[1].plot(range(1, 1+len(g_loss)), g_loss)
     axs[1].set_title('Autoencoder loss')
     axs[1].set_xlabel('Epochs')
     axs[1].set_ylabel('L1Loss - CrossEntropy')
-    axs[1].grid()
+    axs[1].grid(True)
 
     axs[2].plot(range(1, 1+len(val_acc)), val_acc)
     axs[2].set_title('Batch prediction')
     axs[2].set_xlabel('Epochs')
     axs[2].set_ylabel('Test accuracy')
-    axs[2].grid()
+    axs[2].grid(True)
 
     pyplot.tight_layout()
-    pyplot.show()
     pyplot.savefig(save_to + 'losses.pdf')
 
 
-def plot_variation_coefs(vc_dict, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_variation_coefs(vc_dict, vc_dict_original, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     if len(vc_dict) == 6:
         # save all on one figure
@@ -88,11 +87,13 @@ def plot_variation_coefs(vc_dict, save_to='/Users/andreidm/ETH/projects/normaliz
             y = vc_dict[type]  # values
 
             ax = pyplot.subplot(2, 3, i + 1)
-            ax.plot(x,y)
+            ax.plot(x, y, label='Training VC')
+            ax.axhline(y=vc_dict_original[type], color='r', linestyle='-', label='Original VC')
             ax.set_xlabel('Epochs')
             ax.set_ylabel('VC')
             ax.set_title(type)
-            ax.grid()
+            ax.grid(True)
+            ax.legend()
 
         pyplot.suptitle('Variation coefficients')
         pyplot.tight_layout()
@@ -104,11 +105,12 @@ def plot_variation_coefs(vc_dict, save_to='/Users/andreidm/ETH/projects/normaliz
             y = vc_dict[type]  # values
 
             pyplot.figure()
-            pyplot.plot(x, y)
+            pyplot.plot(x, y, label='Training VC')
+            pyplot.axhline(y=vc_dict_original[type], color='r', linestyle='-', label='Original VC')
             pyplot.ylabel('VC')
             pyplot.xlabel('Epochs')
             pyplot.title('Variation coefficient for {}'.format(type))
-            pyplot.grid()
+            pyplot.grid(True)
             pyplot.tight_layout()
             pyplot.savefig(save_to + 'vcs_{}.pdf'.format(type))
 
@@ -128,7 +130,7 @@ def plot_n_clusters(clusters_dict, save_to='/Users/andreidm/ETH/projects/normali
             ax.set_xlabel('Epochs')
             ax.set_ylabel('Clusters found')
             ax.set_title(type)
-            ax.grid()
+            ax.grid(True)
 
         pyplot.suptitle('HDBSCAN clustering')
         pyplot.tight_layout()
@@ -144,7 +146,7 @@ def plot_n_clusters(clusters_dict, save_to='/Users/andreidm/ETH/projects/normali
             pyplot.ylabel('Clusters found')
             pyplot.xlabel('Epochs')
             pyplot.title('HDBSCAN clustering for {}'.format(type))
-            pyplot.grid()
+            pyplot.grid(True)
             pyplot.tight_layout()
             pyplot.savefig(save_to + 'clustering_{}.pdf'.format(type))
 
@@ -183,6 +185,9 @@ if __name__ == "__main__":
     data_batch_labels = data.iloc[:, 0]
     data_values = data.iloc[:, 1:]
 
+    # get CV of benchmarks in original data
+    cv_dict_original = compute_cv_for_samples_types(data_values, sample_types_of_interest=benchmarks)
+
     # create and fit the scaler
     scaler = RobustScaler().fit(data_values)
     # apply scaling and do train test split
@@ -195,7 +200,7 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=False)
     test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=4)
 
-    epochs = 150
+    epochs = 200
 
     # Lists to keep track of progress
     g_loss_history = []
@@ -304,7 +309,7 @@ if __name__ == "__main__":
 
     # PLOT TRAINING HISTORY
     plot_losses(d_loss_history, g_loss_history, val_acc_history, save_to=save_to+'callbacks/')
-    plot_variation_coefs(variation_coefs, save_to=save_to+'callbacks/')
+    plot_variation_coefs(variation_coefs, cv_dict_original, save_to=save_to+'callbacks/')
     plot_n_clusters(n_clusters, save_to=save_to+'callbacks/')
 
     # TODO: ideas:

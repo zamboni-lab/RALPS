@@ -179,15 +179,15 @@ if __name__ == '__main__':
     data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv')
     data = data.iloc[:, 3:]
 
-    plot_batch_cross_correlations(data.T, 'original samples',
-                                  sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-                                                            'P2_SFA_0001', 'P2_SRM_0001',
-                                                            'P2_SFA_0002', 'P1_FA_0008'])
+    # plot_batch_cross_correlations(data.T, 'original samples',
+    #                               sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+    #                                                         'P2_SFA_0001', 'P2_SRM_0001',
+    #                                                         'P2_SFA_0002', 'P1_FA_0008'])
 
-    # res = compute_cv_for_samples_types(data.T, sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-    #                                                                    'P2_SFA_0001', 'P2_SRM_0001',
-    #                                                                    'P2_SFA_0002', 'P1_FA_0008'])
-    # print(res)
+    res = compute_cv_for_samples_types(data.T, sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+                                                                       'P2_SFA_0001', 'P2_SRM_0001',
+                                                                       'P2_SFA_0002', 'P1_FA_0008'])
+    print(res)
 
     encodings = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/encodings.csv', index_col=0)
 
