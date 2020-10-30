@@ -40,7 +40,7 @@ def plot_batch_cross_correlations(data, method_name, sample_types_of_interest=No
             df.columns = [x[-6:] for x in df.columns]
             df = df.corr()
 
-            seaborn.heatmap(df)
+            seaborn.heatmap(df, vmin=0, vmax=1)
             pyplot.title('Cross correlations: {}: {}'.format(type, method_name))
             pyplot.tight_layout()
             pyplot.show()
@@ -55,7 +55,7 @@ def plot_batch_cross_correlations(data, method_name, sample_types_of_interest=No
             df = df.corr()
 
             ax = pyplot.subplot(2, 3, i+1)
-            seaborn.heatmap(df)
+            seaborn.heatmap(df, vmin=0, vmax=1)
             ax.set_title(type)
 
         pyplot.suptitle('Cross correlations: {}'.format(method_name))
@@ -144,8 +144,9 @@ def compute_number_of_clusters_with_hdbscan(encodings, print_info=True, sample_t
     clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=3, allow_single_cluster=False)
     clusterer.fit(embeddings)
 
-    print('CLUSTERING INFO:\n')
-    print('Total of clusters:', clusterer.labels_.max() + 1)
+    if print_info:
+        print('CLUSTERING INFO:\n')
+        print('Total of clusters:', clusterer.labels_.max() + 1)
 
     n_clusters_dict = {}
     for i, type in enumerate(samples_by_types):

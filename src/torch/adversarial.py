@@ -9,9 +9,7 @@ from src.torch.cl import Classifier
 from src.torch.ae import Autoencoder
 from src.constants import samples_with_strong_batch_effects as benchmarks
 from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
-from src.batch_analysis import plot_batch_effects_with_umap, compute_number_of_clusters_with_hdbscan
-from src.batch_analysis import plot_full_dataset_umap
-
+from src.batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
 
 
 def split_to_train_and_test(values, batches, scaler):
