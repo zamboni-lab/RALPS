@@ -45,7 +45,10 @@ def get_data(path):
     data.insert(0, 'batch', batch_info['batch'].values)
     data = data.sample(frac=1)
 
-    return data
+    # collect encodings of the data by pretrained autoencoder
+    encodings = pandas.read_csv(path.replace('data', 'res') + 'encodings.csv', index_col=0)
+
+    return data, encodings
 
 
 def plot_losses(d_loss, g_loss, val_acc, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
@@ -87,8 +90,8 @@ def plot_variation_coefs(vc_dict, vc_dict_original, save_to='/Users/andreidm/ETH
             y = vc_dict[type]  # values
 
             ax = pyplot.subplot(2, 3, i + 1)
-            ax.plot(x, y, label='Training VC')
-            ax.axhline(y=vc_dict_original[type], color='r', linestyle='-', label='Original VC')
+            ax.plot(x, y, label='Normalized data')
+            ax.axhline(y=vc_dict_original[type], color='r', linestyle='-', label='Original data')
             ax.set_xlabel('Epochs')
             ax.set_ylabel('VC')
             ax.set_title(type)
@@ -105,8 +108,8 @@ def plot_variation_coefs(vc_dict, vc_dict_original, save_to='/Users/andreidm/ETH
             y = vc_dict[type]  # values
 
             pyplot.figure()
-            pyplot.plot(x, y, label='Training VC')
-            pyplot.axhline(y=vc_dict_original[type], color='r', linestyle='-', label='Original VC')
+            pyplot.plot(x, y, label='Normalized data')
+            pyplot.axhline(y=vc_dict_original[type], color='r', linestyle='-', label='Original data')
             pyplot.ylabel('VC')
             pyplot.xlabel('Epochs')
             pyplot.title('Variation coefficient for {}'.format(type))
@@ -115,7 +118,7 @@ def plot_variation_coefs(vc_dict, vc_dict_original, save_to='/Users/andreidm/ETH
             pyplot.savefig(save_to + 'vcs_{}.pdf'.format(type))
 
 
-def plot_n_clusters(clusters_dict, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_n_clusters(clusters_dict, clusters_dict_original, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     if len(clusters_dict) == 6:
         # save all on one figure
@@ -126,11 +129,13 @@ def plot_n_clusters(clusters_dict, save_to='/Users/andreidm/ETH/projects/normali
             y = clusters_dict[type]  # values
 
             ax = pyplot.subplot(2, 3, i + 1)
-            ax.plot(x,y)
+            ax.plot(x,y, labels='Normalized data')
+            ax.axhline(y=clusters_dict_original[type], color='r', linestyle='-', label='Original data')
             ax.set_xlabel('Epochs')
             ax.set_ylabel('Clusters found')
             ax.set_title(type)
             ax.grid(True)
+            ax.legend()
 
         pyplot.suptitle('HDBSCAN clustering')
         pyplot.tight_layout()
@@ -142,12 +147,14 @@ def plot_n_clusters(clusters_dict, save_to='/Users/andreidm/ETH/projects/normali
             y = clusters_dict[type]  # values
 
             pyplot.figure()
-            pyplot.plot(x, y)
+            pyplot.plot(x, y, label='Normalized data')
+            pyplot.axhline(y=clusters_dict_original[type], color='r', linestyle='-', label='Original data')
             pyplot.ylabel('Clusters found')
             pyplot.xlabel('Epochs')
             pyplot.title('HDBSCAN clustering for {}'.format(type))
             pyplot.grid(True)
             pyplot.tight_layout()
+            pyplot.legend()
             pyplot.savefig(save_to + 'clustering_{}.pdf'.format(type))
 
 
@@ -180,13 +187,14 @@ if __name__ == "__main__":
     g_criterion = nn.L1Loss()
     # g_criterion = nn.MSELoss()
 
-    data = get_data(path)
+    data, pretrained_encodings = get_data(path)
     # split to values and batches
     data_batch_labels = data.iloc[:, 0]
     data_values = data.iloc[:, 1:]
 
     # get CV of benchmarks in original data
     cv_dict_original = compute_cv_for_samples_types(data_values, sample_types_of_interest=benchmarks)
+    clustering_dict_original = compute_number_of_clusters_with_hdbscan(pretrained_encodings, print_info=False, sample_types_of_interest=benchmarks)
 
     # create and fit the scaler
     scaler = RobustScaler().fit(data_values)
@@ -298,10 +306,8 @@ if __name__ == "__main__":
         if epoch % 20 == 0:
             # assess cross correlations of benchmarks in ALL reconstructed data
             plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
-            # assess batch effects in benchmarks in ALL encoded data
-            plot_batch_effects_with_umap(encodings, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
             # plot umap of FULL encoded data
-            plot_full_dataset_umap(encodings, 'epoch {}'.format(epoch+1), save_to=save_to+'callbacks/')
+            plot_full_dataset_umap(encodings, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
 
         # display the epoch training loss
         timing = int(time.time() - start)
@@ -310,7 +316,7 @@ if __name__ == "__main__":
     # PLOT TRAINING HISTORY
     plot_losses(d_loss_history, g_loss_history, val_acc_history, save_to=save_to+'callbacks/')
     plot_variation_coefs(variation_coefs, cv_dict_original, save_to=save_to+'callbacks/')
-    plot_n_clusters(n_clusters, save_to=save_to+'callbacks/')
+    plot_n_clusters(n_clusters, clustering_dict_original, save_to=save_to+'callbacks/')
 
     # TODO: ideas:
     #    i) experiment with coefficient at g_loss -= d_loss

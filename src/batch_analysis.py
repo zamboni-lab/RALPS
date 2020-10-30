@@ -77,66 +77,54 @@ def compute_cv_for_samples_types(data, sample_types_of_interest=None):
     return cv_dict
 
 
-def plot_full_dataset_umap(encodings, method_name, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_full_dataset_umap(encodings, method_name, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     random_seed = 666
-    metric = 'cosine'
-    n = 100
+    metric = 'braycurtis'
+    n = 20
 
     batches = encodings['batch'].values - 1
     values = encodings.iloc[:, 1:].values
 
-    reducer = umap.UMAP(n_neighbors=n, metric=metric, min_dist=0.1, random_state=random_seed)
+    reducer = umap.UMAP(n_neighbors=n, metric=metric, min_dist=0.8, random_state=random_seed)
     embeddings = reducer.fit_transform(values)
 
+    # plot coloring batches
     seaborn.set()
     pyplot.figure(figsize=(8, 6))
 
-    seaborn.scatterplot(x=embeddings[:, 0], y=embeddings[:, 1], hue=batches, alpha=.8,
-                        palette=seaborn.color_palette('colorblind', n_colors=len(set(batches))))
-
+    seaborn.scatterplot(x=embeddings[:, 0], y=embeddings[:, 1], hue=batches, alpha=.8, palette=seaborn.color_palette('deep', n_colors=len(set(batches))))
     pyplot.legend(title='Batch', bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=10)
     pyplot.title('UMAP: {}: n={}, metric={}'.format(method_name, n, metric))
     pyplot.tight_layout()
     # pyplot.show()
-    pyplot.savefig(save_to + 'umap_full_{}.pdf'.format(method_name.replace(' ', '_')))
+    pyplot.savefig(save_to + 'umap_batches_{}.pdf'.format(method_name.replace(' ', '_')))
 
-
-def plot_batch_effects_with_umap(encodings, method_name, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
-
-    if sample_types_of_interest is None:
-        sample_types_of_interest = ['P1_FA_0001', 'P2_SF_0001', 'P2_SFA_0001', 'P2_SRM_0001', 'P2_SFA_0002', 'P1_FA_0008']
-
+    # define colors of benchmark samples
     samples_by_types = get_samples_by_types_dict(encodings.index.values, sample_types_of_interest)
 
-    batches = encodings['batch'].values - 1
-    values = encodings.iloc[:, 1:].values
+    samples_colors = []
+    for sample in encodings.index.values:
 
-    random_seed = 831
-    metric = 'braycurtis'
-    n = 20
+        for i, type in enumerate(samples_by_types):
+            if sample in samples_by_types[type]:
+                samples_colors.append(type)
+                break
+            elif i == len(samples_by_types) - 1:
+                samples_colors.append('Other')
+            else:
+                pass
 
-    reducer = umap.UMAP(n_neighbors=n, metric=metric, min_dist=0.1, random_state=random_seed)
-    embedding = reducer.fit_transform(values)
-
+    # plot coloring benchmark samples
     seaborn.set()
-    pyplot.figure(figsize=(12, 8))
-    for i, type in enumerate(samples_by_types):
-        indices_of_type = [list(encodings.index.values).index(x) for x in samples_by_types[type]]
-        type_embedding = embedding[numpy.array(indices_of_type), :]
-        type_batches = batches[numpy.array(indices_of_type)]
+    pyplot.figure(figsize=(8, 6))
 
-        ax = pyplot.subplot(2, 3, i + 1)
-        seaborn.scatterplot(x=type_embedding[:, 0], y=type_embedding[:, 1], hue=type_batches, s=50, alpha=.8,
-                            palette=seaborn.color_palette('colorblind', n_colors=len(set(type_batches))))
-        ax.set_title(type)
-        ax.get_legend().remove()
-
-    pyplot.legend(title='Batch', bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=10)
-    pyplot.suptitle('{}'.format(method_name))
+    seaborn.scatterplot(x=embeddings[:, 0], y=embeddings[:, 1], hue=samples_colors, alpha=.9, palette=seaborn.color_palette('Paired', n_colors=len(set(samples_colors))))
+    pyplot.legend(title='Samples', bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=10)
+    pyplot.title('UMAP: {}: n={}, metric={}'.format(method_name, n, metric))
     pyplot.tight_layout()
     # pyplot.show()
-    pyplot.savefig(save_to + 'umap_batch_effects_{}.pdf'.format(method_name.replace(' ', '_')))
+    pyplot.savefig(save_to + 'umap_benchmarks_{}.pdf'.format(method_name.replace(' ', '_')))
 
 
 def compute_number_of_clusters_with_hdbscan(encodings, print_info=True, sample_types_of_interest=None):
@@ -153,23 +141,31 @@ def compute_number_of_clusters_with_hdbscan(encodings, print_info=True, sample_t
     reducer = umap.UMAP(n_components=30, n_neighbors=n, metric=metric, min_dist=0.1, random_state=random_seed)
     embeddings = reducer.fit_transform(values)
 
+    clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=3, allow_single_cluster=False)
+    clusterer.fit(embeddings)
+
+    print('CLUSTERING INFO:\n')
+    print('Total of clusters:', clusterer.labels_.max() + 1)
+
     n_clusters_dict = {}
     for i, type in enumerate(samples_by_types):
         indices_of_type = [list(encodings.index.values).index(x) for x in samples_by_types[type]]
-        type_embeddings = embeddings[numpy.array(indices_of_type), :]
         type_batches = batches[numpy.array(indices_of_type)]
 
-        clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=3, allow_single_cluster=True)
-        clusterer.fit(type_embeddings)
+        type_labels = clusterer.labels_[numpy.array(indices_of_type)]
+        type_probs = clusterer.probabilities_[numpy.array(indices_of_type)]
+        type_outlier_probs = clusterer.outlier_scores_[numpy.array(indices_of_type)]
+
+        type_n_clusters = len(set(type_labels))
+        n_clusters_dict[type] = type_n_clusters
 
         if print_info:
-            print('CLUSTERING INFO:', type)
-            print('n clusters: ', clusterer.labels_.max() + 1)
-            print('labels:', list(clusterer.labels_))
-            print('probs:', list(clusterer.probabilities_))
-            print('outlier probs:', list(clusterer.outlier_scores_), '\n')
-
-        n_clusters_dict[type] = clusterer.labels_.max() + 1
+            print('{}:'.format(type))
+            print('n clusters:', type_n_clusters)
+            print('true batches:', list(type_batches))
+            print('labels:', list(type_labels))
+            print('probs:', list(type_probs))
+            print('outlier probs:', list(type_outlier_probs), '\n')
 
     return n_clusters_dict
 
@@ -184,10 +180,10 @@ if __name__ == '__main__':
     #                                                         'P2_SFA_0001', 'P2_SRM_0001',
     #                                                         'P2_SFA_0002', 'P1_FA_0008'])
 
-    res = compute_cv_for_samples_types(data.T, sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-                                                                       'P2_SFA_0001', 'P2_SRM_0001',
-                                                                       'P2_SFA_0002', 'P1_FA_0008'])
-    print(res)
+    # res = compute_cv_for_samples_types(data.T, sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+    #                                                                    'P2_SFA_0001', 'P2_SRM_0001',
+    #                                                                    'P2_SFA_0002', 'P1_FA_0008'])
+    # print(res)
 
     encodings = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/encodings.csv', index_col=0)
 
@@ -196,7 +192,11 @@ if __name__ == '__main__':
     #                                                        'P2_SFA_0001', 'P2_SRM_0001',
     #                                                        'P2_SFA_0002', 'P1_FA_0008'])
 
-    # res = compute_number_of_clusters_with_hdbscan(encodings, print_info=False,
+    plot_full_dataset_umap(encodings, 'original samples', sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+                                                                                    'P2_SFA_0001', 'P2_SRM_0001',
+                                                                                    'P2_SFA_0002', 'P1_FA_0008'])
+
+    # res = compute_number_of_clusters_with_hdbscan(encodings, print_info=True,
     #                                               sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
     #                                                                         'P2_SFA_0001', 'P2_SRM_0001',
     #                                                                         'P2_SFA_0002', 'P1_FA_0008'])
