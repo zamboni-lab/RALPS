@@ -36,6 +36,7 @@ def plot_batch_cross_correlations(data, method_name, sample_types_of_interest=No
     if sample_types_of_interest is None:
         for i, type in enumerate(samples_by_types):
             df = data.loc[numpy.array(samples_by_types[type]), :]
+            df = df.T  # transpose to call corr() on samples, not metabolites
             df.columns = [x[-6:] for x in df.columns]
             df = df.corr()
 
@@ -50,7 +51,7 @@ def plot_batch_cross_correlations(data, method_name, sample_types_of_interest=No
         for i, type in enumerate(samples_by_types):
             df = data.loc[numpy.array(samples_by_types[type]), :]
             df = df.T  # transpose to call corr() on samples, not metabolites
-            df.columns = [x[-6:] for x in df.columns]
+            df.columns = sorted([x[-6:] for x in df.columns])
             df = df.corr()
 
             ax = pyplot.subplot(2, 3, i+1)
@@ -178,10 +179,10 @@ if __name__ == '__main__':
     data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv')
     data = data.iloc[:, 3:]
 
-    # plot_batch_cross_correlations(data.T, 'original samples',
-    #                               sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-    #                                                         'P2_SFA_0001', 'P2_SRM_0001',
-    #                                                         'P2_SFA_0002', 'P1_FA_0008'])
+    plot_batch_cross_correlations(data.T, 'original samples',
+                                  sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+                                                            'P2_SFA_0001', 'P2_SRM_0001',
+                                                            'P2_SFA_0002', 'P1_FA_0008'])
 
     # res = compute_cv_for_samples_types(data.T, sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
     #                                                                    'P2_SFA_0001', 'P2_SRM_0001',

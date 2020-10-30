@@ -54,19 +54,19 @@ def plot_losses(d_loss, g_loss, val_acc, save_to='/Users/andreidm/ETH/projects/n
 
     fig.suptitle('Adversarial training loop')
 
-    axs[0].plot(range(epochs), d_loss)
+    axs[0].plot(range(1, 1+len(d_loss)), d_loss)
     axs[0].set_title('Classifier loss')
     axs[0].set_xlabel('Epochs')
     axs[0].set_ylabel('CrossEntropy')
     axs[0].grid()
 
-    axs[1].plot(range(epochs), g_loss)
+    axs[1].plot(range(1, 1+len(g_loss)), g_loss)
     axs[1].set_title('Autoencoder loss')
     axs[1].set_xlabel('Epochs')
     axs[1].set_ylabel('L1Loss - CrossEntropy')
     axs[1].grid()
 
-    axs[2].plot(range(epochs), val_acc)
+    axs[2].plot(range(1, 1+len(val_acc)), val_acc)
     axs[2].set_title('Batch prediction')
     axs[2].set_xlabel('Epochs')
     axs[2].set_ylabel('Test accuracy')
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     print('Total number of parameters: ', generator.count_parameters())
 
     # create an optimizers
-    d_optimizer = optim.Adam(discriminator.parameters(), lr=1e-4)
+    d_optimizer = optim.Adam(discriminator.parameters(), lr=2e-3)
     g_optimizer = optim.Adam(generator.parameters(), lr=1e-3)
 
     # define losses
@@ -289,8 +289,8 @@ if __name__ == "__main__":
             n_clusters[sample].append(clustering[sample])
 
         # PRINT AND PLOT EPOCH INFO
-        # plot every 10 epochs what happens with data
-        if epoch % 10 == 0:
+        # plot every N epochs what happens with data
+        if epoch % 20 == 0:
             # assess cross correlations of benchmarks in ALL reconstructed data
             plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
             # assess batch effects in benchmarks in ALL encoded data
