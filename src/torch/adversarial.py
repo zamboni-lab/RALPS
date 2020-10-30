@@ -127,7 +127,7 @@ def plot_n_clusters(clusters_dict, clusters_dict_original, save_to='/Users/andre
             y = clusters_dict[type]  # values
 
             ax = pyplot.subplot(2, 3, i + 1)
-            ax.plot(x,y, labels='Normalized data')
+            ax.plot(x,y, label='Normalized data')
             ax.axhline(y=clusters_dict_original[type], color='r', linestyle='-', label='Original data')
             ax.set_xlabel('Epochs')
             ax.set_ylabel('Clusters found')
@@ -301,7 +301,7 @@ if __name__ == "__main__":
 
         # PRINT AND PLOT EPOCH INFO
         # plot every N epochs what happens with data
-        if epoch % 20 == 0:
+        if epoch % 10 == 0:
             # assess cross correlations of benchmarks in ALL reconstructed data
             plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
             # plot umap of FULL encoded data

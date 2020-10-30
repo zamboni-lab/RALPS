@@ -86,7 +86,7 @@ def plot_full_dataset_umap(encodings, method_name, sample_types_of_interest=None
     batches = encodings['batch'].values - 1
     values = encodings.iloc[:, 1:].values
 
-    reducer = umap.UMAP(n_neighbors=n, metric=metric, min_dist=0.8, random_state=random_seed)
+    reducer = umap.UMAP(n_neighbors=n, metric=metric, min_dist=0.9, random_state=random_seed)
     embeddings = reducer.fit_transform(values)
 
     # plot coloring batches
@@ -141,7 +141,7 @@ def compute_number_of_clusters_with_hdbscan(encodings, print_info=True, sample_t
     reducer = umap.UMAP(n_components=30, n_neighbors=n, metric=metric, min_dist=0.1, random_state=random_seed)
     embeddings = reducer.fit_transform(values)
 
-    clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=3, allow_single_cluster=False)
+    clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=n, allow_single_cluster=False)
     clusterer.fit(embeddings)
 
     if print_info:
@@ -188,20 +188,15 @@ if __name__ == '__main__':
 
     encodings = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/encodings.csv', index_col=0)
 
-    # plot_batch_effects_with_umap(encodings, 'original samples',
-    #                              sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-    #                                                        'P2_SFA_0001', 'P2_SRM_0001',
-    #                                                        'P2_SFA_0002', 'P1_FA_0008'])
+    # plot_full_dataset_umap(encodings, 'original samples', sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+    #                                                                                 'P2_SFA_0001', 'P2_SRM_0001',
+    #                                                                                 'P2_SFA_0002', 'P1_FA_0008'])
 
-    plot_full_dataset_umap(encodings, 'original samples', sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-                                                                                    'P2_SFA_0001', 'P2_SRM_0001',
-                                                                                    'P2_SFA_0002', 'P1_FA_0008'])
-
-    # res = compute_number_of_clusters_with_hdbscan(encodings, print_info=True,
-    #                                               sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-    #                                                                         'P2_SFA_0001', 'P2_SRM_0001',
-    #                                                                         'P2_SFA_0002', 'P1_FA_0008'])
-    # print(res)
+    res = compute_number_of_clusters_with_hdbscan(encodings, print_info=True,
+                                                  sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+                                                                            'P2_SFA_0001', 'P2_SRM_0001',
+                                                                            'P2_SFA_0002', 'P1_FA_0008'])
+    print(res)
 
 
 
