@@ -1,4 +1,4 @@
-import torch, numpy, pandas
+import torch, numpy, pandas, time
 import torchvision as torchvision
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
@@ -10,6 +10,8 @@ from src.torch.ae import Autoencoder
 from src.constants import samples_with_strong_batch_effects as benchmarks
 from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
 from src.batch_analysis import plot_batch_effects_with_umap, compute_number_of_clusters_with_hdbscan
+from src.batch_analysis import plot_full_dataset_umap
+
 
 
 def split_to_train_and_test(values, batches, scaler):
@@ -77,27 +79,74 @@ def plot_losses(d_loss, g_loss, val_acc, save_to='/Users/andreidm/ETH/projects/n
 
 def plot_variation_coefs(vc_dict, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
-    # pyplot.figure(figsize=(12, 8))
-    #
-    # for i, type in enumerate(samples_by_types):
-    #     df = data.loc[:, numpy.array(samples_by_types[type])]
-    #     df.columns = [x[-6:] for x in df.columns]
-    #     df = df.corr()
-    #
-    #     ax = pyplot.subplot(2, 3, i + 1)
-    #     seaborn.heatmap(df)
-    #     ax.set_title(type)
-    #
-    # pyplot.suptitle('Cross correlations: {}'.format(method_name))
-    # pyplot.tight_layout()
-    # # pyplot.show()
-    # pyplot.savefig(save_to + 'correlations_{}.pdf'.format(method_name.replace(' ', '_')))
+    if len(vc_dict) == 6:
+        # save all on one figure
+        pyplot.figure(figsize=(12, 8))
+        for i, type in enumerate(vc_dict):
 
-    pass
+            x = range(1, 1+len(vc_dict[type]))  # epochs
+            y = vc_dict[type]  # values
+
+            ax = pyplot.subplot(2, 3, i + 1)
+            ax.plot(x,y)
+            ax.set_xlabel('Epochs')
+            ax.set_ylabel('VC')
+            ax.set_title(type)
+            ax.grid()
+
+        pyplot.suptitle('Variation coefficients')
+        pyplot.tight_layout()
+        pyplot.savefig(save_to + 'vcs.pdf')
+    else:
+        # save one by one for each sample in dict
+        for i, type in enumerate(vc_dict):
+            x = range(1, 1+len(vc_dict[type]))  # epochs
+            y = vc_dict[type]  # values
+
+            pyplot.figure()
+            pyplot.plot(x, y)
+            pyplot.ylabel('VC')
+            pyplot.xlabel('Epochs')
+            pyplot.title('Variation coefficient for {}'.format(type))
+            pyplot.grid()
+            pyplot.tight_layout()
+            pyplot.savefig(save_to + 'vcs_{}.pdf'.format(type))
 
 
 def plot_n_clusters(clusters_dict, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
-    pass
+
+    if len(clusters_dict) == 6:
+        # save all on one figure
+        pyplot.figure(figsize=(12, 8))
+        for i, type in enumerate(clusters_dict):
+
+            x = range(1, 1+len(clusters_dict[type]))  # epochs
+            y = clusters_dict[type]  # values
+
+            ax = pyplot.subplot(2, 3, i + 1)
+            ax.plot(x,y)
+            ax.set_xlabel('Epochs')
+            ax.set_ylabel('Clusters found')
+            ax.set_title(type)
+            ax.grid()
+
+        pyplot.suptitle('HDBSCAN clustering')
+        pyplot.tight_layout()
+        pyplot.savefig(save_to + 'clustering.pdf')
+    else:
+        # save one by one for each sample in dict
+        for i, type in enumerate(clusters_dict):
+            x = range(1, 1+len(clusters_dict[type]))  # epochs
+            y = clusters_dict[type]  # values
+
+            pyplot.figure()
+            pyplot.plot(x, y)
+            pyplot.ylabel('Clusters found')
+            pyplot.xlabel('Epochs')
+            pyplot.title('HDBSCAN clustering for {}'.format(type))
+            pyplot.grid()
+            pyplot.tight_layout()
+            pyplot.savefig(save_to + 'clustering_{}.pdf'.format(type))
 
 
 if __name__ == "__main__":
@@ -146,7 +195,7 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=False)
     test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=4)
 
-    epochs = 300
+    epochs = 150
 
     # Lists to keep track of progress
     g_loss_history = []
@@ -155,7 +204,8 @@ if __name__ == "__main__":
     variation_coefs = dict([(sample, []) for sample in benchmarks])
     n_clusters = dict([(sample, []) for sample in benchmarks])
 
-    for epoch in range(epochs):
+    for epoch in range(epochs+1):
+        start = time.time()
         d_loss_per_epoch = 0
         g_loss_per_epoch = 0
         total_loss_per_epoch = 0
@@ -202,34 +252,31 @@ if __name__ == "__main__":
         d_loss_history.append(d_loss)
         g_loss_history.append(g_loss)
 
-        # display the epoch training loss
-        print("epoch : {}/{}, d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f} ".format(epoch + 1, epochs, d_loss, g_loss, accuracy))
-
         # GENERATE DATA FOR OTHER METRICS
-        reconstruction = generator(torch.Tensor(data_values)).detach().numpy()
-        reconstruction = pandas.DataFrame(reconstruction, columns=data_values.columns)
+        encodings = generator.encode(torch.Tensor(data_values.values))
+        reconstruction = generator.decode(encodings)
 
-        encodings = generator.encode(torch.Tensor(data_values)).detach().numpy()
-        encodings = pandas.DataFrame(encodings, index=data_values.index)
+        encodings = pandas.DataFrame(encodings.detach().numpy(), index=data_values.index)
         encodings.insert(0, 'batch', data_batch_labels)
+        reconstruction = pandas.DataFrame(reconstruction.detach().numpy(), index=data_values.index)
 
         # COMPUTE METRICS
         # classification accuracy of TEST data
         accuracy = []
-        for batch_features, labels in test_loader:
+        for batch_features, batch_labels in test_loader:
 
             batch_features = batch_features.to(device)
             # generate encodings
-            encodings = generator.encode(batch_features)
-
-            predictions = discriminator(encodings)
+            batch_encodings = generator.encode(batch_features)
+            batch_predictions = discriminator(batch_encodings)
 
             # calculate accuracy per batch
-            true_positives = (predictions.argmax(-1) == labels).float().detach().numpy()
+            true_positives = (batch_predictions.argmax(-1) == batch_labels).float().detach().numpy()
             batch_accuracy = true_positives.sum() / len(true_positives)
             accuracy.append(batch_accuracy)
 
-        val_acc_history.append(numpy.mean(accuracy))
+        accuracy = numpy.mean(accuracy)  # save for printing
+        val_acc_history.append(accuracy)  # save for plotting
 
         # collect variation coefficients for some samples of ALL reconstructed data
         vc = compute_cv_for_samples_types(reconstruction, sample_types_of_interest=benchmarks)
@@ -241,20 +288,26 @@ if __name__ == "__main__":
         for sample in benchmarks:
             n_clusters[sample].append(clustering[sample])
 
-        if epoch % 10 > 0:
+        # PRINT AND PLOT EPOCH INFO
+        # plot every 10 epochs what happens with data
+        if epoch % 10 == 0:
             # assess cross correlations of benchmarks in ALL reconstructed data
-            plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch), sample_types_of_interest=benchmarks, save_to=path+'callbacks/')
+            plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
             # assess batch effects in benchmarks in ALL encoded data
-            plot_batch_effects_with_umap(encodings, 'epoch {}'.format(epoch), sample_types_of_interest=benchmarks, save_to=path+'callbacks/')
+            plot_batch_effects_with_umap(encodings, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
+            # plot umap of FULL encoded data
+            plot_full_dataset_umap(encodings, 'epoch {}'.format(epoch+1), save_to=save_to+'callbacks/')
+
+        # display the epoch training loss
+        timing = int(time.time() - start)
+        print("epoch {}/{}, {} seconds elapsed: d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f}".format(epoch + 1, epochs, timing, d_loss, g_loss, accuracy))
 
     # PLOT TRAINING HISTORY
-    plot_losses(d_loss_history, g_loss_history, val_acc_history, save_to=path+'callbacks/')
-    plot_variation_coefs(variation_coefs, save_to=path+'callbacks/')
-    plot_n_clusters(n_clusters, save_to=path+'callbacks/')
-
+    plot_losses(d_loss_history, g_loss_history, val_acc_history, save_to=save_to+'callbacks/')
+    plot_variation_coefs(variation_coefs, save_to=save_to+'callbacks/')
+    plot_n_clusters(n_clusters, save_to=save_to+'callbacks/')
 
     # TODO: ideas:
-    #   ii) plot umaps of encodings before and after training (better every n epochs)
     #    i) experiment with coefficient at g_loss -= d_loss
     #  iii) try adding regularizations to g_loss and d_loss
     #   iv) come up with a criterion: what does it mean exactly to remove batch effects in this case? is it generalizable?

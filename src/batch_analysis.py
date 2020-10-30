@@ -31,11 +31,11 @@ def get_samples_by_types_dict(samples_names, types_of_interest):
 
 def plot_batch_cross_correlations(data, method_name, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
-    samples_by_types = get_samples_by_types_dict(data.columns.values, sample_types_of_interest)
+    samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
     if sample_types_of_interest is None:
         for i, type in enumerate(samples_by_types):
-            df = data.loc[:, numpy.array(samples_by_types[type])]
+            df = data.loc[numpy.array(samples_by_types[type]), :]
             df.columns = [x[-6:] for x in df.columns]
             df = df.corr()
 
@@ -48,7 +48,8 @@ def plot_batch_cross_correlations(data, method_name, sample_types_of_interest=No
         pyplot.figure(figsize=(12,8))
 
         for i, type in enumerate(samples_by_types):
-            df = data.loc[:, numpy.array(samples_by_types[type])]
+            df = data.loc[numpy.array(samples_by_types[type]), :]
+            df = df.T  # transpose to call corr() on samples, not metabolites
             df.columns = [x[-6:] for x in df.columns]
             df = df.corr()
 
@@ -64,11 +65,11 @@ def plot_batch_cross_correlations(data, method_name, sample_types_of_interest=No
 
 def compute_cv_for_samples_types(data, sample_types_of_interest=None):
 
-    samples_by_types = get_samples_by_types_dict(data.columns.values, sample_types_of_interest)
+    samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
     cv_dict = {}
     for i, type in enumerate(samples_by_types):
-        values = data.loc[:, numpy.array(samples_by_types[type])].values
+        values = data.loc[numpy.array(samples_by_types[type]), :].values
         values = values.flatten()
         cv_dict[type] = numpy.std(values) / numpy.mean(values)
 
@@ -174,15 +175,15 @@ def compute_number_of_clusters_with_hdbscan(encodings, print_info=True, sample_t
 
 if __name__ == '__main__':
 
-    # data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv')
-    # data = data.iloc[:, 3:]
+    data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv')
+    data = data.iloc[:, 3:]
 
-    # plot_batch_cross_correlations(data, 'original samples',
+    # plot_batch_cross_correlations(data.T, 'original samples',
     #                               sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
     #                                                         'P2_SFA_0001', 'P2_SRM_0001',
     #                                                         'P2_SFA_0002', 'P1_FA_0008'])
 
-    # res = compute_cv_for_samples_types(data, sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+    # res = compute_cv_for_samples_types(data.T, sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
     #                                                                    'P2_SFA_0001', 'P2_SRM_0001',
     #                                                                    'P2_SFA_0002', 'P1_FA_0008'])
     # print(res)

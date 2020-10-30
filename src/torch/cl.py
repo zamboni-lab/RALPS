@@ -18,7 +18,7 @@ class Classifier(nn.Module):
         x = self.l1(x)
         x = nn.LeakyReLU()(x)
         x = self.l2(x)
-        x = nn.Softmax()(x)
+        x = nn.Softmax(dim=1)(x)
         return x
 
     def count_parameters(self):
