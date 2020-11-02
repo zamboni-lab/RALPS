@@ -224,6 +224,7 @@ if __name__ == "__main__":
     # define losses
     d_criterion = nn.CrossEntropyLoss()
     g_criterion = nn.L1Loss()
+    # g_criterion = nn.MSELoss()
 
     data, pretrained_encodings = get_data(path)
     # split to values and batches
@@ -293,7 +294,7 @@ if __name__ == "__main__":
                 reconstruction_loss = g_criterion(reconstruction, batch_features)
 
                 # add regularization by grouping of benchmarks
-                g_loss += g_lambda * reconstruction_loss
+                g_loss += (1 + g_lambda) * reconstruction_loss
                 # substitute discriminator loss to push it towards smaller batch effects
                 g_loss -= parameters['d_lambda'] * d_loss.item()
 
