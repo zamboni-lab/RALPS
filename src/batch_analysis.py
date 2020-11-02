@@ -144,11 +144,12 @@ def compute_number_of_clusters_with_hdbscan(encodings, print_info=True, sample_t
     clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=n, allow_single_cluster=False)
     clusterer.fit(embeddings)
 
+    total = clusterer.labels_.max() + 1
     if print_info:
         print('CLUSTERING INFO:\n')
-        print('Total of clusters:', clusterer.labels_.max() + 1)
+        print('Total of clusters:', total)
 
-    n_clusters_dict = {}
+    labels_dict = {}
     for i, type in enumerate(samples_by_types):
         indices_of_type = [list(encodings.index.values).index(x) for x in samples_by_types[type]]
         type_batches = batches[numpy.array(indices_of_type)]
@@ -157,18 +158,17 @@ def compute_number_of_clusters_with_hdbscan(encodings, print_info=True, sample_t
         type_probs = clusterer.probabilities_[numpy.array(indices_of_type)]
         type_outlier_probs = clusterer.outlier_scores_[numpy.array(indices_of_type)]
 
-        type_n_clusters = len(set(type_labels))
-        n_clusters_dict[type] = type_n_clusters
+        labels_dict[type] = list(type_labels)
 
         if print_info:
             print('{}:'.format(type))
-            print('n clusters:', type_n_clusters)
+            print('n clusters:', len(set(type_labels)))
             print('true batches:', list(type_batches))
             print('labels:', list(type_labels))
             print('probs:', list(type_probs))
             print('outlier probs:', list(type_outlier_probs), '\n')
 
-    return n_clusters_dict
+    return labels_dict, total
 
 
 if __name__ == '__main__':
@@ -192,7 +192,7 @@ if __name__ == '__main__':
     #                                                                                 'P2_SFA_0001', 'P2_SRM_0001',
     #                                                                                 'P2_SFA_0002', 'P1_FA_0008'])
 
-    res = compute_number_of_clusters_with_hdbscan(encodings, print_info=True,
+    res, _ = compute_number_of_clusters_with_hdbscan(encodings, print_info=True,
                                                   sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
                                                                             'P2_SFA_0001', 'P2_SRM_0001',
                                                                             'P2_SFA_0002', 'P1_FA_0008'])

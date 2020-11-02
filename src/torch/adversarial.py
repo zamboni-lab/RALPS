@@ -12,7 +12,7 @@ from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_co
 from src.batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
 
 
-def split_to_train_and_test(values, batches, scaler):
+def split_to_train_and_test(values, batches, scaler, proportion=0.7):
 
     n_samples, n_features = values.shape
 
@@ -20,13 +20,15 @@ def split_to_train_and_test(values, batches, scaler):
     scaled = scaler.transform(values)
 
     # split values to train and val
-    x_train = scaled[:int(0.7 * n_samples), :]
-    x_val = scaled[int(0.7 * n_samples):, :]
-    y_train = batches[:int(0.7 * n_samples)]
-    y_val = batches[int(0.7 * n_samples):]
+    x_train = scaled[:int(proportion * n_samples), :]
+    x_val = scaled[int(proportion * n_samples):, :]
+    y_train = batches[:int(proportion * n_samples)]
+    y_val = batches[int(proportion * n_samples):]
 
-    y_train -= 1
-    y_val -= 1
+    if numpy.min(batches) == 1:
+        # enumerate batches from 0 to n
+        y_train -= 1
+        y_val -= 1
 
     return x_train, x_val, y_train, y_val
 
@@ -128,7 +130,7 @@ def plot_n_clusters(clusters_dict, clusters_dict_original, save_to='/Users/andre
 
             ax = pyplot.subplot(2, 3, i + 1)
             ax.plot(x,y, label='Normalized data')
-            ax.axhline(y=clusters_dict_original[type], color='r', linestyle='-', label='Original data')
+            ax.axhline(y=len(set(clusters_dict_original[type])), color='r', linestyle='-', label='Original data')
             ax.set_xlabel('Epochs')
             ax.set_ylabel('Clusters found')
             ax.set_title(type)
@@ -146,7 +148,7 @@ def plot_n_clusters(clusters_dict, clusters_dict_original, save_to='/Users/andre
 
             pyplot.figure()
             pyplot.plot(x, y, label='Normalized data')
-            pyplot.axhline(y=clusters_dict_original[type], color='r', linestyle='-', label='Original data')
+            pyplot.axhline(y=len(set(clusters_dict_original[type])), color='r', linestyle='-', label='Original data')
             pyplot.ylabel('Clusters found')
             pyplot.xlabel('Epochs')
             pyplot.title('HDBSCAN clustering for {}'.format(type))
@@ -160,9 +162,20 @@ if __name__ == "__main__":
 
     path = '/Users/andreidm/ETH/projects/normalization/data/'
     save_to = path.replace('data', 'res')
-    n_features = 170
-    latent_dim = 100
+
+    # PARAMETERS
+    n_features = 170  # n of metabolites in initial dataset
+    latent_dim = 100  # n dimensions to reduce to
     n_batches = 7
+
+    d_lr = 2e-3  # discriminator learning rate
+    g_lr = 1e-3  # generator learning rate
+    d_lambda = 1.  # discriminator regularization term value
+    use_g_regularization = True  # whether to use generator regularization term
+    train_ratio = 0.7
+    batch_size = 64
+    epochs = 200
+    callback_step = 10  # save callbacks every n epochs
 
     #  use gpu if available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -177,8 +190,8 @@ if __name__ == "__main__":
     print('Total number of parameters: ', generator.count_parameters())
 
     # create an optimizers
-    d_optimizer = optim.Adam(discriminator.parameters(), lr=2e-3)
-    g_optimizer = optim.Adam(generator.parameters(), lr=1e-3)
+    d_optimizer = optim.Adam(discriminator.parameters(), lr=d_lr)
+    g_optimizer = optim.Adam(generator.parameters(), lr=g_lr)
 
     # define losses
     d_criterion = nn.CrossEntropyLoss()
@@ -192,21 +205,19 @@ if __name__ == "__main__":
 
     # get CV of benchmarks in original data
     cv_dict_original = compute_cv_for_samples_types(data_values, sample_types_of_interest=benchmarks)
-    clustering_dict_original = compute_number_of_clusters_with_hdbscan(pretrained_encodings, print_info=False, sample_types_of_interest=benchmarks)
+    clustering_dict_original, _ = compute_number_of_clusters_with_hdbscan(pretrained_encodings, print_info=False, sample_types_of_interest=benchmarks)
 
     # create and fit the scaler
     scaler = RobustScaler().fit(data_values)
     # apply scaling and do train test split
-    X_train, X_test, y_train, y_test = split_to_train_and_test(data_values, data_batch_labels, scaler)
+    X_train, X_test, y_train, y_test = split_to_train_and_test(data_values, data_batch_labels, scaler, proportion=train_ratio)
 
     # make datasets
     train_dataset = TensorDataset(torch.Tensor(X_train), torch.LongTensor(y_train))
     test_dataset = TensorDataset(torch.Tensor(X_test), torch.LongTensor(y_test))
 
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=4, pin_memory=False)
-    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=4)
-
-    epochs = 200
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
 
     # Lists to keep track of progress
     g_loss_history = []
@@ -215,6 +226,7 @@ if __name__ == "__main__":
     variation_coefs = dict([(sample, []) for sample in benchmarks])
     n_clusters = dict([(sample, []) for sample in benchmarks])
 
+    g_lambda = 0
     for epoch in range(epochs+1):
         start = time.time()
         d_loss_per_epoch = 0
@@ -249,8 +261,11 @@ if __name__ == "__main__":
             g_loss.backward()
             g_loss_per_epoch += g_loss.item()
 
+            # add regularization by grouping of benchmarks
+            g_loss += g_lambda * g_loss
             # substitute discriminator loss to push it towards smaller batch effects
-            g_loss -= d_loss
+            g_loss -= d_lambda * d_loss
+
             total_loss_per_epoch += g_loss.item()
 
             # perform parameter update based on current gradients
@@ -295,13 +310,25 @@ if __name__ == "__main__":
             variation_coefs[sample].append(vc[sample])
 
         # collect clustering results for some samples of ALL encoded data
-        clustering = compute_number_of_clusters_with_hdbscan(encodings, print_info=False, sample_types_of_interest=benchmarks)
+        clustering, total_clusters = compute_number_of_clusters_with_hdbscan(encodings, print_info=False, sample_types_of_interest=benchmarks)
         for sample in benchmarks:
-            n_clusters[sample].append(clustering[sample])
+            n_clusters[sample].append(len(set(clustering[sample])))
+
+        # COMPUTE REGULARIZATION FOR GENERATOR'S NEXT ITERATION
+        if use_g_regularization:
+            # compute g_lambda, so that it equals:
+            # 0, when all samples of a benchmark belong to the sample cluster
+            # 1, when N samples of a benchmark belong to N different clusters
+            grouping_coefs = []
+            for sample in benchmarks:
+                n_sample_clusters = len(set(clustering[sample]))
+                max_n_clusters = len(clustering[sample]) if len(clustering[sample]) <= total_clusters else total_clusters
+                coef = (n_sample_clusters - 1) / max_n_clusters
+            g_lambda = numpy.mean(grouping_coefs)
 
         # PRINT AND PLOT EPOCH INFO
         # plot every N epochs what happens with data
-        if epoch % 10 == 0:
+        if epoch % callback_step == 0:
             # assess cross correlations of benchmarks in ALL reconstructed data
             plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
             # plot umap of FULL encoded data
@@ -315,9 +342,3 @@ if __name__ == "__main__":
     plot_losses(d_loss_history, g_loss_history, val_acc_history, save_to=save_to+'callbacks/')
     plot_variation_coefs(variation_coefs, cv_dict_original, save_to=save_to+'callbacks/')
     plot_n_clusters(n_clusters, clustering_dict_original, save_to=save_to+'callbacks/')
-
-    # TODO: ideas:
-    #    i) experiment with coefficient at g_loss -= d_loss
-    #  iii) try adding regularizations to g_loss and d_loss
-    #   iv) come up with a criterion: what does it mean exactly to remove batch effects in this case? is it generalizable?
-
