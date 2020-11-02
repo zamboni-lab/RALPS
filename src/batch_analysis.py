@@ -64,6 +64,20 @@ def plot_batch_cross_correlations(data, method_name, sample_types_of_interest=No
         pyplot.savefig(save_to + 'correlations_{}.pdf'.format(method_name.replace(' ', '_')))
 
 
+def get_median_benchmark_cross_correlation(data, sample_types_of_interest=None):
+
+    samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
+
+    median_corrs = []
+    for i, type in enumerate(samples_by_types):
+        df = data.loc[numpy.array(samples_by_types[type]), :]
+        df = df.T.corr()  # transpose to call corr() on samples, not metabolites
+        values = df.values.flatten()
+        median_corrs.append(numpy.median(values))
+
+    return numpy.mean(median_corrs)
+
+
 def compute_cv_for_samples_types(data, sample_types_of_interest=None):
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)

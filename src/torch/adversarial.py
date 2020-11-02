@@ -10,6 +10,7 @@ from src.torch.ae import Autoencoder
 from src.constants import samples_with_strong_batch_effects as benchmarks
 from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
 from src.batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
+from src.batch_analysis import get_median_benchmark_cross_correlation
 
 
 def split_to_train_and_test(values, batches, scaler, proportion=0.7):
@@ -51,32 +52,54 @@ def get_data(path):
     return data, encodings
 
 
-def plot_losses(d_loss, g_loss, val_acc, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_losses(d_loss, g_loss, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
-    fig, axs = pyplot.subplots(3, figsize=(6,9))
+    fig, axs = pyplot.subplots(2, figsize=(6,6))
 
-    fig.suptitle('Adversarial training loop')
+    fig.suptitle('Adversarial training loop losses')
 
     axs[0].plot(range(1, 1+len(d_loss)), d_loss)
-    axs[0].set_title('Classifier loss')
+    axs[0].set_title('CrossEntropy')
     axs[0].set_xlabel('Epochs')
-    axs[0].set_ylabel('CrossEntropy')
+    axs[0].set_ylabel('Classifier loss')
     axs[0].grid(True)
 
     axs[1].plot(range(1, 1+len(g_loss)), g_loss)
-    axs[1].set_title('Autoencoder loss')
+    axs[1].set_title('Regularized L1 - CrossEntropy')
     axs[1].set_xlabel('Epochs')
-    axs[1].set_ylabel('L1Loss - CrossEntropy')
+    axs[1].set_ylabel('Autoencoder loss')
     axs[1].grid(True)
-
-    axs[2].plot(range(1, 1+len(val_acc)), val_acc)
-    axs[2].set_title('Batch prediction')
-    axs[2].set_xlabel('Epochs')
-    axs[2].set_ylabel('Test accuracy')
-    axs[2].grid(True)
 
     pyplot.tight_layout()
     pyplot.savefig(save_to + 'losses.pdf')
+
+
+def plot_metrics(d_accuracy, b_clustering, b_correlation, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+
+    fig, axs = pyplot.subplots(3, figsize=(6,9))
+
+    fig.suptitle('Adversarial training loop metrics')
+
+    axs[0].plot(range(1, 1+len(d_accuracy)), d_accuracy)
+    axs[0].set_title('Validation classifier accuracy')
+    axs[0].set_xlabel('Epochs')
+    axs[0].set_ylabel('Accuracy')
+    axs[0].grid(True)
+
+    axs[1].plot(range(1, 1+len(b_correlation)), b_correlation)
+    axs[1].set_title('Median benchmark cross-correlation')
+    axs[1].set_xlabel('Epochs')
+    axs[1].set_ylabel('Pearson correlation')
+    axs[1].grid(True)
+
+    axs[2].plot(range(1, 1+len(b_clustering)), b_clustering)
+    axs[2].set_title('Benchmark HDBSCAN clustering')
+    axs[2].set_xlabel('Epochs')
+    axs[2].set_ylabel('Clustering distance')
+    axs[2].grid(True)
+
+    pyplot.tight_layout()
+    pyplot.savefig(save_to + 'metrics.pdf')
 
 
 def plot_variation_coefs(vc_dict, vc_dict_original, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
@@ -177,9 +200,9 @@ if __name__ == "__main__":
         'batch_size': 64,
         'g_epochs': 0,  # pretraining of generator
         'd_epochs': 0,  # pretraining of discriminator
-        'adversarial_epochs': 200,  # simultaneous competitive training
+        'adversarial_epochs': 160,  # simultaneous competitive training
 
-        'callback_step': 10  # save callbacks every n epochs
+        'callback_step': 20  # save callbacks every n epochs
     }
 
     #  use gpu if available
@@ -226,7 +249,11 @@ if __name__ == "__main__":
     # Lists to keep track of progress
     g_loss_history = []
     d_loss_history = []
+
     val_acc_history = []
+    benchmarks_corr_history = []
+    g_lambda_history = []
+
     variation_coefs = dict([(sample, []) for sample in benchmarks])
     n_clusters = dict([(sample, []) for sample in benchmarks])
 
@@ -237,7 +264,6 @@ if __name__ == "__main__":
         start = time.time()
         d_loss_per_epoch = 0
         g_loss_per_epoch = 0
-        total_loss_per_epoch = 0
         for batch_features, labels in train_loader:
 
             # TRAIN DISCRIMINATOR
@@ -259,23 +285,24 @@ if __name__ == "__main__":
 
             # TRAIN GENERATOR
             g_optimizer.zero_grad()
-            # compute reconstructions
-            reconstruction = generator(batch_features)
-            # compute training reconstruction loss
-            g_loss = g_criterion(reconstruction, batch_features)
-            # compute accumulated gradients
-            g_loss.backward()
-            g_loss_per_epoch += g_loss.item()
+            with torch.enable_grad():
+                g_loss = 0.
+                # compute reconstructions
+                reconstruction = generator(batch_features)
+                # compute training reconstruction loss
+                reconstruction_loss = g_criterion(reconstruction, batch_features)
 
-            # add regularization by grouping of benchmarks
-            g_loss += g_lambda * g_loss
-            # substitute discriminator loss to push it towards smaller batch effects
-            g_loss -= parameters['d_lambda'] * d_loss
+                # add regularization by grouping of benchmarks
+                g_loss += g_lambda * reconstruction_loss
+                # substitute discriminator loss to push it towards smaller batch effects
+                g_loss -= parameters['d_lambda'] * d_loss.item()
 
-            total_loss_per_epoch += g_loss.item()
+                # compute accumulated gradients
+                g_loss.backward()
+                g_loss_per_epoch += g_loss.item()
 
-            # perform parameter update based on current gradients
-            g_optimizer.step()
+                # perform parameter update based on current gradients
+                g_optimizer.step()
 
         # COMPUTE EPOCH LOSSES
         d_loss = d_loss_per_epoch / len(train_loader)
@@ -320,6 +347,10 @@ if __name__ == "__main__":
         for sample in benchmarks:
             n_clusters[sample].append(len(set(clustering[sample])))
 
+        # assess cross correlations of benchmarks in ALL reconstructed data
+        b_corr = get_median_benchmark_cross_correlation(reconstruction, sample_types_of_interest=benchmarks)
+        benchmarks_corr_history.append(b_corr)
+
         # COMPUTE REGULARIZATION FOR GENERATOR'S NEXT ITERATION
         if parameters['use_g_regularization']:
             # compute g_lambda, so that it equals:
@@ -332,21 +363,26 @@ if __name__ == "__main__":
                 coef = (n_sample_clusters - 1) / max_n_clusters
                 grouping_coefs.append(coef)
             g_lambda = numpy.mean(grouping_coefs)
-            print('g_lambda={}'.format(g_lambda))
+            g_lambda_history.append(g_lambda)
+
+        # SAVE THE BEST MODEL
+        # TODO
+        # torch.save(model.state_dict(), path + 'autoencoder.torch')
 
         # PRINT AND PLOT EPOCH INFO
         # plot every N epochs what happens with data
         if epoch % parameters['callback_step'] == 0:
-            # assess cross correlations of benchmarks in ALL reconstructed data
+            # plot cross correlations of benchmarks in ALL reconstructed data
             plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
             # plot umap of FULL encoded data
             plot_full_dataset_umap(encodings, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
 
         # display the epoch training loss
         timing = int(time.time() - start)
-        print("epoch {}/{}, {} seconds elapsed: d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f}".format(epoch + 1, total_epochs, timing, d_loss, g_loss, accuracy))
+        print("epoch {}/{}, {} sec elapsed: d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f}, b_corr = {:.4f}, g_lambda = {:.4f}".format(epoch + 1, total_epochs, timing, d_loss, g_loss, accuracy, b_corr, g_lambda))
 
     # PLOT TRAINING HISTORY
-    plot_losses(d_loss_history, g_loss_history, val_acc_history, save_to=save_to+'callbacks/')
+    plot_losses(d_loss_history, g_loss_history, save_to=save_to+'callbacks/')
+    plot_metrics(val_acc_history, g_lambda_history, benchmarks_corr_history, save_to=save_to+'callbacks/')
     plot_variation_coefs(variation_coefs, cv_dict_original, save_to=save_to+'callbacks/')
     plot_n_clusters(n_clusters, clustering_dict_original, save_to=save_to+'callbacks/')
