@@ -164,25 +164,30 @@ if __name__ == "__main__":
     save_to = path.replace('data', 'res')
 
     # PARAMETERS
-    n_features = 170  # n of metabolites in initial dataset
-    latent_dim = 100  # n dimensions to reduce to
-    n_batches = 7
+    parameters = {
+        'n_features': 170,  # n of metabolites in initial dataset
+        'latent_dim': 100,  # n dimensions to reduce to
+        'n_batches': 7,
 
-    d_lr = 2e-3  # discriminator learning rate
-    g_lr = 1e-3  # generator learning rate
-    d_lambda = 1.  # discriminator regularization term value
-    use_g_regularization = True  # whether to use generator regularization term
-    train_ratio = 0.7
-    batch_size = 64
-    epochs = 200
-    callback_step = 10  # save callbacks every n epochs
+        'd_lr': 2e-3,  # discriminator learning rate
+        'g_lr': 1e-3,  # generator learning rate
+        'd_lambda': 1.,  # discriminator regularization term value
+        'use_g_regularization': True,  # whether to use generator regularization term
+        'train_ratio': 0.7,  # for train-test split
+        'batch_size': 64,
+        'g_epochs': 0,  # pretraining of generator
+        'd_epochs': 0,  # pretraining of discriminator
+        'adversarial_epochs': 200,  # simultaneous competitive training
+
+        'callback_step': 10  # save callbacks every n epochs
+    }
 
     #  use gpu if available
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # create models
-    discriminator = Classifier(input_shape=latent_dim, n_batches=n_batches).to(device)
-    generator = Autoencoder(input_shape=n_features, latent_dim=latent_dim).to(device)
+    discriminator = Classifier(input_shape=parameters['latent_dim'], n_batches=parameters['n_batches']).to(device)
+    generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
 
     print('Discriminator:\n', discriminator)
     print('Number of parameters: ', discriminator.count_parameters())
@@ -190,13 +195,12 @@ if __name__ == "__main__":
     print('Total number of parameters: ', generator.count_parameters())
 
     # create an optimizers
-    d_optimizer = optim.Adam(discriminator.parameters(), lr=d_lr)
-    g_optimizer = optim.Adam(generator.parameters(), lr=g_lr)
+    d_optimizer = optim.Adam(discriminator.parameters(), lr=parameters['d_lr'])
+    g_optimizer = optim.Adam(generator.parameters(), lr=parameters['g_lr'])
 
     # define losses
     d_criterion = nn.CrossEntropyLoss()
     g_criterion = nn.L1Loss()
-    # g_criterion = nn.MSELoss()
 
     data, pretrained_encodings = get_data(path)
     # split to values and batches
@@ -210,14 +214,14 @@ if __name__ == "__main__":
     # create and fit the scaler
     scaler = RobustScaler().fit(data_values)
     # apply scaling and do train test split
-    X_train, X_test, y_train, y_test = split_to_train_and_test(data_values, data_batch_labels, scaler, proportion=train_ratio)
+    X_train, X_test, y_train, y_test = split_to_train_and_test(data_values, data_batch_labels, scaler, proportion=parameters['train_ratio'])
 
     # make datasets
     train_dataset = TensorDataset(torch.Tensor(X_train), torch.LongTensor(y_train))
     test_dataset = TensorDataset(torch.Tensor(X_test), torch.LongTensor(y_test))
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=False)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=parameters['batch_size'], shuffle=True, num_workers=4, pin_memory=False)
+    test_loader = DataLoader(test_dataset, batch_size=parameters['batch_size'], shuffle=False, num_workers=4)
 
     # Lists to keep track of progress
     g_loss_history = []
@@ -227,7 +231,9 @@ if __name__ == "__main__":
     n_clusters = dict([(sample, []) for sample in benchmarks])
 
     g_lambda = 0
-    for epoch in range(epochs+1):
+    total_epochs = parameters['g_epochs'] + parameters['d_epochs'] + parameters['adversarial_epochs']
+    for epoch in range(total_epochs+1):
+
         start = time.time()
         d_loss_per_epoch = 0
         g_loss_per_epoch = 0
@@ -264,7 +270,7 @@ if __name__ == "__main__":
             # add regularization by grouping of benchmarks
             g_loss += g_lambda * g_loss
             # substitute discriminator loss to push it towards smaller batch effects
-            g_loss -= d_lambda * d_loss
+            g_loss -= parameters['d_lambda'] * d_loss
 
             total_loss_per_epoch += g_loss.item()
 
@@ -315,7 +321,7 @@ if __name__ == "__main__":
             n_clusters[sample].append(len(set(clustering[sample])))
 
         # COMPUTE REGULARIZATION FOR GENERATOR'S NEXT ITERATION
-        if use_g_regularization:
+        if parameters['use_g_regularization']:
             # compute g_lambda, so that it equals:
             # 0, when all samples of a benchmark belong to the sample cluster
             # 1, when N samples of a benchmark belong to N different clusters
@@ -324,11 +330,13 @@ if __name__ == "__main__":
                 n_sample_clusters = len(set(clustering[sample]))
                 max_n_clusters = len(clustering[sample]) if len(clustering[sample]) <= total_clusters else total_clusters
                 coef = (n_sample_clusters - 1) / max_n_clusters
+                grouping_coefs.append(coef)
             g_lambda = numpy.mean(grouping_coefs)
+            print('g_lambda={}'.format(g_lambda))
 
         # PRINT AND PLOT EPOCH INFO
         # plot every N epochs what happens with data
-        if epoch % callback_step == 0:
+        if epoch % parameters['callback_step'] == 0:
             # assess cross correlations of benchmarks in ALL reconstructed data
             plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
             # plot umap of FULL encoded data
@@ -336,7 +344,7 @@ if __name__ == "__main__":
 
         # display the epoch training loss
         timing = int(time.time() - start)
-        print("epoch {}/{}, {} seconds elapsed: d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f}".format(epoch + 1, epochs, timing, d_loss, g_loss, accuracy))
+        print("epoch {}/{}, {} seconds elapsed: d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f}".format(epoch + 1, total_epochs, timing, d_loss, g_loss, accuracy))
 
     # PLOT TRAINING HISTORY
     plot_losses(d_loss_history, g_loss_history, val_acc_history, save_to=save_to+'callbacks/')
