@@ -8,6 +8,7 @@ from matplotlib import pyplot
 from src.torch.cl import Classifier
 from src.torch.ae import Autoencoder
 from src.constants import samples_with_strong_batch_effects as benchmarks
+from src.constants import loss_mapper
 from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
 from src.batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
 from src.batch_analysis import get_median_benchmark_cross_correlation
@@ -91,6 +92,10 @@ def plot_metrics(d_accuracy, b_clustering, b_correlation, save_to='/Users/andrei
     axs[1].set_xlabel('Epochs')
     axs[1].set_ylabel('Pearson correlation')
     axs[1].grid(True)
+
+    if len(b_clustering) == 0:
+        # run without regularization term
+        b_clustering = [0 for x in b_correlation]
 
     axs[2].plot(range(1, 1+len(b_clustering)), b_clustering)
     axs[2].set_title('Benchmark HDBSCAN clustering')
@@ -192,21 +197,24 @@ if __name__ == "__main__":
         'latent_dim': 100,  # n dimensions to reduce to
         'n_batches': 7,
 
-        'd_lr': 2e-3,  # discriminator learning rate
-        'g_lr': 1e-3,  # generator learning rate
-        'd_lambda': 1.,  # discriminator regularization term value
+        'd_lr': 8e-4,  # discriminator learning rate
+        'g_lr': 4e-4,  # generator learning rate
+        'd_loss': 'CE',
+        'g_loss': 'MSE',
+        'd_lambda': 1.,  # discriminator regularization term coefficient
+        'g_lambda': 2.,  # generator regularization term coefficient
         'use_g_regularization': True,  # whether to use generator regularization term
         'train_ratio': 0.7,  # for train-test split
         'batch_size': 64,
         'g_epochs': 0,  # pretraining of generator
         'd_epochs': 0,  # pretraining of discriminator
-        'adversarial_epochs': 160,  # simultaneous competitive training
+        'adversarial_epochs': 150,  # simultaneous competitive training
 
-        'callback_step': 20  # save callbacks every n epochs
+        'callback_step': 25  # save callbacks every n epochs
     }
 
-    #  use gpu if available
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
+    torch.set_num_threads(1)
 
     # create models
     discriminator = Classifier(input_shape=parameters['latent_dim'], n_batches=parameters['n_batches']).to(device)
@@ -222,9 +230,8 @@ if __name__ == "__main__":
     g_optimizer = optim.Adam(generator.parameters(), lr=parameters['g_lr'])
 
     # define losses
-    d_criterion = nn.CrossEntropyLoss()
-    g_criterion = nn.L1Loss()
-    # g_criterion = nn.MSELoss()
+    d_criterion = loss_mapper[parameters['d_loss']]
+    g_criterion = loss_mapper[parameters['g_loss']]
 
     data, pretrained_encodings = get_data(path)
     # split to values and batches
@@ -253,12 +260,12 @@ if __name__ == "__main__":
 
     val_acc_history = []
     benchmarks_corr_history = []
-    g_lambda_history = []
+    benchmarks_grouping_history = []
 
     variation_coefs = dict([(sample, []) for sample in benchmarks])
     n_clusters = dict([(sample, []) for sample in benchmarks])
 
-    g_lambda = 0
+    g_regularizer = 0
     total_epochs = parameters['g_epochs'] + parameters['d_epochs'] + parameters['adversarial_epochs']
     for epoch in range(total_epochs+1):
 
@@ -294,7 +301,7 @@ if __name__ == "__main__":
                 reconstruction_loss = g_criterion(reconstruction, batch_features)
 
                 # add regularization by grouping of benchmarks
-                g_loss += (1 + g_lambda) * reconstruction_loss
+                g_loss += (1 + g_regularizer) * reconstruction_loss
                 # substitute discriminator loss to push it towards smaller batch effects
                 g_loss -= parameters['d_lambda'] * d_loss.item()
 
@@ -352,23 +359,24 @@ if __name__ == "__main__":
         b_corr = get_median_benchmark_cross_correlation(reconstruction, sample_types_of_interest=benchmarks)
         benchmarks_corr_history.append(b_corr)
 
-        # COMPUTE REGULARIZATION FOR GENERATOR'S NEXT ITERATION
-        if parameters['use_g_regularization']:
-            # compute g_lambda, so that it equals:
-            # 0, when all samples of a benchmark belong to the sample cluster
-            # 1, when N samples of a benchmark belong to N different clusters
-            grouping_coefs = []
-            for sample in benchmarks:
-                n_sample_clusters = len(set(clustering[sample]))
-                max_n_clusters = len(clustering[sample]) if len(clustering[sample]) <= total_clusters else total_clusters
-                coef = (n_sample_clusters - 1) / max_n_clusters
-                grouping_coefs.append(coef)
-            g_lambda = numpy.mean(grouping_coefs)
-            g_lambda_history.append(g_lambda)
+        # assess grouping of benchmarks: compute g_lambda, so that it equals
+        # 0, when all samples of a benchmark belong to the sample cluster
+        # 1, when N samples of a benchmark belong to N different clusters
+        grouping_coefs = []
+        for sample in benchmarks:
+            n_sample_clusters = len(set(clustering[sample]))
+            max_n_clusters = len(clustering[sample]) if len(clustering[sample]) <= total_clusters else total_clusters
+            coef = (n_sample_clusters - 1) / max_n_clusters
+            grouping_coefs.append(coef)
+        b_grouping = numpy.mean(grouping_coefs)
+        benchmarks_grouping_history.append(b_grouping)
 
-        # SAVE THE BEST MODEL
-        # TODO
-        # torch.save(model.state_dict(), path + 'autoencoder.torch')
+        # SET REGULARIZATION FOR GENERATOR'S NEXT ITERATION
+        if parameters['use_g_regularization']:
+            g_regularizer = parameters['g_lambda'] * b_grouping
+
+        # SAVE MODEL
+        torch.save(generator.state_dict(), save_to + 'checkpoints/ae_at_{}.torch'.format(epoch))
 
         # PRINT AND PLOT EPOCH INFO
         # plot every N epochs what happens with data
@@ -380,10 +388,12 @@ if __name__ == "__main__":
 
         # display the epoch training loss
         timing = int(time.time() - start)
-        print("epoch {}/{}, {} sec elapsed: d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f}, b_corr = {:.4f}, g_lambda = {:.4f}".format(epoch + 1, total_epochs, timing, d_loss, g_loss, accuracy, b_corr, g_lambda))
+        print("epoch {}/{}, {} sec elapsed: d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f}, b_corr = {:.4f}, b_grouping = {:.4f}".format(epoch + 1, total_epochs, timing, d_loss, g_loss, accuracy, b_corr, b_grouping))
 
     # PLOT TRAINING HISTORY
     plot_losses(d_loss_history, g_loss_history, save_to=save_to+'callbacks/')
-    plot_metrics(val_acc_history, g_lambda_history, benchmarks_corr_history, save_to=save_to+'callbacks/')
+    plot_metrics(val_acc_history, benchmarks_grouping_history, benchmarks_corr_history, save_to=save_to + 'callbacks/')
     plot_variation_coefs(variation_coefs, cv_dict_original, save_to=save_to+'callbacks/')
     plot_n_clusters(n_clusters, clustering_dict_original, save_to=save_to+'callbacks/')
+
+    # TODO: find the best epoch, rename corresponding checkpoint to "best"

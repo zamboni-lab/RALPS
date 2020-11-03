@@ -1,5 +1,7 @@
 
-version = "v.0.1.9"
+from torch import nn
+
+version = "v.0.1.10"
 
 allowed_ppm_error = 5
 tic_normalization_scaling_factor = 10 ** 5
@@ -7,6 +9,12 @@ experiment_name_delimeter = '#'
 number_of_replicates = 3
 
 data_path = '/Users/andreidm/ETH/projects/normalization/data/'
+
+# PARAMETERS
+
+loss_mapper = {'CE': nn.CrossEntropyLoss(), 'L1': nn.L1Loss(), 'MSE': nn.MSELoss(), 'SL1': nn.SmoothL1Loss()}
+
+# DATA
 
 amino_acids = [
         ["Alanine", "C3H7NO2"],
