@@ -53,29 +53,32 @@ def get_data(path):
     return data, encodings
 
 
-def plot_losses(d_loss, g_loss, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_losses(d_loss, g_loss, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     fig, axs = pyplot.subplots(2, figsize=(6,6))
 
     fig.suptitle('Adversarial training loop losses')
 
     axs[0].plot(range(1, 1+len(d_loss)), d_loss)
-    axs[0].set_title('CrossEntropy')
+    axs[0].set_title('Classifier loss')
     axs[0].set_xlabel('Epochs')
-    axs[0].set_ylabel('Classifier loss')
+    axs[0].set_ylabel(parameters['d_loss'])
     axs[0].grid(True)
 
     axs[1].plot(range(1, 1+len(g_loss)), g_loss)
-    axs[1].set_title('Regularized L1 - CrossEntropy')
+    axs[1].set_title('Autoencoder loss')
     axs[1].set_xlabel('Epochs')
-    axs[1].set_ylabel('Autoencoder loss')
+    if parameters['use_g_regularization']:
+        axs[1].set_ylabel('Regularized {} - {}'.format(parameters['g_loss'], parameters['d_loss']))
+    else:
+        axs[1].set_ylabel('{} - {}'.format(parameters['g_loss'], parameters['d_loss']))
     axs[1].grid(True)
 
     pyplot.tight_layout()
     pyplot.savefig(save_to + 'losses.pdf')
 
 
-def plot_metrics(d_accuracy, b_clustering, b_correlation, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_metrics(d_accuracy, b_correlation, b_clustering, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     fig, axs = pyplot.subplots(3, figsize=(6,9))
 
@@ -92,10 +95,6 @@ def plot_metrics(d_accuracy, b_clustering, b_correlation, save_to='/Users/andrei
     axs[1].set_xlabel('Epochs')
     axs[1].set_ylabel('Pearson correlation')
     axs[1].grid(True)
-
-    if len(b_clustering) == 0:
-        # run without regularization term
-        b_clustering = [0 for x in b_correlation]
 
     axs[2].plot(range(1, 1+len(b_clustering)), b_clustering)
     axs[2].set_title('Benchmark HDBSCAN clustering')
@@ -186,32 +185,9 @@ def plot_n_clusters(clusters_dict, clusters_dict_original, save_to='/Users/andre
             pyplot.savefig(save_to + 'clustering_{}.pdf'.format(type))
 
 
-if __name__ == "__main__":
+def main(parameters):
 
-    path = '/Users/andreidm/ETH/projects/normalization/data/'
-    save_to = path.replace('data', 'res')
-
-    # PARAMETERS
-    parameters = {
-        'n_features': 170,  # n of metabolites in initial dataset
-        'latent_dim': 100,  # n dimensions to reduce to
-        'n_batches': 7,
-
-        'd_lr': 8e-4,  # discriminator learning rate
-        'g_lr': 4e-4,  # generator learning rate
-        'd_loss': 'CE',
-        'g_loss': 'MSE',
-        'd_lambda': 1.,  # discriminator regularization term coefficient
-        'g_lambda': 2.,  # generator regularization term coefficient
-        'use_g_regularization': True,  # whether to use generator regularization term
-        'train_ratio': 0.7,  # for train-test split
-        'batch_size': 64,
-        'g_epochs': 0,  # pretraining of generator
-        'd_epochs': 0,  # pretraining of discriminator
-        'adversarial_epochs': 150,  # simultaneous competitive training
-
-        'callback_step': 25  # save callbacks every n epochs
-    }
+    save_to = parameters['path'].replace('data', 'res')
 
     device = torch.device("cpu")
     torch.set_num_threads(1)
@@ -233,7 +209,7 @@ if __name__ == "__main__":
     d_criterion = loss_mapper[parameters['d_loss']]
     g_criterion = loss_mapper[parameters['g_loss']]
 
-    data, pretrained_encodings = get_data(path)
+    data, pretrained_encodings = get_data(parameters['path'])
     # split to values and batches
     data_batch_labels = data.iloc[:, 0]
     data_values = data.iloc[:, 1:]
@@ -379,21 +355,60 @@ if __name__ == "__main__":
         torch.save(generator.state_dict(), save_to + 'checkpoints/ae_at_{}.torch'.format(epoch))
 
         # PRINT AND PLOT EPOCH INFO
-        # plot every N epochs what happens with data
-        if epoch % parameters['callback_step'] == 0:
-            # plot cross correlations of benchmarks in ALL reconstructed data
-            plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
-            # plot umap of FULL encoded data
-            plot_full_dataset_umap(encodings, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
+        if parameters['callback_step'] is not None:
+            # plot every N epochs what happens with data
+            if epoch % parameters['callback_step'] == 0:
+                # plot cross correlations of benchmarks in ALL reconstructed data
+                plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
+                # plot umap of FULL encoded data
+                plot_full_dataset_umap(encodings, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
+                pyplot.close('all')
 
         # display the epoch training loss
         timing = int(time.time() - start)
         print("epoch {}/{}, {} sec elapsed: d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f}, b_corr = {:.4f}, b_grouping = {:.4f}".format(epoch + 1, total_epochs, timing, d_loss, g_loss, accuracy, b_corr, b_grouping))
 
     # PLOT TRAINING HISTORY
-    plot_losses(d_loss_history, g_loss_history, save_to=save_to+'callbacks/')
-    plot_metrics(val_acc_history, benchmarks_grouping_history, benchmarks_corr_history, save_to=save_to + 'callbacks/')
+    plot_losses(d_loss_history, g_loss_history, parameters, save_to=save_to+'callbacks/')
+    plot_metrics(val_acc_history, benchmarks_corr_history, benchmarks_grouping_history, save_to=save_to + 'callbacks/')
     plot_variation_coefs(variation_coefs, cv_dict_original, save_to=save_to+'callbacks/')
     plot_n_clusters(n_clusters, clustering_dict_original, save_to=save_to+'callbacks/')
 
-    # TODO: find the best epoch, rename corresponding checkpoint to "best"
+    # SAVE PARAMETERS AND HISTORY
+    pandas.DataFrame(parameters).to_csv(save_to + 'parameters.csv', index=False)
+    history = pandas.DataFrame({'epoch': [x for x in d_loss_history],
+                                'd_loss': d_loss_history,
+                                'g_loss': g_loss_history,
+                                'val_acc': val_acc_history,
+                                'b_corr': benchmarks_corr_history,
+                                'b_grouping': benchmarks_grouping_history})
+    history.to_csv(save_to + 'history.csv', index=False)
+
+
+if __name__ == "__main__":
+    # PARAMETERS
+    parameters = {
+
+        'path': '/Users/andreidm/ETH/projects/normalization/data/',
+
+        'n_features': 170,  # n of metabolites in initial dataset
+        'latent_dim': 100,  # n dimensions to reduce to
+        'n_batches': 7,
+
+        'd_lr': 8e-4,  # discriminator learning rate
+        'g_lr': 4e-4,  # generator learning rate
+        'd_loss': 'CE',
+        'g_loss': 'L1',
+        'd_lambda': 1.,  # discriminator regularization term coefficient
+        'g_lambda': 3.,  # generator regularization term coefficient
+        'use_g_regularization': True,  # whether to use generator regularization term
+        'train_ratio': 0.7,  # for train-test split
+        'batch_size': 64,
+        'g_epochs': 0,  # pretraining of generator
+        'd_epochs': 0,  # pretraining of discriminator
+        'adversarial_epochs': 150,  # simultaneous competitive training
+
+        'callback_step': None  # save callbacks every n epochs
+    }
+
+    main(parameters)
