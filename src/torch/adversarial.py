@@ -53,19 +53,21 @@ def get_data(path):
     return data, encodings
 
 
-def plot_losses(d_loss, g_loss, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_losses(d_loss, g_loss, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     fig, axs = pyplot.subplots(2, figsize=(6,6))
 
     fig.suptitle('Adversarial training loop losses')
 
     axs[0].plot(range(1, 1+len(d_loss)), d_loss)
+    axs[0].axvline(best_epoch+1, c='black', label='Best')
     axs[0].set_title('Classifier loss')
     axs[0].set_xlabel('Epochs')
     axs[0].set_ylabel(parameters['d_loss'])
     axs[0].grid(True)
 
     axs[1].plot(range(1, 1+len(g_loss)), g_loss)
+    axs[1].axvline(best_epoch + 1, c='black', label='Best')
     axs[1].set_title('Autoencoder loss')
     axs[1].set_xlabel('Epochs')
     if parameters['use_g_regularization']:
@@ -78,25 +80,28 @@ def plot_losses(d_loss, g_loss, parameters, save_to='/Users/andreidm/ETH/project
     pyplot.savefig(save_to + 'losses_{}.pdf'.format(parameters['id']))
 
 
-def plot_metrics(d_accuracy, b_correlation, b_clustering, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_metrics(d_accuracy, b_correlation, b_clustering, best_epoch, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     fig, axs = pyplot.subplots(3, figsize=(6,9))
 
     fig.suptitle('Adversarial training loop metrics')
 
     axs[0].plot(range(1, 1+len(d_accuracy)), d_accuracy)
+    axs[0].axvline(best_epoch + 1, c='black', label='Best')
     axs[0].set_title('Validation classifier accuracy')
     axs[0].set_xlabel('Epochs')
     axs[0].set_ylabel('Accuracy')
     axs[0].grid(True)
 
     axs[1].plot(range(1, 1+len(b_correlation)), b_correlation)
+    axs[1].axvline(best_epoch + 1, c='black', label='Best')
     axs[1].set_title('Median benchmark cross-correlation')
     axs[1].set_xlabel('Epochs')
     axs[1].set_ylabel('Pearson correlation')
     axs[1].grid(True)
 
     axs[2].plot(range(1, 1+len(b_clustering)), b_clustering)
+    axs[2].axvline(best_epoch + 1, c='black', label='Best')
     axs[2].set_title('Benchmark HDBSCAN clustering')
     axs[2].set_xlabel('Epochs')
     axs[2].set_ylabel('Clustering distance')
@@ -183,6 +188,39 @@ def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/a
             pyplot.tight_layout()
             pyplot.legend()
             pyplot.savefig(save_to + 'clustering_{}_{}.pdf'.format(type, id))
+
+
+def slice_by_grouping_and_correlation(history, g_percent, c_percent):
+    try:
+        # grouping slice
+        df = history[history['b_grouping'] < numpy.percentile(history['b_grouping'].values, g_percent)].sort_values('b_grouping')
+        # correlation slice
+        df = df[df['b_corr'] > numpy.percentile(df['b_corr'].values, c_percent)].sort_values('val_acc')
+        # negative loss slice (desired by model construction)
+        df = df[df['g_loss'] < 0]
+        assert df.shape[0] > 0
+
+    except Exception:
+        df = None
+    return df
+
+
+def find_best_epoch(history):
+
+    df = slice_by_grouping_and_correlation(history, 10, 90)
+    if df is None:
+        df = slice_by_grouping_and_correlation(history, 20, 80)
+        if df is None:
+            df = slice_by_grouping_and_correlation(history, 30, 70)
+            if df is None:
+                df = slice_by_grouping_and_correlation(history, 40, 60)
+                if df is None:
+                    df = slice_by_grouping_and_correlation(history, 50, 50)
+                    if df is None:
+                        min_loss_epoch = int(history.loc[history['g_loss'] == history['g_loss'].min(), 'epoch'])
+                        print('WARNING: couldn\'t find the best epoch, returning one with min loss: {}'.format(min_loss_epoch+1))
+                        return min_loss_epoch
+    return int(df.loc[0, 'epoch'])
 
 
 def main(parameters):
@@ -373,22 +411,34 @@ def main(parameters):
         timing = int(time.time() - start)
         print("epoch {}/{}, {} sec elapsed: d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f}, b_corr = {:.4f}, b_grouping = {:.4f}".format(epoch + 1, total_epochs, timing, d_loss, g_loss, accuracy, b_corr, b_grouping))
 
-    # TODO:
-    #       2) find the best epoch and save it, clear other checkpoints if parameters say not to save them,
-    #       3) plot callbacks of the best epoch and save to results
+    # TODO:  3) plot callbacks of the best epoch and save to results
 
     # PLOT TRAINING HISTORY
-    plot_losses(d_loss_history, g_loss_history, parameters, save_to=save_to)
-    plot_metrics(val_acc_history, benchmarks_corr_history, benchmarks_grouping_history, parameters['id'], save_to=save_to)
+    history = pandas.DataFrame({'epoch': [x for x in range(len(d_loss_history))], 'best': [False for x in range(len(d_loss_history))],
+                                'd_loss': d_loss_history, 'g_loss': g_loss_history, 'val_acc': val_acc_history,
+                                'b_corr': benchmarks_corr_history, 'b_grouping': benchmarks_grouping_history})
+
+    best_epoch = find_best_epoch(history)
+    history.loc[best_epoch, 'best'] = True  # mark the best epoch
+
+    plot_losses(d_loss_history, g_loss_history, best_epoch, parameters, save_to=save_to)
+    plot_metrics(val_acc_history, benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters['id'], save_to=save_to)
     plot_variation_coefs(variation_coefs, cv_dict_original, parameters['id'], save_to=save_to)
     plot_n_clusters(n_clusters, clustering_dict_original, parameters['id'], save_to=save_to)
 
     # SAVE PARAMETERS AND HISTORY
     pandas.DataFrame(parameters, index=[0]).to_csv(save_to + 'parameters_{}.csv'.format(parameters['id']), index=False)
-    history = pandas.DataFrame({'epoch': [x for x in range(len(d_loss_history))], 'd_loss': d_loss_history,
-                                'g_loss': g_loss_history, 'val_acc': val_acc_history,
-                                'b_corr': benchmarks_corr_history, 'b_grouping': benchmarks_grouping_history})
     history.to_csv(save_to + 'history_{}.csv'.format(parameters['id']), index=False)
+
+    # REFACTOR CHECKPOINTS
+    for file in os.listdir(save_to + '/checkpoints/'):
+        if file.startswith('ae_at_{}'.format(best_epoch)):
+            # rename to best
+            os.rename(save_to + '/checkpoints/' + file, save_to + '/checkpoints/' + file.replace('ae', 'best_ae'))
+        else:
+            if not parameters['keep_checkpoints']:
+                # remove the rest
+                os.remove(save_to + '/checkpoints/' + file)
 
 
 if __name__ == "__main__":
@@ -397,24 +447,24 @@ if __name__ == "__main__":
 
         'in_path': '/Users/andreidm/ETH/projects/normalization/data/',
         'out_path': '/Users/andreidm/ETH/projects/normalization/res/grid_search/',
-        'id': '01234',
+        'id': 'call123',
 
         'n_features': 170,  # n of metabolites in initial dataset
         'latent_dim': 100,  # n dimensions to reduce to
         'n_batches': 7,
 
-        'd_lr': 17e-4,  # discriminator learning rate
-        'g_lr': 7e-4,  # generator learning rate
+        'd_lr': 2e-3,  # discriminator learning rate
+        'g_lr': 2e-3,  # generator learning rate
         'd_loss': 'CE',
-        'g_loss': 'SL1',
+        'g_loss': 'MSE',
         'd_lambda': 1.,  # discriminator regularization term coefficient
-        'g_lambda': 1.,  # generator regularization term coefficient
+        'g_lambda': 2.,  # generator regularization term coefficient
         'use_g_regularization': True,  # whether to use generator regularization term
         'train_ratio': 0.7,  # for train-test split
         'batch_size': 64,
         'g_epochs': 0,  # pretraining of generator
         'd_epochs': 0,  # pretraining of discriminator
-        'adversarial_epochs': 2,  # simultaneous competitive training
+        'adversarial_epochs': 5,  # simultaneous competitive training
 
         'callback_step': 1,  # save callbacks every n epochs
         'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch

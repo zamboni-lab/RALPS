@@ -5,17 +5,6 @@ from matplotlib import pyplot
 from src.torch import adversarial
 
 
-def find_best_epoch(history_df):
-    # grouping slice
-    df = history_df[history_df['b_grouping'] < numpy.percentile(history_df['b_grouping'].values, 20)].sort_values('b_grouping')
-    # correlation slice
-    df = df[df['b_corr'] > numpy.percentile(df['b_corr'].values, 80)].sort_values('val_acc')
-    # negative loss slice (desired by model construction)
-    df = df[df['g_loss'] < 0]
-
-    print(df.iloc[0,:])
-
-
 def run_parallel(grid):
     """ Not working because of some weird Catalina error. """
 
