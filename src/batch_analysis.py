@@ -29,7 +29,7 @@ def get_samples_by_types_dict(samples_names, types_of_interest):
     return samples_by_types
 
 
-def plot_batch_cross_correlations(data, method_name, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
@@ -61,7 +61,7 @@ def plot_batch_cross_correlations(data, method_name, sample_types_of_interest=No
         pyplot.suptitle('Cross correlations: {}'.format(method_name))
         pyplot.tight_layout()
         # pyplot.show()
-        pyplot.savefig(save_to + 'correlations_{}.pdf'.format(method_name.replace(' ', '_')))
+        pyplot.savefig(save_to + 'correlations_{}_{}.pdf'.format(method_name.replace(' ', '_'), id))
 
 
 def get_median_benchmark_cross_correlation(data, sample_types_of_interest=None):
@@ -91,7 +91,7 @@ def compute_cv_for_samples_types(data, sample_types_of_interest=None):
     return cv_dict
 
 
-def plot_full_dataset_umap(encodings, method_name, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_full_dataset_umap(encodings, method_name, id, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     random_seed = 666
     metric = 'braycurtis'
@@ -112,7 +112,7 @@ def plot_full_dataset_umap(encodings, method_name, sample_types_of_interest=None
     pyplot.title('UMAP: {}: n={}, metric={}'.format(method_name, n, metric))
     pyplot.tight_layout()
     # pyplot.show()
-    pyplot.savefig(save_to + 'umap_batches_{}.pdf'.format(method_name.replace(' ', '_')))
+    pyplot.savefig(save_to + 'umap_batches_{}_{}.pdf'.format(method_name.replace(' ', '_'), id))
 
     # define colors of benchmark samples
     samples_by_types = get_samples_by_types_dict(encodings.index.values, sample_types_of_interest)
@@ -138,7 +138,7 @@ def plot_full_dataset_umap(encodings, method_name, sample_types_of_interest=None
     pyplot.title('UMAP: {}: n={}, metric={}'.format(method_name, n, metric))
     pyplot.tight_layout()
     # pyplot.show()
-    pyplot.savefig(save_to + 'umap_benchmarks_{}.pdf'.format(method_name.replace(' ', '_')))
+    pyplot.savefig(save_to + 'umap_benchmarks_{}_{}.pdf'.format(method_name.replace(' ', '_'), id))
 
 
 def compute_number_of_clusters_with_hdbscan(encodings, print_info=True, sample_types_of_interest=None):
@@ -190,21 +190,21 @@ if __name__ == '__main__':
     data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv')
     data = data.iloc[:, 3:]
 
-    # plot_batch_cross_correlations(data.T, 'original samples',
-    #                               sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-    #                                                         'P2_SFA_0001', 'P2_SRM_0001',
-    #                                                         'P2_SFA_0002', 'P1_FA_0008'])
+    plot_batch_cross_correlations(data.T, 'original samples', '',
+                                  sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+                                                            'P2_SFA_0001', 'P2_SRM_0001',
+                                                            'P2_SFA_0002', 'P1_FA_0008'])
 
-    # res = compute_cv_for_samples_types(data.T, sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-    #                                                                    'P2_SFA_0001', 'P2_SRM_0001',
-    #                                                                    'P2_SFA_0002', 'P1_FA_0008'])
-    # print(res)
+    res = compute_cv_for_samples_types(data.T, sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+                                                                       'P2_SFA_0001', 'P2_SRM_0001',
+                                                                       'P2_SFA_0002', 'P1_FA_0008'])
+    print(res)
 
     encodings = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/encodings.csv', index_col=0)
 
-    # plot_full_dataset_umap(encodings, 'original samples', sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-    #                                                                                 'P2_SFA_0001', 'P2_SRM_0001',
-    #                                                                                 'P2_SFA_0002', 'P1_FA_0008'])
+    plot_full_dataset_umap(encodings, 'original samples', '', sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+                                                                                    'P2_SFA_0001', 'P2_SRM_0001',
+                                                                                    'P2_SFA_0002', 'P1_FA_0008'])
 
     res, _ = compute_number_of_clusters_with_hdbscan(encodings, print_info=True,
                                                   sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',

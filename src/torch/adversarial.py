@@ -53,7 +53,7 @@ def get_data(path):
     return data, encodings
 
 
-def plot_losses(d_loss, g_loss, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_losses(d_loss, g_loss, parameters, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     fig, axs = pyplot.subplots(2, figsize=(6,6))
 
@@ -75,10 +75,10 @@ def plot_losses(d_loss, g_loss, parameters, save_to='/Users/andreidm/ETH/project
     axs[1].grid(True)
 
     pyplot.tight_layout()
-    pyplot.savefig(save_to + 'losses.pdf')
+    pyplot.savefig(save_to + 'losses_{}.pdf'.format(id))
 
 
-def plot_metrics(d_accuracy, b_correlation, b_clustering, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_metrics(d_accuracy, b_correlation, b_clustering, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     fig, axs = pyplot.subplots(3, figsize=(6,9))
 
@@ -103,10 +103,10 @@ def plot_metrics(d_accuracy, b_correlation, b_clustering, save_to='/Users/andrei
     axs[2].grid(True)
 
     pyplot.tight_layout()
-    pyplot.savefig(save_to + 'metrics.pdf')
+    pyplot.savefig(save_to + 'metrics_{}.pdf'.format(id))
 
 
-def plot_variation_coefs(vc_dict, vc_dict_original, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_variation_coefs(vc_dict, vc_dict_original, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     if len(vc_dict) == 6:
         # save all on one figure
@@ -127,7 +127,7 @@ def plot_variation_coefs(vc_dict, vc_dict_original, save_to='/Users/andreidm/ETH
 
         pyplot.suptitle('Variation coefficients')
         pyplot.tight_layout()
-        pyplot.savefig(save_to + 'vcs.pdf')
+        pyplot.savefig(save_to + 'vcs_{}.pdf'.format(id))
     else:
         # save one by one for each sample in dict
         for i, type in enumerate(vc_dict):
@@ -142,10 +142,10 @@ def plot_variation_coefs(vc_dict, vc_dict_original, save_to='/Users/andreidm/ETH
             pyplot.title('Variation coefficient for {}'.format(type))
             pyplot.grid(True)
             pyplot.tight_layout()
-            pyplot.savefig(save_to + 'vcs_{}.pdf'.format(type))
+            pyplot.savefig(save_to + 'vcs_{}_{}.pdf'.format(type, id))
 
 
-def plot_n_clusters(clusters_dict, clusters_dict_original, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     if len(clusters_dict) == 6:
         # save all on one figure
@@ -166,7 +166,7 @@ def plot_n_clusters(clusters_dict, clusters_dict_original, save_to='/Users/andre
 
         pyplot.suptitle('HDBSCAN clustering')
         pyplot.tight_layout()
-        pyplot.savefig(save_to + 'clustering.pdf')
+        pyplot.savefig(save_to + 'clustering_{}.pdf'.format(id))
     else:
         # save one by one for each sample in dict
         for i, type in enumerate(clusters_dict):
@@ -182,19 +182,20 @@ def plot_n_clusters(clusters_dict, clusters_dict_original, save_to='/Users/andre
             pyplot.grid(True)
             pyplot.tight_layout()
             pyplot.legend()
-            pyplot.savefig(save_to + 'clustering_{}.pdf'.format(type))
+            pyplot.savefig(save_to + 'clustering_{}_{}.pdf'.format(type, id))
 
 
 def main(parameters):
 
+    id = parameters['id']
     save_to = parameters['path'].replace('data', 'res')
 
     device = torch.device("cpu")
     torch.set_num_threads(1)
 
     # create models
-    discriminator = Classifier(input_shape=parameters['latent_dim'], n_batches=parameters['n_batches']).to(device)
-    generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
+    discriminator = Classifier(input_shape=int(parameters['latent_dim']), n_batches=int(parameters['n_batches'])).to(device)
+    generator = Autoencoder(input_shape=int(parameters['n_features']), latent_dim=int(parameters['latent_dim'])).to(device)
 
     print('Discriminator:\n', discriminator)
     print('Number of parameters: ', discriminator.count_parameters())
@@ -202,8 +203,8 @@ def main(parameters):
     print('Total number of parameters: ', generator.count_parameters())
 
     # create an optimizers
-    d_optimizer = optim.Adam(discriminator.parameters(), lr=parameters['d_lr'])
-    g_optimizer = optim.Adam(generator.parameters(), lr=parameters['g_lr'])
+    d_optimizer = optim.Adam(discriminator.parameters(), lr=float(parameters['d_lr']))
+    g_optimizer = optim.Adam(generator.parameters(), lr=float(parameters['g_lr']))
 
     # define losses
     d_criterion = loss_mapper[parameters['d_loss']]
@@ -221,14 +222,14 @@ def main(parameters):
     # create and fit the scaler
     scaler = RobustScaler().fit(data_values)
     # apply scaling and do train test split
-    X_train, X_test, y_train, y_test = split_to_train_and_test(data_values, data_batch_labels, scaler, proportion=parameters['train_ratio'])
+    X_train, X_test, y_train, y_test = split_to_train_and_test(data_values, data_batch_labels, scaler, proportion=float(parameters['train_ratio']))
 
     # make datasets
     train_dataset = TensorDataset(torch.Tensor(X_train), torch.LongTensor(y_train))
     test_dataset = TensorDataset(torch.Tensor(X_test), torch.LongTensor(y_test))
 
-    train_loader = DataLoader(train_dataset, batch_size=parameters['batch_size'], shuffle=True, num_workers=4, pin_memory=False)
-    test_loader = DataLoader(test_dataset, batch_size=parameters['batch_size'], shuffle=False, num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=int(parameters['batch_size']), shuffle=True, num_workers=4, pin_memory=False)
+    test_loader = DataLoader(test_dataset, batch_size=int(parameters['batch_size']), shuffle=False, num_workers=4)
 
     # Lists to keep track of progress
     g_loss_history = []
@@ -242,7 +243,7 @@ def main(parameters):
     n_clusters = dict([(sample, []) for sample in benchmarks])
 
     g_regularizer = 0
-    total_epochs = parameters['g_epochs'] + parameters['d_epochs'] + parameters['adversarial_epochs']
+    total_epochs = int(parameters['g_epochs']) + int(parameters['d_epochs']) + int(parameters['adversarial_epochs'])
     for epoch in range(total_epochs+1):
 
         start = time.time()
@@ -279,7 +280,7 @@ def main(parameters):
                 # add regularization by grouping of benchmarks
                 g_loss += (1 + g_regularizer) * reconstruction_loss
                 # substitute discriminator loss to push it towards smaller batch effects
-                g_loss -= parameters['d_lambda'] * d_loss.item()
+                g_loss -= float(parameters['d_lambda']) * d_loss.item()
 
                 # compute accumulated gradients
                 g_loss.backward()
@@ -349,40 +350,36 @@ def main(parameters):
 
         # SET REGULARIZATION FOR GENERATOR'S NEXT ITERATION
         if parameters['use_g_regularization']:
-            g_regularizer = parameters['g_lambda'] * b_grouping
+            g_regularizer = float(parameters['g_lambda']) * b_grouping
 
         # SAVE MODEL
-        torch.save(generator.state_dict(), save_to + 'checkpoints/ae_at_{}.torch'.format(epoch))
+        torch.save(generator.state_dict(), save_to + 'checkpoints/ae_at_{}_{}.torch'.format(epoch, id))
 
         # PRINT AND PLOT EPOCH INFO
-        if parameters['callback_step'] is not None:
-            # plot every N epochs what happens with data
-            if epoch % parameters['callback_step'] == 0:
-                # plot cross correlations of benchmarks in ALL reconstructed data
-                plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
-                # plot umap of FULL encoded data
-                plot_full_dataset_umap(encodings, 'epoch {}'.format(epoch+1), sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
-                pyplot.close('all')
+        # plot every N epochs what happens with data
+        if int(parameters['callback_step']) > 0 and epoch % int(parameters['callback_step']) == 0:
+            # plot cross correlations of benchmarks in ALL reconstructed data
+            plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), id, sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
+            # plot umap of FULL encoded data
+            plot_full_dataset_umap(encodings, 'epoch {}'.format(epoch+1), id, sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
+            pyplot.close('all')
 
         # display the epoch training loss
         timing = int(time.time() - start)
         print("epoch {}/{}, {} sec elapsed: d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f}, b_corr = {:.4f}, b_grouping = {:.4f}".format(epoch + 1, total_epochs, timing, d_loss, g_loss, accuracy, b_corr, b_grouping))
 
     # PLOT TRAINING HISTORY
-    plot_losses(d_loss_history, g_loss_history, parameters, save_to=save_to+'callbacks/')
-    plot_metrics(val_acc_history, benchmarks_corr_history, benchmarks_grouping_history, save_to=save_to + 'callbacks/')
-    plot_variation_coefs(variation_coefs, cv_dict_original, save_to=save_to+'callbacks/')
-    plot_n_clusters(n_clusters, clustering_dict_original, save_to=save_to+'callbacks/')
+    plot_losses(d_loss_history, g_loss_history, parameters, id, save_to=save_to+'callbacks/')
+    plot_metrics(val_acc_history, benchmarks_corr_history, benchmarks_grouping_history, id, save_to=save_to + 'callbacks/')
+    plot_variation_coefs(variation_coefs, cv_dict_original, id, save_to=save_to+'callbacks/')
+    plot_n_clusters(n_clusters, clustering_dict_original, id, save_to=save_to+'callbacks/')
 
     # SAVE PARAMETERS AND HISTORY
-    pandas.DataFrame(parameters).to_csv(save_to + 'parameters.csv', index=False)
-    history = pandas.DataFrame({'epoch': [x for x in d_loss_history],
-                                'd_loss': d_loss_history,
-                                'g_loss': g_loss_history,
-                                'val_acc': val_acc_history,
-                                'b_corr': benchmarks_corr_history,
-                                'b_grouping': benchmarks_grouping_history})
-    history.to_csv(save_to + 'history.csv', index=False)
+    pandas.DataFrame(parameters, index=[0]).to_csv(save_to + 'callbacks/parameters_{}.csv'.format(id), index=False)
+    history = pandas.DataFrame({'epoch': [x for x in range(len(d_loss_history))], 'd_loss': d_loss_history,
+                                'g_loss': g_loss_history, 'val_acc': val_acc_history,
+                                'b_corr': benchmarks_corr_history, 'b_grouping': benchmarks_grouping_history})
+    history.to_csv(save_to + 'callbacks/history_{}.csv'.format(id), index=False)
 
 
 if __name__ == "__main__":
@@ -390,25 +387,26 @@ if __name__ == "__main__":
     parameters = {
 
         'path': '/Users/andreidm/ETH/projects/normalization/data/',
+        'id': '',
 
         'n_features': 170,  # n of metabolites in initial dataset
         'latent_dim': 100,  # n dimensions to reduce to
         'n_batches': 7,
 
-        'd_lr': 8e-4,  # discriminator learning rate
-        'g_lr': 4e-4,  # generator learning rate
+        'd_lr': 17e-4,  # discriminator learning rate
+        'g_lr': 7e-4,  # generator learning rate
         'd_loss': 'CE',
-        'g_loss': 'L1',
+        'g_loss': 'SL1',
         'd_lambda': 1.,  # discriminator regularization term coefficient
-        'g_lambda': 3.,  # generator regularization term coefficient
+        'g_lambda': 1.,  # generator regularization term coefficient
         'use_g_regularization': True,  # whether to use generator regularization term
         'train_ratio': 0.7,  # for train-test split
         'batch_size': 64,
         'g_epochs': 0,  # pretraining of generator
         'd_epochs': 0,  # pretraining of discriminator
-        'adversarial_epochs': 150,  # simultaneous competitive training
+        'adversarial_epochs': 200,  # simultaneous competitive training
 
-        'callback_step': None  # save callbacks every n epochs
+        'callback_step': -1  # save callbacks every n epochs
     }
 
     main(parameters)
