@@ -1,4 +1,4 @@
-import torch, numpy, pandas, time
+import torch, numpy, pandas, time, os
 import torchvision as torchvision
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
@@ -53,7 +53,7 @@ def get_data(path):
     return data, encodings
 
 
-def plot_losses(d_loss, g_loss, parameters, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_losses(d_loss, g_loss, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     fig, axs = pyplot.subplots(2, figsize=(6,6))
 
@@ -75,7 +75,7 @@ def plot_losses(d_loss, g_loss, parameters, id, save_to='/Users/andreidm/ETH/pro
     axs[1].grid(True)
 
     pyplot.tight_layout()
-    pyplot.savefig(save_to + 'losses_{}.pdf'.format(id))
+    pyplot.savefig(save_to + 'losses_{}.pdf'.format(parameters['id']))
 
 
 def plot_metrics(d_accuracy, b_correlation, b_clustering, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
@@ -187,9 +187,6 @@ def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/a
 
 def main(parameters):
 
-    id = parameters['id']
-    save_to = parameters['path'].replace('data', 'res')
-
     device = torch.device("cpu")
     torch.set_num_threads(1)
 
@@ -210,7 +207,7 @@ def main(parameters):
     d_criterion = loss_mapper[parameters['d_loss']]
     g_criterion = loss_mapper[parameters['g_loss']]
 
-    data, pretrained_encodings = get_data(parameters['path'])
+    data, pretrained_encodings = get_data(parameters['in_path'])
     # split to values and batches
     data_batch_labels = data.iloc[:, 0]
     data_values = data.iloc[:, 1:]
@@ -230,6 +227,13 @@ def main(parameters):
 
     train_loader = DataLoader(train_dataset, batch_size=int(parameters['batch_size']), shuffle=True, num_workers=4, pin_memory=False)
     test_loader = DataLoader(test_dataset, batch_size=int(parameters['batch_size']), shuffle=False, num_workers=4)
+
+    # create folders to save results
+    save_to = parameters['out_path'] + '{}/'.format(parameters['id'])
+    if not os.path.exists(save_to):
+        os.makedirs(save_to)
+        os.makedirs(save_to + '/callbacks')
+        os.makedirs(save_to + '/checkpoints')
 
     # Lists to keep track of progress
     g_loss_history = []
@@ -353,41 +357,47 @@ def main(parameters):
             g_regularizer = float(parameters['g_lambda']) * b_grouping
 
         # SAVE MODEL
-        torch.save(generator.state_dict(), save_to + 'checkpoints/ae_at_{}_{}.torch'.format(epoch, id))
+        torch.save(generator.state_dict(), save_to + '/checkpoints/ae_at_{}_{}.torch'.format(epoch, parameters['id']))
 
         # PRINT AND PLOT EPOCH INFO
         # plot every N epochs what happens with data
         if int(parameters['callback_step']) > 0 and epoch % int(parameters['callback_step']) == 0:
+
             # plot cross correlations of benchmarks in ALL reconstructed data
-            plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), id, sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
+            plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to+'/callbacks/')
             # plot umap of FULL encoded data
-            plot_full_dataset_umap(encodings, 'epoch {}'.format(epoch+1), id, sample_types_of_interest=benchmarks, save_to=save_to+'callbacks/')
+            plot_full_dataset_umap(encodings, 'epoch {}'.format(epoch+1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to+'/callbacks/')
             pyplot.close('all')
 
         # display the epoch training loss
         timing = int(time.time() - start)
         print("epoch {}/{}, {} sec elapsed: d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f}, b_corr = {:.4f}, b_grouping = {:.4f}".format(epoch + 1, total_epochs, timing, d_loss, g_loss, accuracy, b_corr, b_grouping))
 
+    # TODO:
+    #       2) find the best epoch and save it, clear other checkpoints if parameters say not to save them,
+    #       3) plot callbacks of the best epoch and save to results
+
     # PLOT TRAINING HISTORY
-    plot_losses(d_loss_history, g_loss_history, parameters, id, save_to=save_to+'callbacks/')
-    plot_metrics(val_acc_history, benchmarks_corr_history, benchmarks_grouping_history, id, save_to=save_to + 'callbacks/')
-    plot_variation_coefs(variation_coefs, cv_dict_original, id, save_to=save_to+'callbacks/')
-    plot_n_clusters(n_clusters, clustering_dict_original, id, save_to=save_to+'callbacks/')
+    plot_losses(d_loss_history, g_loss_history, parameters, save_to=save_to)
+    plot_metrics(val_acc_history, benchmarks_corr_history, benchmarks_grouping_history, parameters['id'], save_to=save_to)
+    plot_variation_coefs(variation_coefs, cv_dict_original, parameters['id'], save_to=save_to)
+    plot_n_clusters(n_clusters, clustering_dict_original, parameters['id'], save_to=save_to)
 
     # SAVE PARAMETERS AND HISTORY
-    pandas.DataFrame(parameters, index=[0]).to_csv(save_to + 'callbacks/parameters_{}.csv'.format(id), index=False)
+    pandas.DataFrame(parameters, index=[0]).to_csv(save_to + 'parameters_{}.csv'.format(parameters['id']), index=False)
     history = pandas.DataFrame({'epoch': [x for x in range(len(d_loss_history))], 'd_loss': d_loss_history,
                                 'g_loss': g_loss_history, 'val_acc': val_acc_history,
                                 'b_corr': benchmarks_corr_history, 'b_grouping': benchmarks_grouping_history})
-    history.to_csv(save_to + 'callbacks/history_{}.csv'.format(id), index=False)
+    history.to_csv(save_to + 'history_{}.csv'.format(parameters['id']), index=False)
 
 
 if __name__ == "__main__":
     # PARAMETERS
     parameters = {
 
-        'path': '/Users/andreidm/ETH/projects/normalization/data/',
-        'id': '',
+        'in_path': '/Users/andreidm/ETH/projects/normalization/data/',
+        'out_path': '/Users/andreidm/ETH/projects/normalization/res/grid_search/',
+        'id': '01234',
 
         'n_features': 170,  # n of metabolites in initial dataset
         'latent_dim': 100,  # n dimensions to reduce to
@@ -404,9 +414,10 @@ if __name__ == "__main__":
         'batch_size': 64,
         'g_epochs': 0,  # pretraining of generator
         'd_epochs': 0,  # pretraining of discriminator
-        'adversarial_epochs': 200,  # simultaneous competitive training
+        'adversarial_epochs': 2,  # simultaneous competitive training
 
-        'callback_step': -1  # save callbacks every n epochs
+        'callback_step': 1,  # save callbacks every n epochs
+        'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch
     }
 
     main(parameters)

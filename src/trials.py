@@ -1,5 +1,4 @@
-import pandas
-import numpy as np
+import pandas, numpy, os
 from sklearn.preprocessing import RobustScaler
 import tensorflow as tf
 from tensorflow import keras
@@ -14,6 +13,9 @@ import torch
 
 if __name__ == "__main__":
 
-    sample_types = ["_".join(x.split('_')[:2]) for x in shared_perturbations]
-    sample_types = set(sample_types)
-    print(sample_types)
+    path = '/Users/andreidm/ETH/projects/normalization/res/'
+
+    new = path + 'test_folder/test_folder'
+
+    if not os.path.exists(new):
+        os.makedirs(new)
