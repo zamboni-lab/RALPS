@@ -1,4 +1,4 @@
-import torch, numpy, pandas, time, os
+import torch, numpy, pandas, time, os, uuid
 import torchvision as torchvision
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
@@ -217,10 +217,10 @@ def find_best_epoch(history):
                 if df is None:
                     df = slice_by_grouping_and_correlation(history, 50, 50)
                     if df is None:
-                        min_loss_epoch = int(history.loc[history['g_loss'] == history['g_loss'].min(), 'epoch'])
-                        print('WARNING: couldn\'t find the best epoch, returning one with min loss: {}'.format(min_loss_epoch+1))
-                        return min_loss_epoch
-    return int(df.loc[0, 'epoch'])
+                        min_grouping_epoch = int(history.loc[history['b_grouping'] == history['b_grouping'].min(), 'epoch'].values[-1])
+                        print('WARNING: couldn\'t find the best epoch, returning the last one of min grouping coef: epoch {}'.format(min_grouping_epoch+1))
+                        return min_grouping_epoch
+    return int(df['epoch'].values[0])
 
 
 def main(parameters):
@@ -400,7 +400,6 @@ def main(parameters):
         # PRINT AND PLOT EPOCH INFO
         # plot every N epochs what happens with data
         if int(parameters['callback_step']) > 0 and epoch % int(parameters['callback_step']) == 0:
-
             # plot cross correlations of benchmarks in ALL reconstructed data
             plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to+'/callbacks/')
             # plot umap of FULL encoded data
@@ -410,8 +409,6 @@ def main(parameters):
         # display the epoch training loss
         timing = int(time.time() - start)
         print("epoch {}/{}, {} sec elapsed: d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f}, b_corr = {:.4f}, b_grouping = {:.4f}".format(epoch + 1, total_epochs, timing, d_loss, g_loss, accuracy, b_corr, b_grouping))
-
-    # TODO:  3) plot callbacks of the best epoch and save to results
 
     # PLOT TRAINING HISTORY
     history = pandas.DataFrame({'epoch': [x for x in range(len(d_loss_history))], 'best': [False for x in range(len(d_loss_history))],
@@ -425,6 +422,20 @@ def main(parameters):
     plot_metrics(val_acc_history, benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters['id'], save_to=save_to)
     plot_variation_coefs(variation_coefs, cv_dict_original, parameters['id'], save_to=save_to)
     plot_n_clusters(n_clusters, clustering_dict_original, parameters['id'], save_to=save_to)
+
+    # PLOT BEST EPOCH CALLBACKS
+    encodings = generator.encode(torch.Tensor(data_values.values))
+    reconstruction = generator.decode(encodings)
+
+    encodings = pandas.DataFrame(encodings.detach().numpy(), index=data_values.index)
+    encodings.insert(0, 'batch', data_batch_labels)
+    reconstruction = pandas.DataFrame(reconstruction.detach().numpy(), index=data_values.index)
+
+    # plot cross correlations of benchmarks in ALL reconstructed data
+    plot_batch_cross_correlations(reconstruction, 'best model at {}'.format(best_epoch + 1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to)
+    # plot umap of FULL encoded data
+    plot_full_dataset_umap(encodings, 'best model at {}'.format(best_epoch + 1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to)
+    pyplot.close('all')
 
     # SAVE PARAMETERS AND HISTORY
     pandas.DataFrame(parameters, index=[0]).to_csv(save_to + 'parameters_{}.csv'.format(parameters['id']), index=False)
@@ -447,18 +458,18 @@ if __name__ == "__main__":
 
         'in_path': '/Users/andreidm/ETH/projects/normalization/data/',
         'out_path': '/Users/andreidm/ETH/projects/normalization/res/grid_search/',
-        'id': 'call123',
+        'id': str(uuid.uuid4())[:8],
 
         'n_features': 170,  # n of metabolites in initial dataset
         'latent_dim': 100,  # n dimensions to reduce to
         'n_batches': 7,
 
-        'd_lr': 2e-3,  # discriminator learning rate
-        'g_lr': 2e-3,  # generator learning rate
+        'd_lr': 1e-3,  # discriminator learning rate
+        'g_lr': 5e-4,  # generator learning rate
         'd_loss': 'CE',
         'g_loss': 'MSE',
-        'd_lambda': 1.,  # discriminator regularization term coefficient
-        'g_lambda': 2.,  # generator regularization term coefficient
+        'd_lambda': 1.5,  # discriminator regularization term coefficient
+        'g_lambda': 3.,  # generator regularization term coefficient
         'use_g_regularization': True,  # whether to use generator regularization term
         'train_ratio': 0.7,  # for train-test split
         'batch_size': 64,
@@ -466,7 +477,7 @@ if __name__ == "__main__":
         'd_epochs': 0,  # pretraining of discriminator
         'adversarial_epochs': 5,  # simultaneous competitive training
 
-        'callback_step': 1,  # save callbacks every n epochs
+        'callback_step': -1,  # save callbacks every n epochs
         'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch
     }
 
