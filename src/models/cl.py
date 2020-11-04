@@ -125,12 +125,12 @@ if __name__ == "__main__":
     print('achieved accuracy:', test_accuracy)
 
     print('saving model\n')
-    torch.save(model.state_dict(), path + 'classifier.torch')
+    torch.save(model.state_dict(), path + 'classifier.models')
 
     print('creating new model')
     model = Classifier(input_shape=latent_dim, n_batches=n_batches)
     print('loading state_dict()')
-    model.load_state_dict(torch.load(path + 'classifier.torch', map_location=device))
+    model.load_state_dict(torch.load(path + 'classifier.models', map_location=device))
     model.eval()
 
     predictions = model(torch.Tensor(X_test))

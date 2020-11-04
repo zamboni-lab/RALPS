@@ -5,8 +5,8 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import StandardScaler, RobustScaler
 from matplotlib import pyplot
 
-from src.torch.cl import Classifier
-from src.torch.ae import Autoencoder
+from src.models.cl import Classifier
+from src.models.ae import Autoencoder
 from src.constants import samples_with_strong_batch_effects as benchmarks
 from src.constants import loss_mapper
 from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
@@ -395,7 +395,7 @@ def main(parameters):
             g_regularizer = float(parameters['g_lambda']) * b_grouping
 
         # SAVE MODEL
-        torch.save(generator.state_dict(), save_to + '/checkpoints/ae_at_{}_{}.torch'.format(epoch, parameters['id']))
+        torch.save(generator.state_dict(), save_to + '/checkpoints/ae_at_{}_{}.models'.format(epoch, parameters['id']))
 
         # PRINT AND PLOT EPOCH INFO
         # plot every N epochs what happens with data

@@ -152,7 +152,7 @@ if __name__ == "__main__":
 
     print('saving model\n')
     saving_path = path.replace('data', 'res')
-    torch.save(model.state_dict(), path + 'autoencoder.torch')
+    torch.save(model.state_dict(), path + 'autoencoder.models')
 
     print('encoding and saving full dataset')
     X = numpy.concatenate([X_train, X_test])
