@@ -4,13 +4,13 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import StandardScaler, RobustScaler
 from matplotlib import pyplot
 
-from src.models.cl import Classifier
-from src.models.ae import Autoencoder
-from src.constants import samples_with_strong_batch_effects as benchmarks
-from src.constants import loss_mapper
-from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
-from src.batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
-from src.batch_analysis import get_median_benchmark_cross_correlation
+from models.cl import Classifier
+from models.ae import Autoencoder
+from constants import samples_with_strong_batch_effects as benchmarks
+from constants import loss_mapper
+from batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
+from batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
+from batch_analysis import get_median_benchmark_cross_correlation
 
 
 def split_to_train_and_test(values, batches, scaler, proportion=0.7):

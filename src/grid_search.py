@@ -2,7 +2,7 @@
 import pandas, numpy, uuid, os, random, sys
 from multiprocessing import Process, Pool
 from matplotlib import pyplot
-from src.models import adversarial
+from models import adversarial
 
 
 def run_parallel(grid):
@@ -43,13 +43,14 @@ def generate_random_parameter_set(g_loss, regularization, grid_size, grid_name, 
 
     parameters = {
 
-        'in_path': ['/Users/andreidm/ETH/projects/normalization/data/' for x in grid],
-        'out_path': ['/Users/andreidm/ETH/projects/normalization/res/grid_search/' for x in grid],
-        'id': [str(uuid.uuid4())[:12] for x in grid],
+        'in_path': ['/Users/dmitrav/ETH/projects/normalization/data/' for x in grid],
+        'out_path': ['/Users/dmitrav/ETH/projects/normalization/res/grid_search/' for x in grid],
+        'id': [str(uuid.uuid4())[:8] for x in grid],
 
         'n_features': [170 for x in grid],  # n of metabolites in initial dataset
-        'latent_dim': [100 for x in grid],  # n dimensions to reduce to
+        'latent_dim': [50 for x in grid],  # n dimensions to reduce to
         'n_batches': [7 for x in grid],
+        'n_replicates': [3 for x in grid],
 
         'd_lr': [round(random.uniform(5e-5, 5e-3), 4) for x in grid],  # discriminator learning rate
         'g_lr': [round(random.uniform(5e-5, 5e-3), 4) for x in grid],  # generator learning rate
@@ -170,23 +171,24 @@ def generate_and_save_repetitive_grids():
 
 def generate_random_grids():
 
-    save_to = '/Users/andreidm/ETH/projects/normalization/data/'
-    generate_random_parameter_set('MSE', True, 100, 'mse_reg', save_to)
-    generate_random_parameter_set('MSE', False, 100, 'mse', save_to)
+    save_to = '/Users/dmitrav/ETH/projects/normalization/data/'
     generate_random_parameter_set('L1', True, 100, 'l1_reg', save_to)
     generate_random_parameter_set('L1', False, 100, 'l1', save_to)
-    generate_random_parameter_set('SL1', True, 100, 'sl1_reg', save_to)
-    generate_random_parameter_set('SL1', False, 100, 'sl1', save_to)
+    # generate_random_parameter_set('SL1', True, 100, 'sl1_reg', save_to)
+    # generate_random_parameter_set('SL1', False, 100, 'sl1', save_to)
+    # generate_random_parameter_set('MSE', True, 100, 'mse_reg', save_to)
+    # generate_random_parameter_set('MSE', False, 100, 'mse', save_to)
 
 
 def run_grid_from_console():
     """ To run from terminal with a single parameter: a grid file name. """
     name = sys.argv[1]
 
-    path = '/Users/andreidm/ETH/projects/normalization/data/'
+    path = '/Users/dmitrav/ETH/projects/normalization/data/'
     grid = pandas.read_csv(path + name, index_col=0)
 
-    for i in range(grid.shape[0]):
+    # for i in range(grid.shape[0]):
+    for i in range(0, 10):
         parameters = dict(grid.iloc[i, :])
         adversarial.main(parameters)
 
@@ -222,7 +224,7 @@ def collect_results_of_grid_search():
 
 if __name__ == "__main__":
 
-    generate_and_save_repetitive_grids()
+    run_grid_from_console()
 
 
 
