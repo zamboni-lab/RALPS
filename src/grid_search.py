@@ -83,8 +83,8 @@ def generate_grids():
     generate_grid('SL1', False, 100, 'sl1', save_to)
 
 
-if __name__ == "__main__":
-
+def run_grid_from_console():
+    """ To run from terminal with a single parameter: a grid file name. """
     name = sys.argv[1]
 
     path = '/Users/andreidm/ETH/projects/normalization/data/'
@@ -93,5 +93,40 @@ if __name__ == "__main__":
     for i in range(grid.shape[0]):
         parameters = dict(grid.iloc[i, :])
         adversarial.main(parameters)
+
+
+def collect_results_of_grid_search():
+    """ Collect history files for all the grids for manual inspection. """
+
+
+    grids_path = '/Users/andreidm/ETH/projects/normalization/data/grids/'
+    results_path = '/Users/andreidm/ETH/projects/normalization/res/grid_search/'
+
+    grids = ['grid_l1_reg', 'grid_l1', 'grid_mse_reg', 'grid_mse', 'grid_sl1_reg', 'grid_sl1']
+    results = []
+
+    for grid in grids:
+
+        grid_pars = pandas.read_csv(grids_path + grid + '.csv', index_col=0)
+        ids = grid_pars['id'].values
+
+        best_epochs = pandas.DataFrame()
+        for id in ids:
+
+            id_results = pandas.read_csv(results_path + id + '/history_{}.csv'.format(id))
+            id_results = id_results.loc[id_results['best'] == True, :]
+            id_results['id'] = id
+
+            best_epochs = pandas.concat([best_epochs, id_results])
+            del id_results
+
+        results.append(best_epochs)
+
+    return results
+
+if __name__ == "__main__":
+
+    results = collect_results_of_grid_search()
+
 
 
