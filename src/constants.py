@@ -1,7 +1,7 @@
 
 from torch import nn
 
-version = "v.0.1.17"
+version = "v.0.1.18"
 
 allowed_ppm_error = 5
 tic_normalization_scaling_factor = 10 ** 5
