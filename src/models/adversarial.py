@@ -251,7 +251,7 @@ def main(parameters):
 
     # get CV of benchmarks in original data
     cv_dict_original = compute_cv_for_samples_types(data_values, sample_types_of_interest=benchmarks)
-    clustering_dict_original, _ = compute_number_of_clusters_with_hdbscan(pretrained_encodings, print_info=False, sample_types_of_interest=benchmarks)
+    clustering_dict_original, _ = compute_number_of_clusters_with_hdbscan(pretrained_encodings, parameters, print_info=False, sample_types_of_interest=benchmarks)
 
     # create and fit the scaler
     scaler = RobustScaler().fit(data_values)
