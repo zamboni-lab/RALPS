@@ -1,5 +1,4 @@
 import torch, numpy, pandas
-import torchvision as torchvision
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 from src.constants import data_path as path

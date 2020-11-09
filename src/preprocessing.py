@@ -9,9 +9,10 @@ from src.constants import controls
 from sklearn.preprocessing import RobustScaler
 from src.constants import data_path as path
 
-def run_pca(data):
 
-    transformer = PCA(n_components=100)
+def run_pca(data, n=100):
+
+    transformer = PCA(n_components=n)
     scaler = StandardScaler()
 
     scaled_data = scaler.fit_transform(data)
@@ -22,7 +23,7 @@ def run_pca(data):
     # percent of variance explained
     print(list(transformer.explained_variance_ratio_ * 100))
 
-    return reduced_data
+    return reduced_data, transformer
 
 
 def run_umap(data, full_samples_names, neighbors=15, metric='cosine', min_dist=0.1, scale=False, annotate=False):
@@ -335,7 +336,7 @@ def implement_pipeline():
     # collect merged dataset
     data = pandas.read_csv(path + 'all_data.csv')
     # perform PCA to reduce from 2800+ to 30 variables preserving >90% of variation
-    reduced_data = run_pca(data.iloc[:, 3:].values.T)
+    reduced_data, _ = run_pca(data.iloc[:, 3:].values.T)
     # run UMAP to see batch effects and clustering
     run_umap(reduced_data[:, :30], data.columns.values[3:], neighbors=100, metric='correlation', scale=True, annotate=True)
 

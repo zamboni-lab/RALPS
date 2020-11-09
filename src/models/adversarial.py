@@ -1,5 +1,4 @@
 import torch, numpy, pandas, time, os, uuid
-import torchvision as torchvision
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import StandardScaler, RobustScaler
@@ -456,26 +455,27 @@ if __name__ == "__main__":
     # PARAMETERS
     parameters = {
 
-        'in_path': '/Users/andreidm/ETH/projects/normalization/data/',
-        'out_path': '/Users/andreidm/ETH/projects/normalization/res/grid_search/',
+        'in_path': '/Users/dmitrav/ETH/projects/normalization/data/',
+        'out_path': '/Users/dmitrav/ETH/projects/normalization/res/',
         'id': str(uuid.uuid4())[:8],
 
         'n_features': 170,  # n of metabolites in initial dataset
-        'latent_dim': 100,  # n dimensions to reduce to
+        'latent_dim': 50,  # n dimensions to reduce to
         'n_batches': 7,
+        'n_replicates': 3,
 
-        'd_lr': 1e-3,  # discriminator learning rate
-        'g_lr': 5e-4,  # generator learning rate
+        'd_lr': 0.001,  # discriminator learning rate
+        'g_lr': 0.0049,  # generator learning rate
         'd_loss': 'CE',
-        'g_loss': 'MSE',
-        'd_lambda': 1.5,  # discriminator regularization term coefficient
-        'g_lambda': 3.,  # generator regularization term coefficient
-        'use_g_regularization': True,  # whether to use generator regularization term
+        'g_loss': 'L1',
+        'd_lambda': 0.4,  # discriminator regularization term coefficient
+        'g_lambda': 1.1,  # generator regularization term coefficient
+        'use_g_regularization': False,  # whether to use generator regularization term
         'train_ratio': 0.7,  # for train-test split
         'batch_size': 64,
         'g_epochs': 0,  # pretraining of generator
         'd_epochs': 0,  # pretraining of discriminator
-        'adversarial_epochs': 5,  # simultaneous competitive training
+        'adversarial_epochs': 200,  # simultaneous competitive training
 
         'callback_step': -1,  # save callbacks every n epochs
         'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch

@@ -141,21 +141,21 @@ def plot_full_dataset_umap(encodings, method_name, id, sample_types_of_interest=
     pyplot.savefig(save_to + 'umap_benchmarks_{}_{}.pdf'.format(method_name.replace(' ', '_'), id))
 
 
-def compute_number_of_clusters_with_hdbscan(encodings, print_info=True, sample_types_of_interest=None):
+def compute_number_of_clusters_with_hdbscan(encodings, parameters, print_info=True, sample_types_of_interest=None):
 
     samples_by_types = get_samples_by_types_dict(encodings.index.values, sample_types_of_interest)
 
     batches = encodings['batch'].values - 1
     values = encodings.iloc[:, 1:].values
 
-    random_seed = 831
+    n_comp = parameters['latent_space'] // 3
+    neighbors = parameters['n_batches'] * parameters['n_replicates']
     metric = 'braycurtis'
-    n = 20
 
-    reducer = umap.UMAP(n_components=30, n_neighbors=n, metric=metric, min_dist=0.1, random_state=random_seed)
+    reducer = umap.UMAP(n_components=n_comp, n_neighbors=neighbors, metric=metric, min_dist=0.1, random_state=77)
     embeddings = reducer.fit_transform(values)
 
-    clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=n, allow_single_cluster=False)
+    clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=neighbors, allow_single_cluster=False)
     clusterer.fit(embeddings)
 
     total = clusterer.labels_.max() + 1
@@ -206,7 +206,8 @@ if __name__ == '__main__':
                                                                                     'P2_SFA_0001', 'P2_SRM_0001',
                                                                                     'P2_SFA_0002', 'P1_FA_0008'])
 
-    res, _ = compute_number_of_clusters_with_hdbscan(encodings, print_info=True,
+    pars = {'latent_space': 100, 'n_batches': 7, 'n_replicates': 3}
+    res, _ = compute_number_of_clusters_with_hdbscan(encodings, pars, print_info=True,
                                                   sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
                                                                             'P2_SFA_0001', 'P2_SRM_0001',
                                                                             'P2_SFA_0002', 'P1_FA_0008'])
