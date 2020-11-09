@@ -369,7 +369,7 @@ def main(parameters):
             variation_coefs[sample].append(vc[sample])
 
         # collect clustering results for some samples of ALL encoded data
-        clustering, total_clusters = compute_number_of_clusters_with_hdbscan(encodings, print_info=False, sample_types_of_interest=benchmarks)
+        clustering, total_clusters = compute_number_of_clusters_with_hdbscan(encodings, parameters, print_info=False, sample_types_of_interest=benchmarks)
         for sample in benchmarks:
             n_clusters[sample].append(len(set(clustering[sample])))
 
