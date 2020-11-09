@@ -148,7 +148,7 @@ def compute_number_of_clusters_with_hdbscan(encodings, parameters, print_info=Tr
     batches = encodings['batch'].values - 1
     values = encodings.iloc[:, 1:].values
 
-    n_comp = parameters['latent_space'] // 3
+    n_comp = parameters['latent_dim'] // 3
     neighbors = parameters['n_batches'] * parameters['n_replicates']
     metric = 'braycurtis'
 
@@ -206,7 +206,7 @@ if __name__ == '__main__':
                                                                                     'P2_SFA_0001', 'P2_SRM_0001',
                                                                                     'P2_SFA_0002', 'P1_FA_0008'])
 
-    pars = {'latent_space': 100, 'n_batches': 7, 'n_replicates': 3}
+    pars = {'latent_dim': 100, 'n_batches': 7, 'n_replicates': 3}
     res, _ = compute_number_of_clusters_with_hdbscan(encodings, pars, print_info=True,
                                                   sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
                                                                             'P2_SFA_0001', 'P2_SRM_0001',
