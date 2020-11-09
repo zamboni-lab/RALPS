@@ -148,8 +148,8 @@ def compute_number_of_clusters_with_hdbscan(encodings, parameters, print_info=Tr
     batches = encodings['batch'].values - 1
     values = encodings.iloc[:, 1:].values
 
-    n_comp = parameters['latent_dim'] // 3
-    neighbors = parameters['n_batches'] * parameters['n_replicates']
+    n_comp = int(parameters['latent_dim'] / 3)
+    neighbors = int(parameters['n_batches'] * parameters['n_replicates'])
     metric = 'braycurtis'
 
     reducer = umap.UMAP(n_components=n_comp, n_neighbors=neighbors, metric=metric, min_dist=0.1, random_state=77)
