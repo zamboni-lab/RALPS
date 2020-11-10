@@ -1,5 +1,6 @@
 
 import pandas, numpy, uuid, os, random, sys
+from tqdm import tqdm
 from multiprocessing import Process, Pool
 from matplotlib import pyplot
 from models import adversarial
@@ -187,8 +188,8 @@ def run_grid_from_console():
     path = '/Users/dmitrav/ETH/projects/normalization/data/'
     grid = pandas.read_csv(path + name, index_col=0)
 
-    # for i in range(grid.shape[0]):
-    for i in range(0, 10):
+    # for i in tqdm(range(grid.shape[0])):
+    for i in tqdm(range(0, 10)):
         parameters = dict(grid.iloc[i, :])
         adversarial.main(parameters)
 
