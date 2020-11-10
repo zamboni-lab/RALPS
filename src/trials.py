@@ -1,4 +1,4 @@
-import pandas, numpy, os, sys
+import pandas, numpy, os, sys, umap
 from src.preprocessing import run_pca
 
 if __name__ == "__main__":
@@ -7,10 +7,9 @@ if __name__ == "__main__":
 
     values = data.T.values[3:, :]
 
-    for n in range(40, 50):
+    for n in range(0, 110, 10):
 
         print("N={}".format(n))
         scaled, transformer = run_pca(values, n=n)
         print('total ratio of variance explained: {}'.format(sum(transformer.explained_variance_ratio_)))
         print()
-
