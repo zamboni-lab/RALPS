@@ -3,7 +3,7 @@ import pandas, numpy, uuid, os, random, sys
 from tqdm import tqdm
 from multiprocessing import Process, Pool
 from matplotlib import pyplot
-from models import adversarial
+from src.models import adversarial
 
 
 def run_parallel(grid):
