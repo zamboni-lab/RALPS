@@ -149,7 +149,7 @@ def get_intensities_data_structure(data, colnames, aa_mz_indices):
 
 def compare_two_normalisations_for_aa():
 
-    filename = '/Volumes/biol_imsb_sauer_1/users/nicola/6550_harm_4GHz/harm_4_all_short_DATA.h5'
+    filename = '/Users/dmitrav/ETH/projects/normalization/data/raw/harm_4_all_short_DATA.h5'
     all_data = get_all_data_from_h5(filename)
 
     aa_mz_indices, aa_names = get_amino_acids_indices_in_data(all_data["annotation"]["mzs"],

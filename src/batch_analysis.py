@@ -29,7 +29,7 @@ def get_samples_by_types_dict(samples_names, types_of_interest):
     return samples_by_types
 
 
-def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interest=None, save_to='/Users/dmitrav/ETH/projects/normalization/res/'):
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
@@ -187,7 +187,7 @@ def compute_number_of_clusters_with_hdbscan(encodings, parameters, print_info=Tr
 
 if __name__ == '__main__':
 
-    data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv')
+    data = pandas.read_csv('/Users/dmitrav/ETH/projects/normalization/data/filtered_data.csv')
     data = data.iloc[:, 3:]
 
     plot_batch_cross_correlations(data.T, 'original samples', '',
