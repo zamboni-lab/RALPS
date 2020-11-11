@@ -30,14 +30,8 @@ class Autoencoder(nn.Module):
         return decoded
 
     def forward(self, features):
-        encoded = self.e1(features)
-        encoded = nn.LeakyReLU()(encoded)
-        encoded = self.e2(encoded)
-        encoded = nn.CELU()(encoded)
-        decoded = self.d1(encoded)
-        decoded = nn.LeakyReLU()(decoded)
-        decoded = self.d2(decoded)
-        decoded = nn.CELU()(decoded)
+        encoded = self.encode(features)
+        decoded = self.decode(encoded)
         return decoded
 
     def count_parameters(self):
@@ -59,7 +53,7 @@ def get_data():
     return data
 
 
-def split_to_train_and_test(data):
+def scale_and_split_to_train_and_test(data):
 
     # split to values and batches
     batches = data.iloc[:, 0].values
@@ -98,14 +92,14 @@ if __name__ == "__main__":
     print('Total number of parameters: ', model.count_parameters())
 
     # create an optimizer object
-    optimizer = optim.Adam(model.parameters(), lr=1e-3)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     # mean-squared error loss
-    criterion = nn.MSELoss()
+    criterion = nn.L1Loss()
 
     # get data and do train test split
     data = get_data()
-    X_train, X_test, y_train, y_test = split_to_train_and_test(data)
+    X_train, X_test, y_train, y_test = scale_and_split_to_train_and_test(data)
 
     # make datasets
     train_dataset = TensorDataset(torch.Tensor(X_train))
@@ -114,7 +108,7 @@ if __name__ == "__main__":
     train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=4, pin_memory=False)
     test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False, num_workers=4)
 
-    epochs = 200
+    epochs = 50
 
     for epoch in range(epochs):
         loss = 0
@@ -147,7 +141,11 @@ if __name__ == "__main__":
         test_loss = test_loss / len(test_loader)
 
         # display the epoch training loss
-        print("epoch : {}/{}, loss = {:.6f}, test_loss = {:.6f}".format(epoch + 1, epochs, loss, test_loss))
+        print("epoch : {}/{}, loss = {:.4f}, test_loss = {:.4f}".format(epoch + 1, epochs, loss, test_loss))
+
+    # debug: compare scaled data with its reconstruction
+    X = numpy.concatenate([X_train, X_test])
+    reconstruction = model(torch.Tensor(X)).detach().numpy()
 
     print('saving model\n')
     saving_path = path.replace('data', 'res')

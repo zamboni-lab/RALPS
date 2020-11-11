@@ -110,7 +110,7 @@ def plot_metrics(d_accuracy, b_correlation, b_clustering, best_epoch, id, save_t
     pyplot.savefig(save_to + 'metrics_{}.pdf'.format(id))
 
 
-def plot_variation_coefs(vc_dict, vc_dict_original, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     if len(vc_dict) == 6:
         # save all on one figure
@@ -122,7 +122,8 @@ def plot_variation_coefs(vc_dict, vc_dict_original, id, save_to='/Users/andreidm
 
             ax = pyplot.subplot(2, 3, i + 1)
             ax.plot(x, y, label='Normalized data')
-            ax.axhline(y=vc_dict_original[type], color='r', linestyle='-', label='Original data')
+            ax.hlines(y=vc_dict_original[type], xmin=x[0], xmax=x[-1], colors='r', label='Original data')
+            ax.vlines(x=best_epoch+1, ymin=min(y), ymax=vc_dict_original[type], colors='k')
             ax.set_xlabel('Epochs')
             ax.set_ylabel('VC')
             ax.set_title(type)
@@ -140,7 +141,8 @@ def plot_variation_coefs(vc_dict, vc_dict_original, id, save_to='/Users/andreidm
 
             pyplot.figure()
             pyplot.plot(x, y, label='Normalized data')
-            pyplot.axhline(y=vc_dict_original[type], color='r', linestyle='-', label='Original data')
+            pyplot.hlines(y=vc_dict_original[type], xmin=x[0], xmax=x[-1], colors='r', label='Original data')
+            pyplot.vlines(x=best_epoch+1, ymin=min(y), ymax=vc_dict_original[type], colors='black')
             pyplot.ylabel('VC')
             pyplot.xlabel('Epochs')
             pyplot.title('Variation coefficient for {}'.format(type))
@@ -338,12 +340,16 @@ def main(parameters):
         g_loss_history.append(g_loss)
 
         # GENERATE DATA FOR OTHER METRICS
-        encodings = generator.encode(torch.Tensor(data_values.values))
+        scaled_data_values = scaler.transform(data_values.values)
+
+        encodings = generator.encode(torch.Tensor(scaled_data_values))
         reconstruction = generator.decode(encodings)
 
         encodings = pandas.DataFrame(encodings.detach().numpy(), index=data_values.index)
         encodings.insert(0, 'batch', data_batch_labels)
-        reconstruction = pandas.DataFrame(reconstruction.detach().numpy(), index=data_values.index)
+
+        reconstruction = scaler.inverse_transform(reconstruction.detach().numpy())
+        reconstruction = pandas.DataFrame(reconstruction, index=data_values.index)
 
         # COMPUTE METRICS
         # classification accuracy of TEST data
@@ -419,21 +425,26 @@ def main(parameters):
 
     plot_losses(d_loss_history, g_loss_history, best_epoch, parameters, save_to=save_to)
     plot_metrics(val_acc_history, benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters['id'], save_to=save_to)
-    plot_variation_coefs(variation_coefs, cv_dict_original, parameters['id'], save_to=save_to)
-    plot_n_clusters(n_clusters, clustering_dict_original, parameters['id'], save_to=save_to)
+    plot_variation_coefs(variation_coefs, cv_dict_original, best_epoch, parameters['id'], save_to=save_to)
+    # plot_n_clusters(n_clusters, clustering_dict_original, parameters['id'], save_to=save_to)
 
     # LOAD BEST MODEL
     generator = Autoencoder(input_shape=int(parameters['n_features']), latent_dim=int(parameters['latent_dim'])).to(device)
-    generator.load_state_dict(torch.load(save_to + '/checkpoints/best_ae_at_{}_{}.models'.format(best_epoch, parameters['id']), map_location=device))
+    generator.load_state_dict(torch.load(save_to + 'checkpoints/ae_at_{}_{}.models'.format(best_epoch, parameters['id']), map_location=device))
     generator.eval()
 
     # PLOT BEST EPOCH CALLBACKS
-    encodings = generator.encode(torch.Tensor(data_values.values))
+    # TODO: scale values to encode, inverse reconstruction to compare with initial values
+    scaled_data_values = scaler.transform(data_values.values)
+
+    encodings = generator.encode(torch.Tensor(scaled_data_values))
     reconstruction = generator.decode(encodings)
 
     encodings = pandas.DataFrame(encodings.detach().numpy(), index=data_values.index)
     encodings.insert(0, 'batch', data_batch_labels)
-    reconstruction = pandas.DataFrame(reconstruction.detach().numpy(), index=data_values.index)
+
+    reconstruction = scaler.inverse_transform(reconstruction.detach().numpy())
+    reconstruction = pandas.DataFrame(reconstruction, index=data_values.index)
 
     # plot cross correlations of benchmarks in ALL reconstructed data
     plot_batch_cross_correlations(reconstruction, 'best model at {}'.format(best_epoch + 1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to)
@@ -460,8 +471,8 @@ if __name__ == "__main__":
     # PARAMETERS
     parameters = {
 
-        'in_path': '/Users/dmitrav/ETH/projects/normalization/data/',
-        'out_path': '/Users/dmitrav/ETH/projects/normalization/res/',
+        'in_path': '/Users/andreidm/ETH/projects/normalization/data/',
+        'out_path': '/Users/andreidm/ETH/projects/normalization/res/',
         'id': str(uuid.uuid4())[:8],
 
         'n_features': 170,  # n of metabolites in initial dataset
@@ -470,17 +481,17 @@ if __name__ == "__main__":
         'n_replicates': 3,
 
         'd_lr': 0.001,  # discriminator learning rate
-        'g_lr': 0.0049,  # generator learning rate
+        'g_lr': 0.001,  # generator learning rate
         'd_loss': 'CE',
         'g_loss': 'L1',
-        'd_lambda': 0.4,  # discriminator regularization term coefficient
-        'g_lambda': 1.1,  # generator regularization term coefficient
-        'use_g_regularization': False,  # whether to use generator regularization term
+        'd_lambda': 1.,  # discriminator regularization term coefficient
+        'g_lambda': 2.,  # generator regularization term coefficient
+        'use_g_regularization': True,  # whether to use generator regularization term
         'train_ratio': 0.7,  # for train-test split
         'batch_size': 64,
         'g_epochs': 0,  # pretraining of generator
         'd_epochs': 0,  # pretraining of discriminator
-        'adversarial_epochs': 200,  # simultaneous competitive training
+        'adversarial_epochs': 50,  # simultaneous competitive training
 
         'callback_step': -1,  # save callbacks every n epochs
         'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch

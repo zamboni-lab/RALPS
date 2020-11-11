@@ -1,9 +1,13 @@
 
-import pandas, numpy, uuid, os, random, sys
+import pandas, numpy, uuid, os, random, sys, torch
 from tqdm import tqdm
 from multiprocessing import Process, Pool
 from matplotlib import pyplot
+
 from src.models import adversarial
+from src.models.ae import Autoencoder
+from src.batch_analysis import plot_batch_cross_correlations, plot_full_dataset_umap
+from src.constants import samples_with_strong_batch_effects as benchmarks
 
 
 def run_parallel(grid):
@@ -44,8 +48,8 @@ def generate_random_parameter_set(g_loss, regularization, grid_size, grid_name, 
 
     parameters = {
 
-        'in_path': ['/Users/dmitrav/ETH/projects/normalization/data/' for x in grid],
-        'out_path': ['/Users/dmitrav/ETH/projects/normalization/res/grid_search/' for x in grid],
+        'in_path': ['/Users/andreidm/ETH/projects/normalization/data/' for x in grid],
+        'out_path': ['/Users/andreidm/ETH/projects/normalization/res/grid_search/' for x in grid],
         'id': [str(uuid.uuid4())[:8] for x in grid],
 
         'n_features': [170 for x in grid],  # n of metabolites in initial dataset
@@ -64,7 +68,7 @@ def generate_random_parameter_set(g_loss, regularization, grid_size, grid_name, 
         'batch_size': [64 for x in grid],
         'g_epochs': [0 for x in grid],  # pretraining of generator
         'd_epochs': [0 for x in grid],  # pretraining of discriminator
-        'adversarial_epochs': [200 for x in grid],  # simultaneous competitive training
+        'adversarial_epochs': [250 for x in grid],  # simultaneous competitive training
 
         'callback_step': [-1 for x in grid],  # save callbacks every n epochs
         'keep_checkpoints': [False for x in grid]  # whether to keep all checkpoints, or just the best epoch
@@ -172,12 +176,12 @@ def generate_and_save_repetitive_grids():
 
 def generate_random_grids():
 
-    save_to = '/Users/dmitrav/ETH/projects/normalization/data/'
+    save_to = '/Users/andreidm/ETH/projects/normalization/data/'
     generate_random_parameter_set('L1', True, 100, 'l1_reg', save_to)
     generate_random_parameter_set('L1', False, 100, 'l1', save_to)
-    # generate_random_parameter_set('SL1', True, 100, 'sl1_reg', save_to)
+    generate_random_parameter_set('SL1', True, 100, 'sl1_reg', save_to)
     # generate_random_parameter_set('SL1', False, 100, 'sl1', save_to)
-    # generate_random_parameter_set('MSE', True, 100, 'mse_reg', save_to)
+    generate_random_parameter_set('MSE', True, 100, 'mse_reg', save_to)
     # generate_random_parameter_set('MSE', False, 100, 'mse', save_to)
 
 
@@ -185,7 +189,7 @@ def run_grid_from_console():
     """ To run from terminal with a single parameter: a grid file name. """
     name = sys.argv[1]
 
-    path = '/Users/dmitrav/ETH/projects/normalization/data/'
+    path = '/Users/andreidm/ETH/projects/normalization/data/'
     grid = pandas.read_csv(path + name, index_col=0)
 
     # for i in tqdm(range(grid.shape[0])):
@@ -224,9 +228,8 @@ def collect_results_of_grid_search():
 
 
 if __name__ == "__main__":
-    pass
 
-
+    run_grid_from_console()
 
 
 
