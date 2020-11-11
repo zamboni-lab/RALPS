@@ -422,6 +422,11 @@ def main(parameters):
     plot_variation_coefs(variation_coefs, cv_dict_original, parameters['id'], save_to=save_to)
     plot_n_clusters(n_clusters, clustering_dict_original, parameters['id'], save_to=save_to)
 
+    # LOAD BEST MODEL
+    generator = Autoencoder(input_shape=int(parameters['n_features']), latent_dim=int(parameters['latent_dim'])).to(device)
+    generator.load_state_dict(torch.load(save_to + '/checkpoints/best_ae_at_{}_{}.models'.format(best_epoch, parameters['id']), map_location=device))
+    generator.eval()
+
     # PLOT BEST EPOCH CALLBACKS
     encodings = generator.encode(torch.Tensor(data_values.values))
     reconstruction = generator.decode(encodings)
