@@ -224,8 +224,7 @@ def collect_results_of_grid_search():
 
 
 if __name__ == "__main__":
-
-    run_grid_from_console()
+    pass
 
 
 

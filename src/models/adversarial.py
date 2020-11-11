@@ -447,9 +447,9 @@ def main(parameters):
 
     # REFACTOR CHECKPOINTS
     for file in os.listdir(save_to + '/checkpoints/'):
-        if file.startswith('ae_at_{}'.format(best_epoch)):
+        if file.startswith('ae_at_{}_'.format(best_epoch)):
             # rename to best
-            os.rename(save_to + '/checkpoints/' + file, save_to + '/checkpoints/' + file.replace('ae', 'best_ae'))
+            os.rename(save_to + '/checkpoints/' + file, save_to + '/checkpoints/best_' + file)
         else:
             if not parameters['keep_checkpoints']:
                 # remove the rest
