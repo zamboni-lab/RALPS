@@ -206,7 +206,11 @@ def slice_by_grouping_and_correlation(history, g_percent, c_percent):
     return df
 
 
-def find_best_epoch(history):
+def find_best_epoch(history, skip_epochs=50):
+
+    # TODO: make it an intelligent decision, not just hardcode
+    # skip first n epochs
+    history = history.iloc[skip_epochs:, :]
 
     df = slice_by_grouping_and_correlation(history, 10, 90)
     if df is None:
@@ -434,7 +438,6 @@ def main(parameters):
     generator.eval()
 
     # PLOT BEST EPOCH CALLBACKS
-    # TODO: scale values to encode, inverse reconstruction to compare with initial values
     scaled_data_values = scaler.transform(data_values.values)
 
     encodings = generator.encode(torch.Tensor(scaled_data_values))
