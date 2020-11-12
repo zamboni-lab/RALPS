@@ -123,7 +123,7 @@ def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Us
             ax = pyplot.subplot(2, 3, i + 1)
             ax.plot(x, y, label='Normalized data')
             ax.hlines(y=vc_dict_original[type], xmin=x[0], xmax=x[-1], colors='r', label='Original data')
-            ax.vlines(x=best_epoch+1, ymin=min(y), ymax=vc_dict_original[type], colors='k')
+            ax.vlines(x=best_epoch+1, ymin=min(y), ymax=max(y), colors='k')
             ax.set_xlabel('Epochs')
             ax.set_ylabel('VC')
             ax.set_title(type)
@@ -142,7 +142,7 @@ def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Us
             pyplot.figure()
             pyplot.plot(x, y, label='Normalized data')
             pyplot.hlines(y=vc_dict_original[type], xmin=x[0], xmax=x[-1], colors='r', label='Original data')
-            pyplot.vlines(x=best_epoch+1, ymin=min(y), ymax=vc_dict_original[type], colors='black')
+            pyplot.vlines(x=best_epoch+1, ymin=min(y), ymax=max(y), colors='black')
             pyplot.ylabel('VC')
             pyplot.xlabel('Epochs')
             pyplot.title('Variation coefficient for {}'.format(type))
@@ -206,7 +206,7 @@ def slice_by_grouping_and_correlation(history, g_percent, c_percent):
     return df
 
 
-def find_best_epoch(history, skip_epochs=50):
+def find_best_epoch(history, skip_epochs=10):
 
     # TODO: make it an intelligent decision, not just hardcode
     # skip first n epochs
@@ -240,7 +240,7 @@ def main(parameters):
     print('Discriminator:\n', discriminator)
     print('Number of parameters: ', discriminator.count_parameters())
     print('Generator:\n', generator)
-    print('Total number of parameters: ', generator.count_parameters())
+    print('Number of parameters: ', generator.count_parameters())
 
     # create an optimizers
     d_optimizer = optim.Adam(discriminator.parameters(), lr=float(parameters['d_lr']))
@@ -424,7 +424,7 @@ def main(parameters):
                                 'd_loss': d_loss_history, 'g_loss': g_loss_history, 'val_acc': val_acc_history,
                                 'b_corr': benchmarks_corr_history, 'b_grouping': benchmarks_grouping_history})
 
-    best_epoch = find_best_epoch(history)
+    best_epoch = find_best_epoch(history, skip_epochs=10)
     history.loc[best_epoch, 'best'] = True  # mark the best epoch
 
     plot_losses(d_loss_history, g_loss_history, best_epoch, parameters, save_to=save_to)
@@ -454,6 +454,10 @@ def main(parameters):
     # plot umap of FULL encoded data
     plot_full_dataset_umap(encodings, 'best model at {}'.format(best_epoch + 1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to)
     pyplot.close('all')
+
+    # SAVE ENCODED AND NORMALIZED DATA
+    encodings.to_csv(save_to + 'encodings_{}.csv'.format(parameters['id']))
+    reconstruction.to_csv(save_to + 'normalized_{}.csv'.format(parameters['id']))
 
     # SAVE PARAMETERS AND HISTORY
     pandas.DataFrame(parameters, index=[0]).to_csv(save_to + 'parameters_{}.csv'.format(parameters['id']), index=False)

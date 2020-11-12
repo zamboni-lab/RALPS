@@ -45,6 +45,7 @@ def generate_random_parameter_set(g_loss, regularization, grid_size, grid_name, 
     """ Generate a random parameter set to find out best parameter sets. """
 
     grid = range(grid_size)
+    latent_dim = 50
 
     parameters = {
 
@@ -53,7 +54,7 @@ def generate_random_parameter_set(g_loss, regularization, grid_size, grid_name, 
         'id': [str(uuid.uuid4())[:8] for x in grid],
 
         'n_features': [170 for x in grid],  # n of metabolites in initial dataset
-        'latent_dim': [50 for x in grid],  # n dimensions to reduce to
+        'latent_dim': [latent_dim for x in grid],  # n dimensions to reduce to
         'n_batches': [7 for x in grid],
         'n_replicates': [3 for x in grid],
 
@@ -64,18 +65,18 @@ def generate_random_parameter_set(g_loss, regularization, grid_size, grid_name, 
         'd_lambda': [round(random.uniform(0.1, 5), 1) for x in grid],  # discriminator regularization term coefficient
         'g_lambda':  [round(random.uniform(0.1, 5), 1) for x in grid],  # generator regularization term coefficient
         'use_g_regularization': [regularization for x in grid],  # whether to use generator regularization term
-        'train_ratio': [0.7 for x in grid],  # for train-test split
+        'train_ratio': [0.9 for x in grid],  # for train-test split
         'batch_size': [64 for x in grid],
         'g_epochs': [0 for x in grid],  # pretraining of generator
         'd_epochs': [0 for x in grid],  # pretraining of discriminator
-        'adversarial_epochs': [250 for x in grid],  # simultaneous competitive training
+        'adversarial_epochs': [200 for x in grid],  # simultaneous competitive training
 
         'callback_step': [-1 for x in grid],  # save callbacks every n epochs
         'keep_checkpoints': [False for x in grid]  # whether to keep all checkpoints, or just the best epoch
     }
 
     grid = pandas.DataFrame(parameters)
-    grid.to_csv(save_to + 'grid_{}.csv'.format(grid_name))
+    grid.to_csv(save_to + 'grid_{}_{}.csv'.format(grid_name, latent_dim))
     print('grid {} saved'.format(grid_name))
 
 
@@ -229,8 +230,8 @@ def collect_results_of_grid_search():
 
 if __name__ == "__main__":
 
+    # generate_random_grids()
     run_grid_from_console()
-
 
 
 

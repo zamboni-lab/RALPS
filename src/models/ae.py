@@ -15,18 +15,24 @@ class Autoencoder(nn.Module):
         self.d1 = nn.Linear(in_features=kwargs["latent_dim"], out_features=kwargs["latent_dim"])
         self.d2 = nn.Linear(in_features=kwargs["latent_dim"], out_features=kwargs["input_shape"])
 
+        # best set of activations found
+        self.e1_act = nn.CELU()
+        self.e2_act = nn.Identity()
+        self.d1_act = nn.CELU()
+        self.d2_act = nn.Identity()
+
     def encode(self, features):
         encoded = self.e1(features)
-        encoded = nn.CELU()(encoded)
+        encoded = self.e1_act(encoded)
         encoded = self.e2(encoded)
-        encoded = nn.Identity()(encoded)
+        encoded = self.e2_act(encoded)
         return encoded
 
     def decode(self, encoded):
         decoded = self.d1(encoded)
-        decoded = nn.CELU()(decoded)
+        decoded = self.d1_act(decoded)
         decoded = self.d2(decoded)
-        decoded = nn.Identity()(decoded)
+        decoded = self.d2_act(decoded)
         return decoded
 
     def forward(self, features):
@@ -108,13 +114,13 @@ def scale_and_split_to_train_and_test(scaled_values, batches):
     return x_train, x_val, y_train, y_val
 
 
-def train_autoencoder_and_save():
+def train_autoencoder_and_save_encodings():
 
     n_features = 170
-    latent_dim = 100
+    latent_dim = 50
 
     #  use gpu if available
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
 
     model = Autoencoder(input_shape=n_features, latent_dim=latent_dim).to(device)
 
@@ -128,24 +134,20 @@ def train_autoencoder_and_save():
     criterion = nn.L1Loss()
 
     # get data and do train test split
-    data = get_data()
+    data = get_data(shuffle=False)
 
     # split to values and batches
     batches = data.iloc[:, 0].values
     values = data.iloc[:, 1:].values
+
     # scale
     scaler = RobustScaler()
     scaler.fit(values)
     scaled = scaler.transform(values)
 
-    X_train, X_test, y_train, y_test = scale_and_split_to_train_and_test(scaled, batches)
-
     # make datasets
-    train_dataset = TensorDataset(torch.Tensor(X_train))
-    test_dataset = TensorDataset(torch.Tensor(X_test))
-
+    train_dataset = TensorDataset(torch.Tensor(scaled))
     train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=4, pin_memory=False)
-    test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False, num_workers=4)
 
     epochs = 150
 
@@ -169,34 +171,27 @@ def train_autoencoder_and_save():
             # add the mini-batch training loss to epoch loss
             loss += train_loss.item()
 
-        test_loss = 0
-        for batch_features in test_loader:
-            batch_features = batch_features[0].to(device)
-            outputs = model(batch_features)
-            test_loss += criterion(outputs, batch_features).item()
-
         # compute the epoch training loss
         loss = loss / len(train_loader)
-        test_loss = test_loss / len(test_loader)
 
         # display the epoch training loss
-        print("epoch : {}/{}, loss = {:.4f}, test_loss = {:.4f}".format(epoch + 1, epochs, loss, test_loss))
+        print("epoch : {}/{}, loss = {:.4f}".format(epoch + 1, epochs, loss))
 
     print('saving model\n')
     saving_path = path.replace('data', 'res')
     torch.save(model.state_dict(), saving_path + 'autoencoder.models')
 
     print('encoding and saving full dataset')
-    X = numpy.concatenate([X_train, X_test])
-    X_encoded = model.encode(torch.Tensor(X)).detach().numpy()
+    encoded = model.encode(torch.Tensor(scaled)).detach().numpy()
 
     # save encodings with corresponding batches for classification
-    encodings = pandas.DataFrame(X_encoded, index=data.index)
+    encodings = pandas.DataFrame(encoded, index=data.index)
     encodings.insert(0, 'batch', data.batch.values)
     encodings.to_csv(saving_path + 'encodings.csv')
 
 
-if __name__ == "__main__":
+def train_with_various_activations():
+    """ Test different activation functions in the autoencoder. """
 
     n_features = 170
     latent_dim = 50
@@ -231,7 +226,6 @@ if __name__ == "__main__":
     scaler.fit(values)
     scaled = scaler.transform(values)
 
-    # X_train, X_test, y_train, y_test = scale_and_split_to_train_and_test(scaled, batches)
     X_train = scaled
 
     for i, quad in enumerate(losses):
@@ -246,15 +240,12 @@ if __name__ == "__main__":
         optimizer = optim.Adam(model.parameters(), lr=0.001)
 
         # mean-squared error loss
-        # criterion = nn.MSELoss()
         criterion = nn.L1Loss()
 
         # make datasets
         train_dataset = TensorDataset(torch.Tensor(X_train))
-        # test_dataset = TensorDataset(torch.Tensor(X_test))
 
         train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=4, pin_memory=False)
-        # test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False, num_workers=4)
 
         for epoch in range(epochs):
             loss = 0
@@ -276,18 +267,6 @@ if __name__ == "__main__":
                 # add the mini-batch training loss to epoch loss
                 loss += train_loss.item()
 
-            # test_loss = 0
-            # for batch_features in test_loader:
-            #     batch_features = batch_features[0].to(device)
-            #     outputs = model(batch_features)
-            #     test_loss += criterion(outputs, batch_features).item()
-            #
-            # # compute the epoch training loss
-            # loss = loss / len(train_loader)
-            # test_loss = test_loss / len(test_loader)
-
-            # display the epoch training loss
-            # print("epoch : {}/{}, loss = {:.4f}, test_loss = {:.4f}".format(epoch + 1, epochs, loss, test_loss))
             print("epoch : {}/{}, loss = {:.4f}".format(epoch + 1, epochs, loss))
 
         # apply model of the last epoch to obtain reconstruction
@@ -297,3 +276,7 @@ if __name__ == "__main__":
         reconstruction = scaler.inverse_transform(reconstruction.detach().numpy())
         reconstruction = pandas.DataFrame(reconstruction, index=data.index).T
         reconstruction.to_csv(save_to + 'reconstruction_{}.csv'.format(i))
+
+
+if __name__ == "__main__":
+    train_autoencoder_and_save_encodings()

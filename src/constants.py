@@ -1,14 +1,14 @@
 
 from torch import nn
 
-version = "v.0.2.3"
+version = "v.0.2.4"
 
 allowed_ppm_error = 5
 tic_normalization_scaling_factor = 10 ** 5
 experiment_name_delimeter = '#'
 number_of_replicates = 3
 
-data_path = '/Users/dmitrav/ETH/projects/normalization/data/'
+data_path = '/Users/andreidm/ETH/projects/normalization/data/'
 
 # PARAMETERS
 
