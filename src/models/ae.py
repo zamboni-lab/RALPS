@@ -17,16 +17,16 @@ class Autoencoder(nn.Module):
 
     def encode(self, features):
         encoded = self.e1(features)
-        encoded = nn.LeakyReLU()(encoded)
-        encoded = self.e2(encoded)
         encoded = nn.CELU()(encoded)
+        encoded = self.e2(encoded)
+        encoded = nn.Identity()(encoded)
         return encoded
 
     def decode(self, encoded):
         decoded = self.d1(encoded)
-        decoded = nn.LeakyReLU()(decoded)
-        decoded = self.d2(decoded)
         decoded = nn.CELU()(decoded)
+        decoded = self.d2(decoded)
+        decoded = nn.Identity()(decoded)
         return decoded
 
     def forward(self, features):
@@ -205,18 +205,18 @@ if __name__ == "__main__":
     save_to = '/Users/dmitrav/ETH/projects/normalization/res/activations/'
 
     losses = [
+
+        [nn.LeakyReLU(), nn.Identity(), nn.LeakyReLU(), nn.Identity()],
+        [nn.LeakyReLU(), nn.LeakyReLU(), nn.LeakyReLU(), nn.LeakyReLU()],
+        [nn.ReLU(), nn.Sigmoid(), nn.ReLU(), nn.Identity()],
+        [nn.ReLU(), nn.Tanh(), nn.ReLU(), nn.Identity()],
+
         [nn.ReLU(), nn.CELU(), nn.ReLU(), nn.CELU()],
         [nn.ReLU(), nn.Identity(), nn.ReLU(), nn.Identity()],
-        [nn.ReLU(), nn.ReLU(), nn.ReLU(), nn.ReLU()],
         [nn.CELU(), nn.Identity(), nn.CELU(), nn.Identity()],
-        [nn.LeakyReLU(), nn.ReLU(), nn.LeakyReLU(), nn.ReLU()],
-
         [nn.LeakyReLU(), nn.ReLU(), nn.ReLU(), nn.LeakyReLU()],
         [nn.ReLU(), nn.LeakyReLU(), nn.ReLU(), nn.LeakyReLU()],
-        [nn.LeakyReLU(), nn.CELU(), nn.LeakyReLU(), nn.CELU()],
-        [nn.ReLU(), nn.ReLU(), nn.ReLU(), nn.Tanh()],
-        [nn.LeakyReLU(), nn.ReLU(), nn.ReLU(), nn.Tanh()],
-        [nn.LeakyReLU(), nn.Sigmoid(), nn.LeakyReLU(), nn.ReLU()],
+        [nn.LeakyReLU(), nn.CELU(), nn.LeakyReLU(), nn.CELU()]
     ]
 
     # get data and do train test split
@@ -246,7 +246,8 @@ if __name__ == "__main__":
         optimizer = optim.Adam(model.parameters(), lr=0.001)
 
         # mean-squared error loss
-        criterion = nn.MSELoss()
+        # criterion = nn.MSELoss()
+        criterion = nn.L1Loss()
 
         # make datasets
         train_dataset = TensorDataset(torch.Tensor(X_train))
