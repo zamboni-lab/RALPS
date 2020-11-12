@@ -1,5 +1,5 @@
 
-import pandas, numpy, uuid, os, random, sys, torch
+import pandas, numpy, uuid, os, random, sys, torch, time
 from tqdm import tqdm
 from multiprocessing import Process, Pool
 from matplotlib import pyplot
@@ -193,10 +193,11 @@ def run_grid_from_console():
     path = '/Users/andreidm/ETH/projects/normalization/data/'
     grid = pandas.read_csv(path + name, index_col=0)
 
-    # for i in tqdm(range(grid.shape[0])):
-    for i in tqdm(range(0, 10)):
+    for i in tqdm(range(grid.shape[0])):
+    # for i in tqdm(range(10, 30)):
         parameters = dict(grid.iloc[i, :])
         adversarial.main(parameters)
+        time.sleep(600)
 
 
 def collect_results_of_grid_search():

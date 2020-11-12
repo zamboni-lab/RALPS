@@ -52,9 +52,9 @@ def get_data(path):
     return data, encodings
 
 
-def plot_losses(d_loss, g_loss, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_losses(rec_loss, d_loss, g_loss, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
-    fig, axs = pyplot.subplots(2, figsize=(6,6))
+    fig, axs = pyplot.subplots(3, figsize=(6,9))
 
     fig.suptitle('Adversarial training loop losses')
 
@@ -74,6 +74,13 @@ def plot_losses(d_loss, g_loss, best_epoch, parameters, save_to='/Users/andreidm
     else:
         axs[1].set_ylabel('{} - {}'.format(parameters['g_loss'], parameters['d_loss']))
     axs[1].grid(True)
+
+    axs[2].plot(range(1, 1 + len(rec_loss)), rec_loss)
+    axs[2].axvline(best_epoch + 1, c='black', label='Best')
+    axs[2].set_title('Reconstruction loss')
+    axs[2].set_xlabel('Epochs')
+    axs[2].set_ylabel(parameters['g_loss'])
+    axs[2].grid(True)
 
     pyplot.tight_layout()
     pyplot.savefig(save_to + 'losses_{}.pdf'.format(parameters['id']))
@@ -281,6 +288,7 @@ def main(parameters):
     # Lists to keep track of progress
     g_loss_history = []
     d_loss_history = []
+    rec_loss_history = []
 
     val_acc_history = []
     benchmarks_corr_history = []
@@ -296,6 +304,8 @@ def main(parameters):
         start = time.time()
         d_loss_per_epoch = 0
         g_loss_per_epoch = 0
+        rec_loss_per_epoch = 0
+
         for batch_features, labels in train_loader:
 
             # TRAIN DISCRIMINATOR
@@ -323,6 +333,7 @@ def main(parameters):
                 reconstruction = generator(batch_features)
                 # compute training reconstruction loss
                 reconstruction_loss = g_criterion(reconstruction, batch_features)
+                rec_loss_per_epoch += reconstruction_loss.item()
 
                 # add regularization by grouping of benchmarks
                 g_loss += (1 + g_regularizer) * reconstruction_loss
@@ -339,9 +350,11 @@ def main(parameters):
         # COMPUTE EPOCH LOSSES
         d_loss = d_loss_per_epoch / len(train_loader)
         g_loss = g_loss_per_epoch / len(train_loader)
+        rec_loss = rec_loss_per_epoch / len(train_loader)
 
         d_loss_history.append(d_loss)
         g_loss_history.append(g_loss)
+        rec_loss_history.append(rec_loss)
 
         # GENERATE DATA FOR OTHER METRICS
         scaled_data_values = scaler.transform(data_values.values)
@@ -417,17 +430,18 @@ def main(parameters):
 
         # display the epoch training loss
         timing = int(time.time() - start)
-        print("epoch {}/{}, {} sec elapsed: d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f}, b_corr = {:.4f}, b_grouping = {:.4f}".format(epoch + 1, total_epochs, timing, d_loss, g_loss, accuracy, b_corr, b_grouping))
+        print("epoch {}/{}, {} sec elapsed:\n"
+              "rec_loss = {:.4f}, d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f}, b_corr = {:.4f}, b_grouping = {:.4f}".format(epoch + 1, total_epochs, timing, rec_loss, d_loss, g_loss, accuracy, b_corr, b_grouping))
 
     # PLOT TRAINING HISTORY
     history = pandas.DataFrame({'epoch': [x for x in range(len(d_loss_history))], 'best': [False for x in range(len(d_loss_history))],
-                                'd_loss': d_loss_history, 'g_loss': g_loss_history, 'val_acc': val_acc_history,
-                                'b_corr': benchmarks_corr_history, 'b_grouping': benchmarks_grouping_history})
+                                'rec_loss': rec_loss_history, 'd_loss': d_loss_history, 'g_loss': g_loss_history,
+                                'val_acc': val_acc_history, 'b_corr': benchmarks_corr_history, 'b_grouping': benchmarks_grouping_history})
 
-    best_epoch = find_best_epoch(history, skip_epochs=10)
+    best_epoch = find_best_epoch(history, skip_epochs=25)
     history.loc[best_epoch, 'best'] = True  # mark the best epoch
 
-    plot_losses(d_loss_history, g_loss_history, best_epoch, parameters, save_to=save_to)
+    plot_losses(rec_loss_history, d_loss_history, g_loss_history, best_epoch, parameters, save_to=save_to)
     plot_metrics(val_acc_history, benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters['id'], save_to=save_to)
     plot_variation_coefs(variation_coefs, cv_dict_original, best_epoch, parameters['id'], save_to=save_to)
     # plot_n_clusters(n_clusters, clustering_dict_original, parameters['id'], save_to=save_to)
