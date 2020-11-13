@@ -1,5 +1,5 @@
 
-import numpy, pandas, seaborn, umap
+import numpy, pandas, seaborn, umap, time
 from matplotlib import pyplot
 import hdbscan
 
@@ -155,8 +155,10 @@ def compute_number_of_clusters_with_hdbscan(encodings, parameters, print_info=Tr
     reducer = umap.UMAP(n_components=n_comp, n_neighbors=neighbors, metric=metric, min_dist=0.1, random_state=77)
     embeddings = reducer.fit_transform(values)
 
+    numpy.random.seed(77)  # set seed to make hdbscan results comparable across training epochs
     clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=neighbors, allow_single_cluster=False)
     clusterer.fit(embeddings)
+    numpy.random.seed(int(1000 * time.time()) % 2**32)  # cancel seed, as it might affect later randomization
 
     total = clusterer.labels_.max() + 1
     if print_info:

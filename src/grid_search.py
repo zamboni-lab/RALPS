@@ -4,10 +4,10 @@ from tqdm import tqdm
 from multiprocessing import Process, Pool
 from matplotlib import pyplot
 
-from src.models import adversarial
-from src.models.ae import Autoencoder
-from src.batch_analysis import plot_batch_cross_correlations, plot_full_dataset_umap
-from src.constants import samples_with_strong_batch_effects as benchmarks
+from models import adversarial
+from models.ae import Autoencoder
+from batch_analysis import plot_batch_cross_correlations, plot_full_dataset_umap
+from constants import samples_with_strong_batch_effects as benchmarks
 
 
 def run_parallel(grid):
