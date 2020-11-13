@@ -1,5 +1,5 @@
 
-import numpy, pandas, seaborn
+import numpy, pandas, seaborn, time
 from matplotlib import pyplot
 
 from src.models.ae import get_data
@@ -27,9 +27,9 @@ def plot_cvs_for_methods():
 
     all_cvs = pandas.DataFrame()
 
-    for method in ['no', 'combat']:
+    for method in ['none', 'combat']:
 
-        if method == 'no':
+        if method == 'none':
             normalized = data.iloc[:, 1:]
         elif method == 'combat':
             normalized = combat.combat(data.iloc[:, 1:].T, data['batch']).T
@@ -60,45 +60,63 @@ def plot_cvs_for_methods():
     pyplot.show()
 
 
+def get_grouping_coefs_for_samples(method, clustering, total_clusters):
+
+    grouping_coefs = {}
+    coefs_sum = 0
+    for sample in benchmarks:
+        n_sample_clusters = len(set(clustering[sample]))
+        max_n_clusters = len(clustering[sample]) if len(clustering[sample]) <= total_clusters else total_clusters
+        coef = (n_sample_clusters - 1) / max_n_clusters
+        grouping_coefs[sample] = coef
+        coefs_sum += coef
+
+    print('{}: mean coef: {}'.format(method, coefs_sum / len(grouping_coefs)))
+    return grouping_coefs
+
+
 def plot_grouping_coefs_for_methods():
 
     data = get_data()
-
-    combat_normalized = combat.combat(data.iloc[:, 1:].T, data['batch'])
-
     pars = {'latent_dim': data.shape[1], 'n_batches': 7, 'n_replicates': 3}
 
-    numpy.random.seed(5)
-    clustering, total_clusters = compute_number_of_clusters_with_hdbscan(data, pars, print_info=False,
-                                                                         sample_types_of_interest=benchmarks)
-    grouping_coefs = []
-    for sample in benchmarks:
-        n_sample_clusters = len(set(clustering[sample]))
-        max_n_clusters = len(clustering[sample]) if len(clustering[sample]) <= total_clusters else total_clusters
-        coef = (n_sample_clusters - 1) / max_n_clusters
-        grouping_coefs.append(coef)
-        print(coef)
-    b_grouping = numpy.mean(grouping_coefs)
-    print('original data: {}'.format(b_grouping))
+    all_grouping_coefs = pandas.DataFrame()
 
-    # use combat to normalize and cluster
-    combat_normalized = combat_normalized.T
-    combat_normalized['batch'] = data['batch']
-    clustering, total_clusters = compute_number_of_clusters_with_hdbscan(combat_normalized, pars, print_info=False,
-                                                                         sample_types_of_interest=benchmarks)
-    grouping_coefs = []
-    for sample in benchmarks:
-        n_sample_clusters = len(set(clustering[sample]))
-        max_n_clusters = len(clustering[sample]) if len(clustering[sample]) <= total_clusters else total_clusters
-        coef = (n_sample_clusters - 1) / max_n_clusters
-        grouping_coefs.append(coef)
-    b_grouping = numpy.mean(grouping_coefs)
-    print('combat: {}'.format(b_grouping))
+    for method in ['none', 'combat']:
 
-    # TODO: wrap into a function, plot bars
+        if method == 'none':
+            normalized = data
 
-    pass
+        elif method == 'combat':
+            normalized = combat.combat(data.iloc[:, 1:].T, data['batch']).T
+            normalized['batch'] = data['batch']
+        else:
+            raise ValueError('Normalization method not recognized')
+
+        clustering, total_clusters = compute_number_of_clusters_with_hdbscan(normalized, pars, print_info=False, sample_types_of_interest=benchmarks)
+        grouping_dict = get_grouping_coefs_for_samples('none', clustering, total_clusters)
+
+        res = pandas.DataFrame({'method': [method for x in range(len(grouping_dict))],
+                                'sample': list(grouping_dict.keys()),
+                                'grouping': [grouping_dict[key] for key in grouping_dict.keys()]})
+        all_grouping_coefs = pandas.concat([all_grouping_coefs, res])
+
+    # save all on one figure
+    pyplot.figure(figsize=(12, 8))
+
+    for i, sample in enumerate(benchmarks):
+        df = all_grouping_coefs.loc[all_grouping_coefs['sample'] == sample, :]
+
+        ax = pyplot.subplot(2, 3, i + 1)
+        seaborn.barplot(x='method', y='grouping', data=df)
+        ax.set_xlabel('Normalization')
+        ax.set_ylabel('HDBSCAN grouping coef')
+        ax.set_title(sample)
+        ax.grid(True)
+
+    pyplot.tight_layout()
+    pyplot.show()
 
 
 if __name__ == "__main__":
-    plot_cvs_for_methods()
+    plot_grouping_coefs_for_methods()

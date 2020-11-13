@@ -1,7 +1,7 @@
 
 from torch import nn
 
-version = "v.0.2.7"
+version = "v.0.2.8"
 user = 'dmitrav'
 
 allowed_ppm_error = 5
