@@ -4,10 +4,11 @@ from tqdm import tqdm
 from multiprocessing import Process, Pool
 from matplotlib import pyplot
 
-from models import adversarial
-from models.ae import Autoencoder
-from batch_analysis import plot_batch_cross_correlations, plot_full_dataset_umap
-from constants import samples_with_strong_batch_effects as benchmarks
+from src.models import adversarial
+from src.models.ae import Autoencoder
+from src.batch_analysis import plot_batch_cross_correlations, plot_full_dataset_umap
+from src.constants import samples_with_strong_batch_effects as benchmarks
+from src.constants import user
 
 
 def run_parallel(grid):
@@ -49,8 +50,8 @@ def generate_random_parameter_set(g_loss, regularization, grid_size, grid_name, 
 
     parameters = {
 
-        'in_path': ['/Users/andreidm/ETH/projects/normalization/data/' for x in grid],
-        'out_path': ['/Users/andreidm/ETH/projects/normalization/res/grid_search/' for x in grid],
+        'in_path': ['/Users/{}/ETH/projects/normalization/data/'.format(user) for x in grid],
+        'out_path': ['/Users/{}/ETH/projects/normalization/res/grid_search/'.format(user) for x in grid],
         'id': [str(uuid.uuid4())[:8] for x in grid],
 
         'n_features': [170 for x in grid],  # n of metabolites in initial dataset
@@ -100,13 +101,13 @@ def generate_repetitive_grid(parameters_dict, grid_size, grid_name, save_to):
 def generate_and_save_repetitive_grids():
     """ Two best parameters sets and two approximations of them are used to generate repetitve grids. """
 
-    save_to = '/Users/andreidm/ETH/projects/normalization/data/'
+    save_to = '/Users/{}/ETH/projects/normalization/data/'.format(user)
     grid_size = 10
 
     grid_template = {
 
-        'in_path': '/Users/andreidm/ETH/projects/normalization/data/',
-        'out_path': '/Users/andreidm/ETH/projects/normalization/res/grid_search/',
+        'in_path': '/Users/{}/ETH/projects/normalization/data/'.format(user),
+        'out_path': '/Users/{}/ETH/projects/normalization/res/grid_search/'.format(user),
         'id': '',
 
         'n_features': 170,  # n of metabolites in initial dataset
@@ -177,7 +178,7 @@ def generate_and_save_repetitive_grids():
 
 def generate_random_grids():
 
-    save_to = '/Users/andreidm/ETH/projects/normalization/data/'
+    save_to = '/Users/{}/ETH/projects/normalization/data/'.format(user)
     generate_random_parameter_set('L1', True, 100, 'l1_reg', save_to)
     generate_random_parameter_set('L1', False, 100, 'l1', save_to)
     generate_random_parameter_set('SL1', True, 100, 'sl1_reg', save_to)
@@ -190,7 +191,7 @@ def run_grid_from_console():
     """ To run from terminal with a single parameter: a grid file name. """
     name = sys.argv[1]
 
-    path = '/Users/andreidm/ETH/projects/normalization/data/'
+    path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
     grid = pandas.read_csv(path + name, index_col=0)
 
     for i in tqdm(range(grid.shape[0])):
@@ -203,11 +204,11 @@ def run_grid_from_console():
 def collect_results_of_grid_search():
     """ Collect history files for all the grids for manual inspection. """
 
-    grids_path = '/Users/andreidm/ETH/projects/normalization/data/grids/'
-    results_path = '/Users/andreidm/ETH/projects/normalization/res/grid_search/'
+    grids_path = '/Users/{}/ETH/projects/normalization/data/grids/'.format(user)
+    results_path = '/Users/{}/ETH/projects/normalization/res/grid_search/'.format(user)
 
-    grids = ['grid_l1_reg', 'grid_l1', 'grid_mse_reg', 'grid_mse', 'grid_sl1_reg', 'grid_sl1']
-    results = []
+    grids = ['grid_l1_reg_50', 'grid_l1_50', 'grid_mse_reg_50', 'grid_sl1_reg_50']
+    results = {}
 
     for grid in grids:
 
@@ -224,7 +225,12 @@ def collect_results_of_grid_search():
             best_epochs = pandas.concat([best_epochs, id_results])
             del id_results
 
-        results.append(best_epochs)
+        results[grid] = best_epochs
+
+    for grid in results:
+        print('GRID:', grid, '\n')
+        top = adversarial.slice_by_grouping_and_correlation(results[grid], 30, 70)
+        print(top.to_string(), '\n')
 
     return results
 
@@ -232,7 +238,6 @@ def collect_results_of_grid_search():
 if __name__ == "__main__":
 
     # generate_random_grids()
-    run_grid_from_console()
+    # run_grid_from_console()
 
-
-
+    results = collect_results_of_grid_search()
