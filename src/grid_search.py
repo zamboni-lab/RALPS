@@ -241,3 +241,8 @@ if __name__ == "__main__":
     # run_grid_from_console()
 
     results = collect_results_of_grid_search()
+
+    # TODO:
+    #  - differentiate between benchmarks and sample types to run regularization on
+    #  - account for any number of benchmarks
+    #  - run best parameters with regularization for all sample types and multiple benchmarks

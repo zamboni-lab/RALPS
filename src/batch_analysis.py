@@ -75,7 +75,7 @@ def get_median_benchmark_cross_correlation(data, sample_types_of_interest=None):
         values = df.values.flatten()
         median_corrs.append(numpy.median(values))
 
-    return numpy.mean(median_corrs)
+    return numpy.median(median_corrs)
 
 
 def compute_cv_for_samples_types(data, sample_types_of_interest=None):
@@ -91,16 +91,15 @@ def compute_cv_for_samples_types(data, sample_types_of_interest=None):
     return cv_dict
 
 
-def plot_full_dataset_umap(encodings, method_name, id, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
-
-    random_seed = 666
-    metric = 'braycurtis'
-    n = 20
+def plot_full_dataset_umap(encodings, method_name, parameters, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     batches = encodings['batch'].values - 1
     values = encodings.iloc[:, 1:].values
 
-    reducer = umap.UMAP(n_neighbors=n, metric=metric, min_dist=0.9, random_state=random_seed)
+    neighbors = int(parameters['n_batches'] * parameters['n_replicates'])
+    metric = 'braycurtis'
+
+    reducer = umap.UMAP(n_neighbors=neighbors, metric=metric, min_dist=0.9, random_state=77)
     embeddings = reducer.fit_transform(values)
 
     # plot coloring batches
@@ -109,10 +108,10 @@ def plot_full_dataset_umap(encodings, method_name, id, sample_types_of_interest=
 
     seaborn.scatterplot(x=embeddings[:, 0], y=embeddings[:, 1], hue=batches, alpha=.8, palette=seaborn.color_palette('deep', n_colors=len(set(batches))))
     pyplot.legend(title='Batch', bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=10)
-    pyplot.title('UMAP: {}: n={}, metric={}'.format(method_name, n, metric))
+    pyplot.title('UMAP: {}: n={}, metric={}'.format(method_name, neighbors, metric))
     pyplot.tight_layout()
     # pyplot.show()
-    pyplot.savefig(save_to + 'umap_batches_{}_{}.pdf'.format(method_name.replace(' ', '_'), id))
+    pyplot.savefig(save_to + 'umap_batches_{}_{}.pdf'.format(method_name.replace(' ', '_'), parameters['id']))
 
     # define colors of benchmark samples
     samples_by_types = get_samples_by_types_dict(encodings.index.values, sample_types_of_interest)
@@ -135,10 +134,10 @@ def plot_full_dataset_umap(encodings, method_name, id, sample_types_of_interest=
 
     seaborn.scatterplot(x=embeddings[:, 0], y=embeddings[:, 1], hue=samples_colors, alpha=.9, palette=seaborn.color_palette('Paired', n_colors=len(set(samples_colors))))
     pyplot.legend(title='Samples', bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=10)
-    pyplot.title('UMAP: {}: n={}, metric={}'.format(method_name, n, metric))
+    pyplot.title('UMAP: {}: n={}, metric={}'.format(method_name, neighbors, metric))
     pyplot.tight_layout()
     # pyplot.show()
-    pyplot.savefig(save_to + 'umap_benchmarks_{}_{}.pdf'.format(method_name.replace(' ', '_'), id))
+    pyplot.savefig(save_to + 'umap_benchmarks_{}_{}.pdf'.format(method_name.replace(' ', '_'), parameters['id']))
 
 
 def compute_number_of_clusters_with_hdbscan(encodings, parameters, print_info=True, sample_types_of_interest=None):
