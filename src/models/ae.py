@@ -1,8 +1,9 @@
 import torch, numpy, pandas
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
-from src.constants import data_path as path
 from sklearn.preprocessing import StandardScaler, RobustScaler
+
+from constants import data_path as path
 
 
 class Autoencoder(nn.Module):

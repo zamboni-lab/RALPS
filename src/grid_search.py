@@ -4,11 +4,11 @@ from tqdm import tqdm
 from multiprocessing import Process, Pool
 from matplotlib import pyplot
 
-from src.models import adversarial
-from src.models.ae import Autoencoder
-from src.batch_analysis import plot_batch_cross_correlations, plot_full_dataset_umap
-from src.constants import benchmarks
-from src.constants import user
+from models import adversarial
+from models.ae import Autoencoder
+from batch_analysis import plot_batch_cross_correlations, plot_full_dataset_umap
+from constants import benchmark_sample_types as benchmarks
+from constants import user
 
 
 def run_parallel(grid):
@@ -63,15 +63,16 @@ def generate_random_parameter_set(g_loss, regularization, grid_size, grid_name, 
         'g_lr': [round(random.uniform(5e-5, 5e-3), 4) for x in grid],  # generator learning rate
         'd_loss': ['CE' for x in grid],
         'g_loss': [g_loss for x in grid],
-        'd_lambda': [round(random.uniform(0.1, 5), 1) for x in grid],  # discriminator regularization term coefficient
-        'g_lambda':  [round(random.uniform(0.1, 5), 1) for x in grid],  # generator regularization term coefficient
+        'd_lambda': [round(random.uniform(0., 10.), 1) for x in grid],  # discriminator regularization term coefficient
+        'g_lambda':  [round(random.uniform(0., 10.), 1) for x in grid],  # generator regularization term coefficient
         'use_g_regularization': [regularization for x in grid],  # whether to use generator regularization term
         'train_ratio': [0.9 for x in grid],  # for train-test split
         'batch_size': [64 for x in grid],
         'g_epochs': [0 for x in grid],  # pretraining of generator
         'd_epochs': [0 for x in grid],  # pretraining of discriminator
-        'adversarial_epochs': [200 for x in grid],  # simultaneous competitive training
+        'adversarial_epochs': [100 for x in grid],  # simultaneous competitive training
 
+        'skip_epochs': [5 for x in grid],
         'callback_step': [-1 for x in grid],  # save callbacks every n epochs
         'keep_checkpoints': [False for x in grid]  # whether to keep all checkpoints, or just the best epoch
     }
@@ -179,11 +180,11 @@ def generate_and_save_repetitive_grids():
 def generate_random_grids():
 
     save_to = '/Users/{}/ETH/projects/normalization/data/'.format(user)
-    generate_random_parameter_set('L1', True, 100, 'l1_reg', save_to)
-    generate_random_parameter_set('L1', False, 100, 'l1', save_to)
-    generate_random_parameter_set('SL1', True, 100, 'sl1_reg', save_to)
+    # generate_random_parameter_set('L1', True, 100, 'l1_reg', save_to)
+    # generate_random_parameter_set('L1', False, 100, 'l1', save_to)
+    # generate_random_parameter_set('SL1', True, 100, 'sl1_reg', save_to)
     # generate_random_parameter_set('SL1', False, 100, 'sl1', save_to)
-    generate_random_parameter_set('MSE', True, 100, 'mse_reg', save_to)
+    generate_random_parameter_set('MSE', True, 100, 'new_mse_reg', save_to)
     # generate_random_parameter_set('MSE', False, 100, 'mse', save_to)
 
 
@@ -194,11 +195,10 @@ def run_grid_from_console():
     path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
     grid = pandas.read_csv(path + name, index_col=0)
 
-    for i in tqdm(range(grid.shape[0])):
-    # for i in tqdm(range(10, 30)):
+    # for i in tqdm(range(grid.shape[0])):
+    for i in tqdm(range(0, 25)):
         parameters = dict(grid.iloc[i, :])
         adversarial.main(parameters)
-        time.sleep(600)
 
 
 def collect_results_of_grid_search():
@@ -238,6 +238,5 @@ def collect_results_of_grid_search():
 if __name__ == "__main__":
 
     # generate_random_grids()
-    # run_grid_from_console()
-
-    results = collect_results_of_grid_search()
+    # results = collect_results_of_grid_search()
+    run_grid_from_console()
