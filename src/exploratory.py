@@ -12,7 +12,6 @@ from src.utils.combat import combat
 from src.preprocessing import get_all_data_from_h5
 
 
-
 def find_closest_ion_mz_index(mz_axis, ion_mz):
     """ This method find the closest mz on the whole mz axis for the specified ion mz. """
 

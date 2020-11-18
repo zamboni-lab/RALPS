@@ -11,9 +11,8 @@ class Classifier(nn.Module):
         super().__init__()
 
         self.l1 = nn.Linear(in_features=kwargs["input_shape"], out_features=kwargs["n_batches"])
-        self.l2 = nn.Linear(in_features=kwargs["n_batches"], out_features=kwargs["n_batches"])
-
         self.l1_act = nn.LeakyReLU()
+        self.l2 = nn.Linear(in_features=kwargs["n_batches"], out_features=kwargs["n_batches"])
         self.l2_act = nn.Softmax(dim=1)
 
     def forward(self, x):

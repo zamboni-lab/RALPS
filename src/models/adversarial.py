@@ -6,11 +6,12 @@ from matplotlib import pyplot
 
 from src.models.cl import Classifier
 from src.models.ae import Autoencoder
-from src.constants import samples_with_strong_batch_effects as benchmarks
-from src.constants import loss_mapper
+from src.constants import benchmark_sample_types as benchmarks
+from src.constants import regularization_sample_types as reg_types
+from src.constants import loss_mapper, user
 from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
 from src.batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
-from src.batch_analysis import get_median_benchmark_cross_correlation
+from src.batch_analysis import get_sample_cross_correlation_estimate
 
 
 def split_to_train_and_test(values, batches, scaler, proportion=0.7):
@@ -52,7 +53,7 @@ def get_data(path):
     return data, encodings
 
 
-def plot_losses(rec_loss, d_loss, g_loss, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_losses(rec_loss, d_loss, g_loss, best_epoch, parameters, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
 
     fig, axs = pyplot.subplots(3, figsize=(6,9))
 
@@ -86,38 +87,69 @@ def plot_losses(rec_loss, d_loss, g_loss, best_epoch, parameters, save_to='/User
     pyplot.savefig(save_to + 'losses_{}.pdf'.format(parameters['id']))
 
 
-def plot_metrics(d_accuracy, b_correlation, b_clustering, best_epoch, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_metrics(d_accuracy, reg_correlation, reg_clustering, reg_vc, best_epoch, id, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
 
-    fig, axs = pyplot.subplots(3, figsize=(6,9))
+    fig, axs = pyplot.subplots(2, 2, figsize=(9,6))
 
     fig.suptitle('Adversarial training loop metrics')
 
-    axs[0].plot(range(1, 1+len(d_accuracy)), d_accuracy)
-    axs[0].axvline(best_epoch + 1, c='black', label='Best')
-    axs[0].set_title('Validation classifier accuracy')
-    axs[0].set_xlabel('Epochs')
-    axs[0].set_ylabel('Accuracy')
-    axs[0].grid(True)
+    axs[0,0].plot(range(1, 1+len(d_accuracy)), d_accuracy)
+    axs[0,0].axvline(best_epoch + 1, c='black', label='Best')
+    axs[0,0].set_title('Validation classifier accuracy')
+    axs[0,0].set_xlabel('Epochs')
+    axs[0,0].set_ylabel('Accuracy')
+    axs[0,0].grid(True)
 
-    axs[1].plot(range(1, 1+len(b_correlation)), b_correlation)
-    axs[1].axvline(best_epoch + 1, c='black', label='Best')
-    axs[1].set_title('Median benchmark cross-correlation')
-    axs[1].set_xlabel('Epochs')
-    axs[1].set_ylabel('Pearson correlation')
-    axs[1].grid(True)
+    axs[1,0].plot(range(1, 1 + len(reg_correlation)), reg_correlation)
+    axs[1,0].axvline(best_epoch + 1, c='black', label='Best')
+    axs[1,0].set_title('Sum of samples\' cross-correlation estimates')
+    axs[1,0].set_xlabel('Epochs')
+    axs[1,0].set_ylabel('Pearson coef')
+    axs[1,0].grid(True)
 
-    axs[2].plot(range(1, 1+len(b_clustering)), b_clustering)
-    axs[2].axvline(best_epoch + 1, c='black', label='Best')
-    axs[2].set_title('Benchmark HDBSCAN clustering')
-    axs[2].set_xlabel('Epochs')
-    axs[2].set_ylabel('Clustering distance')
-    axs[2].grid(True)
+    axs[0,1].plot(range(1, 1 + len(reg_clustering)), reg_clustering)
+    axs[0,1].axvline(best_epoch + 1, c='black', label='Best')
+    axs[0,1].set_title('Mean estimate of samples\' grouping')
+    axs[0,1].set_xlabel('Epochs')
+    axs[0,1].set_ylabel('HBDSCAN distance')
+    axs[0,1].grid(True)
+
+    axs[1,1].plot(range(1, 1+len(reg_vc)), reg_vc)
+    axs[1,1].axvline(best_epoch + 1, c='black', label='Best')
+    axs[1,1].set_title('Mean samples\' variation coef')
+    axs[1,1].set_xlabel('Epochs')
+    axs[1,1].set_ylabel('VC')
+    axs[1,1].grid(True)
 
     pyplot.tight_layout()
     pyplot.savefig(save_to + 'metrics_{}.pdf'.format(id))
 
 
-def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_benchmarks_metrics(b_correlations, b_grouping, best_epoch, id, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
+
+    fig, axs = pyplot.subplots(2, figsize=(6,6))
+
+    fig.suptitle('Benchmarks metrics')
+
+    axs[0].plot(range(1, 1+len(b_correlations)), b_correlations)
+    axs[0].axvline(best_epoch+1, c='black', label='Best')
+    axs[0].set_title('Sum of benchmarks cross-correlation')
+    axs[0].set_xlabel('Epochs')
+    axs[0].set_ylabel('Pearson coef')
+    axs[0].grid(True)
+
+    axs[1].plot(range(1, 1+len(b_grouping)), b_grouping)
+    axs[1].axvline(best_epoch + 1, c='black', label='Best')
+    axs[1].set_title('Mean estimate of benchmarks\' grouping')
+    axs[1].set_xlabel('Epochs')
+    axs[1].set_ylabel('HDBSCAN distance')
+    axs[1].grid(True)
+
+    pyplot.tight_layout()
+    pyplot.savefig(save_to + 'benchmarks_metrics_{}.pdf'.format(id))
+
+
+def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
 
     if len(vc_dict) == 6:
         # save all on one figure
@@ -128,9 +160,10 @@ def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Us
             y = vc_dict[type]  # values
 
             ax = pyplot.subplot(2, 3, i + 1)
-            ax.plot(x, y, label='Normalized data')
+            ax.plot(x, y, label='Training process')
             ax.hlines(y=vc_dict_original[type], xmin=x[0], xmax=x[-1], colors='r', label='Original data')
-            ax.vlines(x=best_epoch+1, ymin=min(y), ymax=max(y), colors='k')
+            ax.hlines(y=y[best_epoch], xmin=x[0], xmax=x[-1], colors='k', label='Normalized data')
+            ax.vlines(x=best_epoch+1, ymin=min(y), ymax=y[best_epoch], colors='k')
             ax.set_xlabel('Epochs')
             ax.set_ylabel('VC')
             ax.set_title(type)
@@ -147,9 +180,10 @@ def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Us
             y = vc_dict[type]  # values
 
             pyplot.figure()
-            pyplot.plot(x, y, label='Normalized data')
+            pyplot.plot(x, y, label='Training process')
             pyplot.hlines(y=vc_dict_original[type], xmin=x[0], xmax=x[-1], colors='r', label='Original data')
-            pyplot.vlines(x=best_epoch+1, ymin=min(y), ymax=max(y), colors='black')
+            pyplot.hlines(y=y[best_epoch], xmin=x[0], xmax=x[-1], colors='k', label='Normalized data')
+            pyplot.vlines(x=best_epoch+1, ymin=min(y), ymax=y[best_epoch], colors='k')
             pyplot.ylabel('VC')
             pyplot.xlabel('Epochs')
             pyplot.title('Variation coefficient for {}'.format(type))
@@ -158,7 +192,7 @@ def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Us
             pyplot.savefig(save_to + 'vcs_{}_{}.pdf'.format(type, id))
 
 
-def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
 
     if len(clusters_dict) == 6:
         # save all on one figure
@@ -201,9 +235,9 @@ def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/a
 def slice_by_grouping_and_correlation(history, g_percent, c_percent):
     try:
         # grouping slice
-        df = history[history['b_grouping'] < numpy.percentile(history['b_grouping'].values, g_percent)].sort_values('b_grouping')
-        # correlation slice
-        df = df[df['b_corr'] > numpy.percentile(df['b_corr'].values, c_percent)].sort_values('val_acc')
+        df = history[history['reg_grouping'] < numpy.percentile(history['reg_grouping'].values, g_percent)].sort_values('reg_grouping')
+        # correlation slice + sorting by variation coefs
+        df = df[df['reg_corr'] > numpy.percentile(df['reg_corr'].values, c_percent)].sort_values('reg_vc')
         # negative loss slice (desired by model construction)
         df = df[df['g_loss'] < 0]
         assert df.shape[0] > 0
@@ -229,7 +263,7 @@ def find_best_epoch(history, skip_epochs=10):
                 if df is None:
                     df = slice_by_grouping_and_correlation(history, 50, 50)
                     if df is None:
-                        min_grouping_epoch = int(history.loc[history['b_grouping'] == history['b_grouping'].min(), 'epoch'].values[-1])
+                        min_grouping_epoch = int(history.loc[history['reg_grouping'] == history['reg_grouping'].min(), 'epoch'].values[-1])
                         print('WARNING: couldn\'t find the best epoch, returning the last one of min grouping coef: epoch {}'.format(min_grouping_epoch+1))
                         return min_grouping_epoch
     return int(df['epoch'].values[0])
@@ -264,7 +298,6 @@ def main(parameters):
 
     # get CV of benchmarks in original data
     cv_dict_original = compute_cv_for_samples_types(data_values, sample_types_of_interest=benchmarks)
-    clustering_dict_original, _ = compute_number_of_clusters_with_hdbscan(pretrained_encodings, parameters, print_info=False, sample_types_of_interest=benchmarks)
 
     # create and fit the scaler
     scaler = RobustScaler().fit(data_values)
@@ -284,6 +317,7 @@ def main(parameters):
         os.makedirs(save_to)
         os.makedirs(save_to + '/callbacks')
         os.makedirs(save_to + '/checkpoints')
+        os.makedirs(save_to + '/benchmarks')
 
     # Lists to keep track of progress
     g_loss_history = []
@@ -291,11 +325,13 @@ def main(parameters):
     rec_loss_history = []
 
     val_acc_history = []
+    reg_samples_grouping_history = []
+    reg_samples_corr_history = []
+    reg_samples_vc_history = []
+
     benchmarks_corr_history = []
     benchmarks_grouping_history = []
-
-    variation_coefs = dict([(sample, []) for sample in benchmarks])
-    n_clusters = dict([(sample, []) for sample in benchmarks])
+    benchmarks_variation_coefs = dict([(sample, []) for sample in benchmarks])
 
     g_regularizer = 0
     total_epochs = int(parameters['g_epochs']) + int(parameters['d_epochs']) + int(parameters['adversarial_epochs'])
@@ -387,34 +423,50 @@ def main(parameters):
         val_acc_history.append(accuracy)  # save for plotting
 
         # collect variation coefficients for some samples of ALL reconstructed data
-        vc = compute_cv_for_samples_types(reconstruction, sample_types_of_interest=benchmarks)
-        for sample in benchmarks:
-            variation_coefs[sample].append(vc[sample])
+        vcs = compute_cv_for_samples_types(reconstruction, sample_types_of_interest=reg_types)
+        vcs_sum = 0.
+        for sample in reg_types:
+            vcs_sum += vcs[sample]  # calculate sum of all variation coefs
+            if sample in benchmarks:
+                benchmarks_variation_coefs[sample].append(vcs[sample])  # append vcs of benchmarks
+
+        reg_vc = vcs_sum / len(vcs)  # compute mean overall variation coef
+        reg_samples_vc_history.append(reg_vc)
 
         # collect clustering results for some samples of ALL encoded data
-        clustering, total_clusters = compute_number_of_clusters_with_hdbscan(encodings, parameters, print_info=False, sample_types_of_interest=benchmarks)
-        for sample in benchmarks:
-            n_clusters[sample].append(len(set(clustering[sample])))
+        clustering, total_clusters = compute_number_of_clusters_with_hdbscan(encodings, parameters, print_info=False, sample_types_of_interest=reg_types)
+
+        # assess cross correlations of regularization samples in ALL reconstructed data
+        reg_corr = get_sample_cross_correlation_estimate(reconstruction, percent=25, sample_types_of_interest=reg_types)
+        reg_samples_corr_history.append(reg_corr)
 
         # assess cross correlations of benchmarks in ALL reconstructed data
-        b_corr = get_median_benchmark_cross_correlation(reconstruction, sample_types_of_interest=benchmarks)
+        b_corr = get_sample_cross_correlation_estimate(reconstruction, sample_types_of_interest=benchmarks)
         benchmarks_corr_history.append(b_corr)
 
-        # assess grouping of benchmarks: compute g_lambda, so that it equals
-        # 0, when all samples of a benchmark belong to the sample cluster
-        # 1, when N samples of a benchmark belong to N different clusters
-        grouping_coefs = []
-        for sample in benchmarks:
+        # assess grouping of samples: compute g_lambda, so that it equals
+        # 0, when all samples of a reg_type belong to the sample cluster
+        # 1, when N samples of a reg_type belong to N different clusters
+        b_grouping_coefs = []
+        reg_grouping_coefs = []
+        for sample in reg_types:
+
             n_sample_clusters = len(set(clustering[sample]))
             max_n_clusters = len(clustering[sample]) if len(clustering[sample]) <= total_clusters else total_clusters
-            coef = (n_sample_clusters - 1) / max_n_clusters
-            grouping_coefs.append(coef)
-        b_grouping = numpy.mean(grouping_coefs)
+            coef = (n_sample_clusters - 1) / max_n_clusters  # minus 1 to account for uncertainty in HDBSCAN
+            reg_grouping_coefs.append(coef)
+            if sample in benchmarks:
+                b_grouping_coefs.append(coef)  # append a coef for a benchmark
+
+        b_grouping = numpy.mean(b_grouping_coefs)
+        reg_grouping = numpy.mean(reg_grouping_coefs)  # there are more samples here, I assume
+
         benchmarks_grouping_history.append(b_grouping)
+        reg_samples_grouping_history.append(reg_grouping)
 
         # SET REGULARIZATION FOR GENERATOR'S NEXT ITERATION
         if parameters['use_g_regularization']:
-            g_regularizer = float(parameters['g_lambda']) * b_grouping
+            g_regularizer = float(parameters['g_lambda']) * reg_grouping
 
         # SAVE MODEL
         torch.save(generator.state_dict(), save_to + '/checkpoints/ae_at_{}_{}.models'.format(epoch, parameters['id']))
@@ -425,26 +477,30 @@ def main(parameters):
             # plot cross correlations of benchmarks in ALL reconstructed data
             plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to+'/callbacks/')
             # plot umap of FULL encoded data
-            plot_full_dataset_umap(encodings, 'epoch {}'.format(epoch+1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to+'/callbacks/')
+            plot_full_dataset_umap(encodings, 'epoch {}'.format(epoch+1), parameters, save_to=save_to+'/callbacks/')
             pyplot.close('all')
 
         # display the epoch training loss
         timing = int(time.time() - start)
         print("epoch {}/{}, {} sec elapsed:\n"
-              "rec_loss = {:.4f}, d_loss = {:.4f}, g_loss = {:.4f}, val_acc = {:.4f}, b_corr = {:.4f}, b_grouping = {:.4f}".format(epoch + 1, total_epochs, timing, rec_loss, d_loss, g_loss, accuracy, b_corr, b_grouping))
+              "g_loss = {:.4f}, rec_loss = {:.4f}, d_loss = {:.4f}, "
+              "val_acc = {:.4f}, reg_grouping = {:.4f}, reg_corr = {:.4f}, reg_vc = {:.4f}".format(epoch + 1, total_epochs, timing, g_loss, rec_loss, d_loss, accuracy, reg_grouping, reg_corr, reg_vc))
 
     # PLOT TRAINING HISTORY
     history = pandas.DataFrame({'epoch': [x for x in range(len(d_loss_history))], 'best': [False for x in range(len(d_loss_history))],
                                 'rec_loss': rec_loss_history, 'd_loss': d_loss_history, 'g_loss': g_loss_history,
+                                'reg_grouping': reg_samples_grouping_history, 'reg_corr': reg_samples_corr_history, 'reg_vc': reg_samples_vc_history,
                                 'val_acc': val_acc_history, 'b_corr': benchmarks_corr_history, 'b_grouping': benchmarks_grouping_history})
 
-    best_epoch = find_best_epoch(history, skip_epochs=25)
+    best_epoch = find_best_epoch(history, skip_epochs=parameters['skip_epochs'])
     history.loc[best_epoch, 'best'] = True  # mark the best epoch
 
     plot_losses(rec_loss_history, d_loss_history, g_loss_history, best_epoch, parameters, save_to=save_to)
-    plot_metrics(val_acc_history, benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters['id'], save_to=save_to)
-    plot_variation_coefs(variation_coefs, cv_dict_original, best_epoch, parameters['id'], save_to=save_to)
-    # plot_n_clusters(n_clusters, clustering_dict_original, parameters['id'], save_to=save_to)
+    plot_metrics(val_acc_history, reg_samples_corr_history, reg_samples_grouping_history, reg_samples_vc_history,
+                 best_epoch, parameters['id'], save_to=save_to)
+
+    plot_benchmarks_metrics(benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters['id'], save_to=save_to+'/benchmarks/')
+    plot_variation_coefs(benchmarks_variation_coefs, cv_dict_original, best_epoch, parameters['id'], save_to=save_to+'/benchmarks/')
 
     # LOAD BEST MODEL
     generator = Autoencoder(input_shape=int(parameters['n_features']), latent_dim=int(parameters['latent_dim'])).to(device)
@@ -464,9 +520,9 @@ def main(parameters):
     reconstruction = pandas.DataFrame(reconstruction, index=data_values.index)
 
     # plot cross correlations of benchmarks in ALL reconstructed data
-    plot_batch_cross_correlations(reconstruction, 'best model at {}'.format(best_epoch + 1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to)
+    plot_batch_cross_correlations(reconstruction, 'best model at {}'.format(best_epoch + 1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to+'/benchmarks/')
     # plot umap of FULL encoded data
-    plot_full_dataset_umap(encodings, 'best model at {}'.format(best_epoch + 1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to)
+    plot_full_dataset_umap(encodings, 'best model at {}'.format(best_epoch + 1), parameters, save_to=save_to)
     pyplot.close('all')
 
     # SAVE ENCODED AND NORMALIZED DATA
@@ -492,8 +548,8 @@ if __name__ == "__main__":
     # PARAMETERS
     parameters = {
 
-        'in_path': '/Users/andreidm/ETH/projects/normalization/data/',
-        'out_path': '/Users/andreidm/ETH/projects/normalization/res/',
+        'in_path': '/Users/{}/ETH/projects/normalization/data/'.format(user),
+        'out_path': '/Users/{}/ETH/projects/normalization/res/'.format(user),
         'id': str(uuid.uuid4())[:8],
 
         'n_features': 170,  # n of metabolites in initial dataset
@@ -501,19 +557,20 @@ if __name__ == "__main__":
         'n_batches': 7,
         'n_replicates': 3,
 
-        'd_lr': 0.001,  # discriminator learning rate
+        'd_lr': 0.002,  # discriminator learning rate
         'g_lr': 0.001,  # generator learning rate
         'd_loss': 'CE',
-        'g_loss': 'L1',
-        'd_lambda': 1.,  # discriminator regularization term coefficient
-        'g_lambda': 2.,  # generator regularization term coefficient
+        'g_loss': 'MSE',
+        'd_lambda': 2,  # discriminator regularization term coefficient
+        'g_lambda': 3.5,  # generator regularization term coefficient
         'use_g_regularization': True,  # whether to use generator regularization term
         'train_ratio': 0.7,  # for train-test split
         'batch_size': 64,
-        'g_epochs': 0,  # pretraining of generator
-        'd_epochs': 0,  # pretraining of discriminator
-        'adversarial_epochs': 50,  # simultaneous competitive training
+        'g_epochs': 0,  # pretraining of generator (not implemented)
+        'd_epochs': 0,  # pretraining of discriminator (not implemented)
+        'adversarial_epochs': 30,  # simultaneous competitive training
 
+        'skip_epochs': 5,  # number of epochs to skip before looking for the best
         'callback_step': -1,  # save callbacks every n epochs
         'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch
     }

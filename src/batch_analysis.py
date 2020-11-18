@@ -2,6 +2,7 @@
 import numpy, pandas, seaborn, umap, time
 from matplotlib import pyplot
 import hdbscan
+from src.constants import user
 
 
 def get_samples_by_types_dict(samples_names, types_of_interest):
@@ -29,7 +30,7 @@ def get_samples_by_types_dict(samples_names, types_of_interest):
     return samples_by_types
 
 
-def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interest=None, save_to='/Users/dmitrav/ETH/projects/normalization/res/'):
+def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interest=None, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
@@ -64,18 +65,18 @@ def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interes
         pyplot.savefig(save_to + 'correlations_{}_{}.pdf'.format(method_name.replace(' ', '_'), id))
 
 
-def get_median_benchmark_cross_correlation(data, sample_types_of_interest=None):
+def get_sample_cross_correlation_estimate(data, percent=50, sample_types_of_interest=None):
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
-    median_corrs = []
+    corrs = []
     for i, type in enumerate(samples_by_types):
         df = data.loc[numpy.array(samples_by_types[type]), :]
         df = df.T.corr()  # transpose to call corr() on samples, not metabolites
         values = df.values.flatten()
-        median_corrs.append(numpy.median(values))
+        corrs.append(numpy.percentile(values, percent))
 
-    return numpy.median(median_corrs)
+    return numpy.sum(corrs)
 
 
 def compute_cv_for_samples_types(data, sample_types_of_interest=None):
@@ -85,13 +86,14 @@ def compute_cv_for_samples_types(data, sample_types_of_interest=None):
     cv_dict = {}
     for i, type in enumerate(samples_by_types):
         values = data.loc[numpy.array(samples_by_types[type]), :].values
+        values = values[values > 0]  # exclude negative values, that the model might predict
         values = values.flatten()
         cv_dict[type] = numpy.std(values) / numpy.mean(values)
 
     return cv_dict
 
 
-def plot_full_dataset_umap(encodings, method_name, parameters, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_full_dataset_umap(encodings, method_name, parameters, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
 
     batches = encodings['batch'].values - 1
     values = encodings.iloc[:, 1:].values
@@ -113,15 +115,28 @@ def plot_full_dataset_umap(encodings, method_name, parameters, sample_types_of_i
     # pyplot.show()
     pyplot.savefig(save_to + 'umap_batches_{}_{}.pdf'.format(method_name.replace(' ', '_'), parameters['id']))
 
+
+def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, sample_types_of_interest=None, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
+    """ Produces a plot with UMAP embeddings, colored after specified samples.
+        Seems to be not very useful... """
+
+    values = encodings.iloc[:, 1:].values
+
+    neighbors = int(parameters['n_batches'] * parameters['n_replicates'])
+    metric = 'braycurtis'
+
+    reducer = umap.UMAP(n_neighbors=neighbors, metric=metric, min_dist=0.9, random_state=77)
+    embeddings = reducer.fit_transform(values)
+
     # define colors of benchmark samples
     samples_by_types = get_samples_by_types_dict(encodings.index.values, sample_types_of_interest)
 
     samples_colors = []
     for sample in encodings.index.values:
 
-        for i, type in enumerate(samples_by_types):
-            if sample in samples_by_types[type]:
-                samples_colors.append(type)
+        for i, s_type in enumerate(samples_by_types):
+            if sample in samples_by_types[s_type]:
+                samples_colors.append(s_type)
                 break
             elif i == len(samples_by_types) - 1:
                 samples_colors.append('Other')
@@ -203,9 +218,7 @@ if __name__ == '__main__':
 
     encodings = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/encodings.csv', index_col=0)
 
-    plot_full_dataset_umap(encodings, 'original samples', '', sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-                                                                                    'P2_SFA_0001', 'P2_SRM_0001',
-                                                                                    'P2_SFA_0002', 'P1_FA_0008'])
+    plot_full_dataset_umap(encodings, 'original samples', '')
 
     pars = {'latent_dim': 100, 'n_batches': 7, 'n_replicates': 3}
     res, _ = compute_number_of_clusters_with_hdbscan(encodings, pars, print_info=True,

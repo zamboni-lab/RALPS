@@ -1,22 +1,17 @@
 
 from torch import nn
 
-version = "v.0.2.10"
+# META
+version = "v.0.3.0"
 user = 'andreidm'
-
-allowed_ppm_error = 5
-tic_normalization_scaling_factor = 10 ** 5
-experiment_name_delimeter = '#'
-number_of_replicates = 3
-
 data_path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
 
-# PARAMETERS
 
+# PARAMETERS
 loss_mapper = {'CE': nn.CrossEntropyLoss(), 'L1': nn.L1Loss(), 'MSE': nn.MSELoss(), 'SL1': nn.SmoothL1Loss()}
 
-# DATA
 
+# DATA
 amino_acids = [
         ["Alanine", "C3H7NO2"],
         ["Arginine", "C6H14N4O2"],
@@ -48,5 +43,12 @@ shared_perturbations = ['P2_SRM_0001', 'P1_PP_0256', 'P2_SPP_0008', 'P2_SB_0008'
 # list of samples to be used as controls for NormAE
 controls = ['P1_PP_0001', 'P1_PP_0002', 'P1_PP_0004', 'P1_PP_0008']  # example
 
-# samples that show noticeable batch effects, can be taken for benchmarking
-samples_with_strong_batch_effects = ['P1_FA_0001', 'P2_SF_0001', 'P2_SFA_0001', 'P2_SRM_0001', 'P2_SFA_0002', 'P1_FA_0008']
+# TODO: account for any number of benchmarks
+# sample types that are used to evaluate normalization
+benchmark_sample_types = ['P1_FA_0001', 'P2_SF_0001', 'P2_SFA_0001', 'P2_SRM_0001', 'P2_SFA_0002', 'P1_FA_0008']
+# sample types that are used for regularization
+regularization_sample_types = shared_perturbations[:]  # copy all perturbations for test case
+
+
+# EXPLORATORY
+allowed_ppm_error = 5

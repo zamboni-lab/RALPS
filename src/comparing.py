@@ -94,7 +94,7 @@ def plot_grouping_coefs_for_methods():
             raise ValueError('Normalization method not recognized')
 
         clustering, total_clusters = compute_number_of_clusters_with_hdbscan(normalized, pars, print_info=False, sample_types_of_interest=benchmarks)
-        grouping_dict = get_grouping_coefs_for_samples('none', clustering, total_clusters)
+        grouping_dict = get_grouping_coefs_for_samples(method, clustering, total_clusters)
 
         res = pandas.DataFrame({'method': [method for x in range(len(grouping_dict))],
                                 'sample': list(grouping_dict.keys()),
