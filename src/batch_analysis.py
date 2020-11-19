@@ -2,7 +2,7 @@
 import numpy, pandas, seaborn, umap, time
 from matplotlib import pyplot
 import hdbscan
-from constants import user
+from src.constants import user
 
 
 def get_samples_by_types_dict(samples_names, types_of_interest):

@@ -2,7 +2,7 @@
 from torch import nn
 
 # META
-version = "v.0.3.1"
+version = "v.0.3.2"
 user = 'andreidm'
 data_path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
 

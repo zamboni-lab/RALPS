@@ -6,7 +6,7 @@ from src.models.ae import get_data
 from src.batch_analysis import plot_batch_cross_correlations, compute_cv_for_samples_types
 from src.batch_analysis import compute_number_of_clusters_with_hdbscan
 from src.utils import combat
-from src.constants import samples_with_strong_batch_effects as benchmarks
+from src.constants import benchmark_sample_types as benchmarks
 from src.constants import data_path as path
 
 

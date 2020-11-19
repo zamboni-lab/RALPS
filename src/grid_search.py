@@ -4,11 +4,11 @@ from tqdm import tqdm
 from multiprocessing import Process, Pool
 from matplotlib import pyplot
 
-from models import adversarial
-from models.ae import Autoencoder
-from batch_analysis import plot_batch_cross_correlations, plot_full_dataset_umap
-from constants import benchmark_sample_types as benchmarks
-from constants import user
+from src.models import adversarial
+from src.models.ae import Autoencoder
+from src.batch_analysis import plot_batch_cross_correlations, plot_full_dataset_umap
+from src.constants import benchmark_sample_types as benchmarks
+from src.constants import user
 
 
 def run_parallel(grid):
@@ -196,7 +196,7 @@ def run_grid_from_console():
     grid = pandas.read_csv(path + name, index_col=0)
 
     # for i in tqdm(range(grid.shape[0])):
-    for i in tqdm(range(0, 25)):
+    for i in tqdm(range(75, 100)):
         parameters = dict(grid.iloc[i, :])
         adversarial.main(parameters)
 
@@ -207,7 +207,7 @@ def collect_results_of_grid_search():
     grids_path = '/Users/{}/ETH/projects/normalization/data/grids/'.format(user)
     results_path = '/Users/{}/ETH/projects/normalization/res/grid_search/'.format(user)
 
-    grids = ['grid_l1_reg_50', 'grid_l1_50', 'grid_mse_reg_50', 'grid_sl1_reg_50']
+    grids = ['grid_new_mse_reg_50']
     results = {}
 
     for grid in grids:
@@ -229,14 +229,38 @@ def collect_results_of_grid_search():
 
     for grid in results:
         print('GRID:', grid, '\n')
-        top = adversarial.slice_by_grouping_and_correlation(results[grid], 30, 70)
+        top = adversarial.slice_by_grouping_and_correlation(results[grid], 10, 90)
         print(top.to_string(), '\n')
 
     return results
 
 
+def collect_results_of_repetitive_runs(path):
+
+    best_epochs = pandas.DataFrame()
+
+    for id in os.listdir(path):
+        if not id.startswith('.'):
+
+            id_results = pandas.read_csv(path + id + '/history_{}.csv'.format(id))
+            id_results = id_results.loc[id_results['best'] == True, :]
+            id_results['id'] = id
+
+            best_epochs = pandas.concat([best_epochs, id_results])
+            del id_results
+
+    print('Results for {}:'.format(path.split('/')[-2]))
+    print(best_epochs.to_string(),'\n')
+
+    return best_epochs
+
+
 if __name__ == "__main__":
 
     # generate_random_grids()
+    # run_grid_from_console()
     # results = collect_results_of_grid_search()
-    run_grid_from_console()
+
+    results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/best_model/'.format(user))
+    results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/approx_best_model/'.format(user))
+    results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/another_model/'.format(user))

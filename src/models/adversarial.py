@@ -3,15 +3,16 @@ from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import StandardScaler, RobustScaler
 from matplotlib import pyplot
+from tqdm import tqdm
 
-from models.cl import Classifier
-from models.ae import Autoencoder
-from constants import benchmark_sample_types as benchmarks
-from constants import regularization_sample_types as reg_types
-from constants import loss_mapper, user
-from batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
-from batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
-from batch_analysis import get_sample_cross_correlation_estimate
+from src.models.cl import Classifier
+from src.models.ae import Autoencoder
+from src.constants import benchmark_sample_types as benchmarks
+from src.constants import regularization_sample_types as reg_types
+from src.constants import loss_mapper, user
+from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
+from src.batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
+from src.batch_analysis import get_sample_cross_correlation_estimate
 
 
 def split_to_train_and_test(values, batches, scaler, proportion=0.7):
@@ -545,34 +546,38 @@ def main(parameters):
 
 
 if __name__ == "__main__":
-    # PARAMETERS
-    parameters = {
 
-        'in_path': '/Users/{}/ETH/projects/normalization/data/'.format(user),
-        'out_path': '/Users/{}/ETH/projects/normalization/res/'.format(user),
-        'id': str(uuid.uuid4())[:8],
+    # checkout stability
+    for i in tqdm(range(10)):
 
-        'n_features': 170,  # n of metabolites in initial dataset
-        'latent_dim': 50,  # n dimensions to reduce to
-        'n_batches': 7,
-        'n_replicates': 3,
+        # PARAMETERS
+        parameters = {
 
-        'd_lr': 0.002,  # discriminator learning rate
-        'g_lr': 0.001,  # generator learning rate
-        'd_loss': 'CE',
-        'g_loss': 'MSE',
-        'd_lambda': 2,  # discriminator regularization term coefficient
-        'g_lambda': 3.5,  # generator regularization term coefficient
-        'use_g_regularization': True,  # whether to use generator regularization term
-        'train_ratio': 0.7,  # for train-test split
-        'batch_size': 64,
-        'g_epochs': 0,  # pretraining of generator (not implemented)
-        'd_epochs': 0,  # pretraining of discriminator (not implemented)
-        'adversarial_epochs': 30,  # simultaneous competitive training
+            'in_path': '/Users/{}/ETH/projects/normalization/data/'.format(user),
+            'out_path': '/Users/{}/ETH/projects/normalization/res/'.format(user),
+            'id': str(uuid.uuid4())[:8],
 
-        'skip_epochs': 5,  # number of epochs to skip before looking for the best
-        'callback_step': -1,  # save callbacks every n epochs
-        'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch
-    }
+            'n_features': 170,  # n of metabolites in initial dataset
+            'latent_dim': 50,  # n dimensions to reduce to
+            'n_batches': 7,
+            'n_replicates': 3,
 
-    main(parameters)
+            'd_lr': 0.003,  # discriminator learning rate
+            'g_lr': 0.0015,  # generator learning rate
+            'd_loss': 'CE',
+            'g_loss': 'MSE',
+            'd_lambda': 5,  # discriminator regularization term coefficient
+            'g_lambda': 5,  # generator regularization term coefficient
+            'use_g_regularization': True,  # whether to use generator regularization term
+            'train_ratio': 0.9,  # for train-test split
+            'batch_size': 64,
+            'g_epochs': 0,  # pretraining of generator (not implemented)
+            'd_epochs': 0,  # pretraining of discriminator (not implemented)
+            'adversarial_epochs': 50,  # simultaneous competitive training
+
+            'skip_epochs': 5,  # number of epochs to skip before looking for the best
+            'callback_step': -1,  # save callbacks every n epochs
+            'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch
+        }
+
+        main(parameters)
