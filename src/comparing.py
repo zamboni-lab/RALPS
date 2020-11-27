@@ -119,4 +119,16 @@ def plot_grouping_coefs_for_methods():
 
 
 if __name__ == "__main__":
-    plot_grouping_coefs_for_methods()
+
+    # TODO: apply or implement methods:
+    #  - best of Noreva (2 methods - found)
+    #  - Quantile normalization (? - Toby)
+    #  - Moving median (? - Petra)
+    #  - Regression for offsets in pooled samples (? - Karin)
+    #  - waveICA (R - found)
+    #  - MetICA (R - found)
+    #  - EigenMS (R - Alexis)
+
+
+
+    pass
