@@ -3,6 +3,7 @@ import patsy
 import sys
 import numpy.linalg as la
 import numpy as np
+from src.models.ae import get_data
 
 
 def adjust_nums(numerical_covariates, drop_idxs):
@@ -188,47 +189,8 @@ def postvar(sum2, n, a, b):
 
 
 if __name__ == "__main__":
-    # NOTE: run this first to get the bladder batch stuff written to files.
-    """
-    source("http://bioconductor.org/biocLite.R")
-    biocLite("sva")
 
-	library("sva")
-	options(stringsAsFactors=FALSE)
-
-	library(bladderbatch)
-	data(bladderdata)
-
-	pheno = pData(bladderEset)
-	# add fake age variable for numeric
-	pheno$age = c(1:7, rep(1:10, 5))
-        write.table(data.frame(cel=rownames(pheno), pheno), row.names=F, quote=F, sep="\t", file="bladder-pheno.txt")
-
-	edata = exprs(bladderEset)
-    write.table(edata, row.names=T, quote=F, sep="\t", file="bladder-expr.txt")
-	# use dataframe instead of matrix
-	mod = model.matrix(~as.factor(cancer) + age, data=pheno)
-    t = Sys.time()
-	cdata = ComBat(dat=edata, batch=as.factor(pheno$batch), mod=mod, numCov=match("age", colnames(mod)))
-    print(Sys.time() - t)
-    print(cdata[1:5, 1:5])
-    write.table(cdata, row.names=True, quote=F, sep="\t", file="r-batch.txt")
-    """
-
-    pheno = pd.read_table('bladder-pheno.txt', index_col=0)
-    dat = pd.read_table('bladder-expr.txt', index_col=0)
-
-    mod = patsy.dmatrix("~ age + cancer", pheno, return_type="dataframe")
-    import time
-
-    t = time.time()
-    # ebat = combat(dat, pheno['batch'], mod, "age")
-    # sys.stdout.write("%.2f seconds\n" % (time.time() - t))
-    #
-    # sys.stdout.write(str(ebat.iloc[:5, :5]))
-    #
-    # ebat.to_csv("py-batch.txt", sep="\t")
-
-    ebat = combat(dat, pheno['batch'], None)
-
-    print()
+    data = get_data()
+    # run combat method and save normalized data
+    normalized = combat(data.iloc[:, 1:].T, data['batch']).T
+    normalized.to_csv('/Users/andreidm/ETH/projects/normalization/res/other_methods/combat.csv')

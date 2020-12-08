@@ -2,9 +2,12 @@
 from torch import nn
 
 # META
-version = "v.0.3.6"
+version = "v.0.3.7"
 user = 'andreidm'
+
 data_path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
+path_to_my_best_method = '/Users/{}/ETH/projects/normalization/res/best_model/2d48bfb2/normalized_2d48bfb2.csv'.format(user)
+path_to_other_methods = '/Users/{}/ETH/projects/normalization/res/other_methods/'.format(user)
 
 
 # PARAMETERS

@@ -7,34 +7,47 @@ from src.batch_analysis import plot_batch_cross_correlations, compute_cv_for_sam
 from src.batch_analysis import compute_number_of_clusters_with_hdbscan
 from src.utils import combat
 from src.constants import benchmark_sample_types as benchmarks
+from src.constants import regularization_sample_types as regs
 from src.constants import data_path as path
+from src.constants import path_to_other_methods, path_to_my_best_method, user
+from src.batch_analysis import get_sample_cross_correlation_estimate
 
 
-def plot_correlations_for_normalization(method):
-    data = get_data()
+def plot_benchmarks_corrs_for_methods():
 
-    if method == 'combat':
-        normalized = combat.combat(data.iloc[:, 1:].T, data['batch'])
+    save_to = '/Users/{}/ETH/projects/normalization/res/other_methods/plots/'.format(user)
+    for method in ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']:
+        plot_correlations_for_normalization(method, save_to)
+
+
+def plot_correlations_for_normalization(method, save_to):
+
+    if method == 'none':
+        data = get_data(shuffle=False)
+        normalized = data.iloc[:, 1:]
+    elif method == 'my_best':
+        # hardcode
+        normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
     else:
-        raise ValueError('Normalization method not specified')
+        normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
 
-    plot_batch_cross_correlations(normalized.T, method, '', sample_types_of_interest=benchmarks)
+    plot_batch_cross_correlations(normalized, method, '', sample_types_of_interest=benchmarks, save_to=save_to)
 
 
 def plot_cvs_for_methods():
 
-    data = get_data()
-
     all_cvs = pandas.DataFrame()
 
-    for method in ['none', 'combat']:
+    for method in ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']:
 
         if method == 'none':
+            data = get_data()
             normalized = data.iloc[:, 1:]
-        elif method == 'combat':
-            normalized = combat.combat(data.iloc[:, 1:].T, data['batch']).T
+        elif method == 'my_best':
+            # hardcode
+            normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
         else:
-            raise ValueError('Normalization method not recognized')
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
 
         res = compute_cv_for_samples_types(normalized, sample_types_of_interest=benchmarks)
         res = pandas.DataFrame({'method': [method for x in range(len(res))],
@@ -55,9 +68,45 @@ def plot_cvs_for_methods():
         ax.set_ylabel('Variation coefficient')
         ax.set_title(sample)
         ax.grid(True)
+        ax.tick_params(labelrotation=45)
 
     pyplot.tight_layout()
+    # pyplot.show()
+    pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/cvs.pdf'.format(user))
+
+
+def plot_samples_corrs_for_methods():
+
+    corrs = []
+    methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']
+
+    for method in methods:
+
+        if method == 'none':
+            data = get_data(shuffle=False)
+            normalized = data.iloc[:, 1:]
+        elif method == 'my_best':
+            # hardcode
+            normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
+        else:
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
+
+        res = get_sample_cross_correlation_estimate(normalized, sample_types_of_interest=regs)
+        corrs.append(res)
+
+    res = pandas.DataFrame({'method': methods, 'corr': corrs})
+
+    # save all on one figure
+    # pyplot.figure(figsize=(12, 8))
+
+    seaborn.barplot(x='method', y='corr', data=res)
+    pyplot.xlabel('Normalization')
+    pyplot.ylabel('Correlation sum')
+    pyplot.grid()
+    pyplot.tick_params(labelrotation=45)
+    pyplot.tight_layout()
     pyplot.show()
+    # pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/corrs.pdf'.format(user))
 
 
 def get_grouping_coefs_for_samples(method, clustering, total_clusters):
@@ -82,16 +131,18 @@ def plot_grouping_coefs_for_methods():
 
     all_grouping_coefs = pandas.DataFrame()
 
-    for method in ['none', 'combat']:
+    for method in ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']:
 
         if method == 'none':
             normalized = data
 
-        elif method == 'combat':
-            normalized = combat.combat(data.iloc[:, 1:].T, data['batch']).T
+        elif method == 'my_best':
+            # hardcode
+            normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
             normalized['batch'] = data['batch']
         else:
-            raise ValueError('Normalization method not recognized')
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
+            normalized['batch'] = data['batch']
 
         clustering, total_clusters = compute_number_of_clusters_with_hdbscan(normalized, pars, print_info=False, sample_types_of_interest=benchmarks)
         grouping_dict = get_grouping_coefs_for_samples(method, clustering, total_clusters)
@@ -113,17 +164,19 @@ def plot_grouping_coefs_for_methods():
         ax.set_ylabel('HDBSCAN grouping coef')
         ax.set_title(sample)
         ax.grid(True)
+        ax.tick_params(labelrotation=45)
 
     pyplot.tight_layout()
-    pyplot.show()
+    # pyplot.show()
+    pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/grouping_coefs.pdf'.format(user))
 
 
 if __name__ == "__main__":
 
     # TODO: apply or implement methods:
     #  - Quantile normalization (? - Toby)
-    #  - Moving median (? - Petra)
-    #  - Regression for offsets in pooled samples (? - Karin)
 
-
-    pass
+    plot_cvs_for_methods()
+    plot_grouping_coefs_for_methods()
+    plot_benchmarks_corrs_for_methods()
+    plot_samples_corrs_for_methods()
