@@ -1,6 +1,7 @@
 
 import numpy, pandas, seaborn, time
 from matplotlib import pyplot
+from sklearn.preprocessing import MinMaxScaler
 
 from src.models.ae import get_data
 from src.batch_analysis import plot_batch_cross_correlations, compute_cv_for_samples_types
@@ -9,7 +10,7 @@ from src.utils import combat
 from src.constants import benchmark_sample_types as benchmarks
 from src.constants import regularization_sample_types as regs
 from src.constants import data_path as path
-from src.constants import path_to_other_methods, path_to_my_best_method, user
+from src.constants import path_to_other_methods, path_to_my_best_method, user, batches
 from src.batch_analysis import get_sample_cross_correlation_estimate
 
 
@@ -41,7 +42,7 @@ def plot_cvs_for_methods():
     for method in ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']:
 
         if method == 'none':
-            data = get_data()
+            data = get_data(shuffle=False)
             normalized = data.iloc[:, 1:]
         elif method == 'my_best':
             # hardcode
@@ -171,12 +172,52 @@ def plot_grouping_coefs_for_methods():
     pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/grouping_coefs.pdf'.format(user))
 
 
+def plot_normalized_spectra_for_methods(file_ext='pdf'):
+
+    save_to = '/Users/{}/ETH/projects/normalization/res/other_methods/plots/'.format(user)
+    mz = pandas.read_csv('/Users/{}/ETH/projects/normalization/data/filtered_data.csv'.format(user))['mz'].values
+    color_dict = {'0108': 'k', '0110': 'g', '0124': 'r', '0219': 'c', '0221': 'm', '0304': 'y', '0306': 'b'}
+
+    for method in ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']:
+
+        if method == 'none':
+            data = get_data(shuffle=False).drop(columns=['batch'])
+        elif method == 'my_best':
+            data = pandas.read_csv(path_to_my_best_method, index_col=0)
+        else:
+            data = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
+
+        samples = data.index
+        normalized = data.values
+
+        scaled = (normalized - numpy.mean(normalized)) / numpy.std(normalized)
+
+        pyplot.figure(figsize=(8, 6))
+        for i in range(scaled.shape[0]):
+            batch_id = [batch in samples[i] for batch in batches].index(True)
+            color = color_dict[batches[batch_id]]
+
+            if color == 'b':
+                pyplot.plot(mz, scaled[i, :], '{}o'.format(color), alpha=0.2)
+            else:
+                pyplot.plot(mz, scaled[i, :], '{}o'.format(color), alpha=0.4)
+
+        pyplot.ylim(bottom=0, top=50)
+        pyplot.title(method)
+        pyplot.xlabel('mz')
+        pyplot.ylabel('scaled normalized intensities')
+        pyplot.grid()
+        # pyplot.show()
+        pyplot.savefig(save_to + 'spectra_{}.{}'.format(method, file_ext))
+
+
 if __name__ == "__main__":
 
     # TODO: apply or implement methods:
     #  - Quantile normalization (? - Toby)
 
-    plot_cvs_for_methods()
-    plot_grouping_coefs_for_methods()
-    plot_benchmarks_corrs_for_methods()
-    plot_samples_corrs_for_methods()
+    # plot_cvs_for_methods()
+    # plot_grouping_coefs_for_methods()
+    # plot_benchmarks_corrs_for_methods()
+    # plot_samples_corrs_for_methods()
+    plot_normalized_spectra_for_methods(file_ext='png')
