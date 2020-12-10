@@ -216,8 +216,8 @@ if __name__ == "__main__":
     # TODO: apply or implement methods:
     #  - Quantile normalization (? - Toby)
 
-    # plot_cvs_for_methods()
-    # plot_grouping_coefs_for_methods()
-    # plot_benchmarks_corrs_for_methods()
-    # plot_samples_corrs_for_methods()
+    plot_cvs_for_methods()
+    plot_grouping_coefs_for_methods()
+    plot_benchmarks_corrs_for_methods()
+    plot_samples_corrs_for_methods()
     plot_normalized_spectra_for_methods(file_ext='png')
