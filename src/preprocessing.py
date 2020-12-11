@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler
 from matplotlib import pyplot
 from src.constants import batches as bids
 from src.constants import shared_perturbations as sps
-from src.constants import controls
+from src.constants import controls, min_relevant_intensity
 from sklearn.preprocessing import RobustScaler
 from src.constants import data_path as path
 
@@ -218,7 +218,7 @@ def merge_batches_and_save_dataset():
     all_data = collapse_same_mzs(all_data)
 
     # filter out small intensities
-    filtered_data = all_data[(all_data.iloc[:, 3:] > 1000).all(axis=1)]
+    filtered_data = all_data[(all_data.iloc[:, 3:] > min_relevant_intensity).all(axis=1)]
 
     # save
     all_data.to_csv(path + "all_data.csv", index=False)

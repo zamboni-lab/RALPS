@@ -222,4 +222,7 @@ if __name__ == "__main__":
     plot_normalized_spectra_for_methods(file_ext='png')
     plot_samples_corrs_for_methods()  # not very informative
 
+    # TODO:
+    #  - check how many negative values methods output,
+    #  - check how many zeros there'll be if filter everything < min_relevant_intensity
 

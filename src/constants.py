@@ -2,7 +2,7 @@
 from torch import nn
 
 # META
-version = "v.0.3.10"
+version = "v.0.3.11"
 user = 'andreidm'
 
 data_path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
@@ -15,6 +15,8 @@ loss_mapper = {'CE': nn.CrossEntropyLoss(), 'L1': nn.L1Loss(), 'MSE': nn.MSELoss
 
 
 # DATA
+min_relevant_intensity = 1000
+
 amino_acids = [
         ["Alanine", "C3H7NO2"],
         ["Arginine", "C6H14N4O2"],

@@ -2,9 +2,6 @@
 import h5py, numpy, pandas
 from pyopenms import EmpiricalFormula, CoarseIsotopePatternGenerator
 from src.constants import amino_acids, allowed_ppm_error
-from src.constants import tic_normalization_scaling_factor as scaling_factor
-from src.constants import experiment_name_delimeter as sharp
-from src.constants import number_of_replicates as n
 from src.constants import shared_perturbations as sps
 from src.constants import batches as bids
 from matplotlib import pyplot
@@ -77,7 +74,7 @@ def get_tic_normalized_amino_acid_values(data, colnames, aa_intensities):
             # get indices of current experiment in data (its columns)
             j_experiment_indices = numpy.where(numpy.array(colnames) == experiment_ids[j])[0]
             # normalize by TIC, i.e. by corresponding column in data
-            aa_values = aa_intensities[i][j] / numpy.sum(data[:, j_experiment_indices]) * scaling_factor
+            aa_values = aa_intensities[i][j] / numpy.sum(data[:, j_experiment_indices])  # * scaling_factor
             experiments.append(aa_values)
         normalized_intensities.append(experiments)
 
@@ -90,12 +87,12 @@ def get_combat_normalized_amino_acid_values(data, colnames, aa_mz_indices):
 
     # try combat normalisation
     data = pandas.DataFrame(data)
-    unique_cols = [colnames[i] + sharp + str(i) for i in range(len(colnames))]  # make colnames unique
+    unique_cols = [colnames[i] + '#' + str(i) for i in range(len(colnames))]  # make colnames unique
     data.columns = unique_cols
 
     # assign batches
     flatten = lambda l: [item for sublist in l for item in sublist]
-    batches = flatten([[i, i, i] for i in range(len(colnames) // n)])
+    batches = flatten([[i, i, i] for i in range(len(colnames) // 3)])
 
     batches = pandas.DataFrame(batches)
     batches.columns = ["batch"]
