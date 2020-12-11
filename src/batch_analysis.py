@@ -206,27 +206,28 @@ if __name__ == '__main__':
     data = pandas.read_csv('/Users/{}/ETH/projects/normalization/data/filtered_data.csv'.format(user))
     data = data.iloc[:, 3:]
 
-    # plot_batch_cross_correlations(data.T, 'original samples', '',
-    #                               sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-    #                                                         'P2_SFA_0001', 'P2_SRM_0001',
-    #                                                         'P2_SFA_0002', 'P1_FA_0008'])
-    #
-    # res = compute_cv_for_samples_types(data.T, sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-    #                                                                    'P2_SFA_0001', 'P2_SRM_0001',
-    #                                                                    'P2_SFA_0002', 'P1_FA_0008'])
-    # print(res)
-    #
+    plot_batch_cross_correlations(data.T, 'original samples', '',
+                                  sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+                                                            'P2_SFA_0001', 'P2_SRM_0001',
+                                                            'P2_SFA_0002', 'P1_FA_0008'])
+
+    res = compute_cv_for_samples_types(data.T, sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+                                                                       'P2_SFA_0001', 'P2_SRM_0001',
+                                                                       'P2_SFA_0002', 'P1_FA_0008'])
+    print(res)
+
     encodings = pandas.read_csv('/Users/{}/ETH/projects/normalization/res/encodings.csv'.format(user), index_col=0)
 
-    plot_full_dataset_umap(encodings, 'original samples', {'n_batches': 7, 'n_replicates': 3, 'id': ''},
+    pars = {'n_batches': 7, 'n_replicates': 3, 'id': ''}
+    plot_full_dataset_umap(encodings, 'original samples', pars,
                            save_to='/Users/andreidm/ETH/projects/normalization/res/')
 
-    # pars = {'latent_dim': 100, 'n_batches': 7, 'n_replicates': 3}
-    # res, _ = compute_number_of_clusters_with_hdbscan(encodings, pars, print_info=True,
-    #                                               sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-    #                                                                         'P2_SFA_0001', 'P2_SRM_0001',
-    #                                                                         'P2_SFA_0002', 'P1_FA_0008'])
-    # print(res)
+    pars = {'latent_dim': 100, 'n_batches': 7, 'n_replicates': 3}
+    res, _ = compute_number_of_clusters_with_hdbscan(encodings, pars, print_info=True,
+                                                  sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
+                                                                            'P2_SFA_0001', 'P2_SRM_0001',
+                                                                            'P2_SFA_0002', 'P1_FA_0008'])
+    print(res)
 
 
 

@@ -4,6 +4,7 @@ import sys
 import numpy.linalg as la
 import numpy as np
 from src.models.ae import get_data
+from src.constants import user
 
 
 def adjust_nums(numerical_covariates, drop_idxs):
@@ -190,7 +191,7 @@ def postvar(sum2, n, a, b):
 
 if __name__ == "__main__":
 
-    data = get_data()
+    data = get_data(shuffle=False)
     # run combat method and save normalized data
     normalized = combat(data.iloc[:, 1:].T, data['batch']).T
-    normalized.to_csv('/Users/andreidm/ETH/projects/normalization/res/other_methods/combat.csv')
+    normalized.to_csv('/Users/{}/ETH/projects/normalization/res/other_methods/combat.csv'.format(user))

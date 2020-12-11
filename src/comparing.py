@@ -14,11 +14,12 @@ from src.constants import path_to_other_methods, path_to_my_best_method, user, b
 from src.batch_analysis import get_sample_cross_correlation_estimate
 
 
-def plot_benchmarks_corrs_for_methods():
+def plot_benchmarks_corrs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']):
 
     save_to = '/Users/{}/ETH/projects/normalization/res/other_methods/plots/'.format(user)
-    for method in ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']:
+    for method in methods:
         plot_correlations_for_normalization(method, save_to)
+    print('benchmark correlations saved')
 
 
 def plot_correlations_for_normalization(method, save_to):
@@ -35,11 +36,11 @@ def plot_correlations_for_normalization(method, save_to):
     plot_batch_cross_correlations(normalized, method, '', sample_types_of_interest=benchmarks, save_to=save_to)
 
 
-def plot_cvs_for_methods():
+def plot_benchmarks_cvs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']):
 
     all_cvs = pandas.DataFrame()
 
-    for method in ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']:
+    for method in methods:
 
         if method == 'none':
             data = get_data(shuffle=False)
@@ -74,13 +75,12 @@ def plot_cvs_for_methods():
     pyplot.tight_layout()
     # pyplot.show()
     pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/cvs.pdf'.format(user))
+    print('variation coefs saved')
 
 
-def plot_samples_corrs_for_methods():
+def plot_samples_corrs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']):
 
     corrs = []
-    methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']
-
     for method in methods:
 
         if method == 'none':
@@ -97,17 +97,15 @@ def plot_samples_corrs_for_methods():
 
     res = pandas.DataFrame({'method': methods, 'corr': corrs})
 
-    # save all on one figure
-    # pyplot.figure(figsize=(12, 8))
-
     seaborn.barplot(x='method', y='corr', data=res)
     pyplot.xlabel('Normalization')
     pyplot.ylabel('Correlation sum')
     pyplot.grid()
     pyplot.tick_params(labelrotation=45)
     pyplot.tight_layout()
-    pyplot.show()
-    # pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/corrs.pdf'.format(user))
+    # pyplot.show()
+    pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/corrs.pdf'.format(user))
+    print('overall correlations saved')
 
 
 def get_grouping_coefs_for_samples(method, clustering, total_clusters):
@@ -121,18 +119,18 @@ def get_grouping_coefs_for_samples(method, clustering, total_clusters):
         grouping_coefs[sample] = coef
         coefs_sum += coef
 
-    print('{}: mean coef: {}'.format(method, coefs_sum / len(grouping_coefs)))
+    # print('{}: mean coef: {}'.format(method, coefs_sum / len(grouping_coefs)))
     return grouping_coefs
 
 
-def plot_grouping_coefs_for_methods():
+def plot_benchmarks_grouping_coefs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']):
 
     data = get_data()
     pars = {'latent_dim': data.shape[1], 'n_batches': 7, 'n_replicates': 3}
 
     all_grouping_coefs = pandas.DataFrame()
 
-    for method in ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']:
+    for method in methods:
 
         if method == 'none':
             normalized = data
@@ -170,15 +168,16 @@ def plot_grouping_coefs_for_methods():
     pyplot.tight_layout()
     # pyplot.show()
     pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/grouping_coefs.pdf'.format(user))
+    print('grouping coefs saved')
 
 
-def plot_normalized_spectra_for_methods(file_ext='pdf'):
+def plot_normalized_spectra_for_methods(file_ext='pdf', methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']):
 
     save_to = '/Users/{}/ETH/projects/normalization/res/other_methods/plots/'.format(user)
     mz = pandas.read_csv('/Users/{}/ETH/projects/normalization/data/filtered_data.csv'.format(user))['mz'].values
     color_dict = {'0108': 'k', '0110': 'g', '0124': 'r', '0219': 'c', '0221': 'm', '0304': 'y', '0306': 'b'}
 
-    for method in ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']:
+    for method in methods:
 
         if method == 'none':
             data = get_data(shuffle=False).drop(columns=['batch'])
@@ -209,15 +208,18 @@ def plot_normalized_spectra_for_methods(file_ext='pdf'):
         pyplot.grid()
         # pyplot.show()
         pyplot.savefig(save_to + 'spectra_{}.{}'.format(method, file_ext))
+    print('spectral patterns saved')
 
 
 if __name__ == "__main__":
 
-    # TODO: apply or implement methods:
-    #  - Quantile normalization (? - Toby)
-
-    plot_cvs_for_methods()
-    plot_grouping_coefs_for_methods()
+    # benchmarks
+    plot_benchmarks_cvs_for_methods()
+    plot_benchmarks_grouping_coefs_for_methods()
     plot_benchmarks_corrs_for_methods()
-    plot_samples_corrs_for_methods()
+
+    # all samples
     plot_normalized_spectra_for_methods(file_ext='png')
+    plot_samples_corrs_for_methods()  # not very informative
+
+
