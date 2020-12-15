@@ -211,6 +211,27 @@ def plot_normalized_spectra_for_methods(file_ext='pdf', methods=['none', 'lev+ei
     print('spectral patterns saved')
 
 
+def check_relevant_intensities_for_methods(methods=['combat', 'eigenMS', 'waveICA', 'my_best']):
+    """ Methods 'lev+eig', 'pqn+pow' are excludede by default, since they don't output intensities. """
+
+    for method in methods:
+        if method == 'none':
+            data = get_data(shuffle=False)
+            normalized = data.iloc[:, 1:]
+        elif method == 'my_best':
+            # hardcode
+            normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
+        else:
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
+
+        print("method: {}".format(method))
+        print('negative: {}%'.format(
+            round(100 * (normalized < 0).sum().sum() / normalized.shape[0] / normalized.shape[1], 1)))
+        print('< 1000: {}%'.format(
+            round(100 * (normalized < 1000).sum().sum() / normalized.shape[0] / normalized.shape[1], 1)))
+        print()
+
+
 if __name__ == "__main__":
 
     # benchmarks
@@ -221,8 +242,4 @@ if __name__ == "__main__":
     # all samples
     plot_normalized_spectra_for_methods(file_ext='png')
     plot_samples_corrs_for_methods()  # not very informative
-
-    # TODO:
-    #  - check how many negative values methods output,
-    #  - check how many zeros there'll be if filter everything < min_relevant_intensity
-
+    check_relevant_intensities_for_methods()
