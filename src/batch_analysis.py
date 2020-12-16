@@ -1,8 +1,12 @@
 
 import numpy, pandas, seaborn, umap, time
 from matplotlib import pyplot
-import hdbscan
-from src.constants import user
+import hdbscan, torch
+from src.constants import user, path_to_my_best_method
+from src.models.ae import Autoencoder
+from src.constants import benchmark_sample_types as benchmarks
+from src.constants import shared_perturbations as all_samples
+from sklearn.preprocessing import RobustScaler
 
 
 def get_samples_by_types_dict(samples_names, types_of_interest):
@@ -139,16 +143,20 @@ def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, samp
                 samples_colors.append(s_type)
                 break
             elif i == len(samples_by_types) - 1:
-                samples_colors.append('Other')
+                samples_colors.append('All the rest')
             else:
                 pass
+
+    # arrange colors
+    data = pandas.DataFrame({'xs': embeddings[:, 0], 'ys': embeddings[:, 1], 'color': samples_colors})
+    data = data.sort_values(by='color')
 
     # plot coloring benchmark samples
     seaborn.set()
     pyplot.figure(figsize=(8, 6))
-
-    seaborn.scatterplot(x=embeddings[:, 0], y=embeddings[:, 1], hue=samples_colors, alpha=.9, palette=seaborn.color_palette('Paired', n_colors=len(set(samples_colors))))
-    pyplot.legend(title='Samples', bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=10)
+    ax = seaborn.scatterplot(x='xs', y='ys', hue='color', alpha=.9, palette=seaborn.color_palette('Paired', n_colors=len(set(samples_colors))), data=data)
+    h, l = ax.get_legend_handles_labels()
+    pyplot.legend(h[1:], l[1:], title='Samples', bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=10)
     pyplot.title('UMAP: {}: n={}, metric={}'.format(method_name, neighbors, metric))
     pyplot.tight_layout()
     # pyplot.show()
@@ -216,6 +224,7 @@ if __name__ == '__main__':
                                                                        'P2_SFA_0002', 'P1_FA_0008'])
     print(res)
 
+    # get encodings of the SEPARATELY TRAINED autoencoder
     encodings = pandas.read_csv('/Users/{}/ETH/projects/normalization/res/encodings.csv'.format(user), index_col=0)
 
     pars = {'n_batches': 7, 'n_replicates': 3, 'id': ''}
@@ -228,6 +237,28 @@ if __name__ == '__main__':
                                                                             'P2_SFA_0001', 'P2_SRM_0001',
                                                                             'P2_SFA_0002', 'P1_FA_0008'])
     print(res)
+
+    encodings_raw = pandas.read_csv('/Users/{}/ETH/projects/normalization/res/autoencoder/encodings.csv'.format(user), index_col=0)
+    encodings_normalized = pandas.read_csv('/Users/{}/ETH/projects/normalization/res/best_model/2d48bfb2/encodings_2d48bfb2.csv'.format(user), index_col=0)
+
+    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'ae'}
+    plot_full_dataset_umap(encodings_raw, 'original', pars)
+    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': '2d48bfb2'}
+    plot_full_dataset_umap(encodings_normalized, 'normalized', pars)
+
+    samples = [sample for sample in all_samples if 'SRM_000' in sample]
+
+    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'ae_SRM'}
+    plot_full_data_umap_with_benchmarks(encodings_raw, 'original', pars, sample_types_of_interest=samples)
+    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': '2d48bfb2_SRM'}
+    plot_full_data_umap_with_benchmarks(encodings_normalized, 'normalized', pars, sample_types_of_interest=samples)
+
+    samples = [sample for sample in all_samples if '_SPP_000' in sample]
+
+    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'ae_SPP'}
+    plot_full_data_umap_with_benchmarks(encodings_raw, 'original', pars, sample_types_of_interest=samples)
+    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': '2d48bfb2_SPP'}
+    plot_full_data_umap_with_benchmarks(encodings_normalized, 'normalized', pars, sample_types_of_interest=samples)
 
 
 
