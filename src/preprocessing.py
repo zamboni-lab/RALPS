@@ -5,10 +5,10 @@ from sklearn.preprocessing import StandardScaler
 from matplotlib import pyplot
 from sklearn.preprocessing import RobustScaler
 
-from constants import batches as bids
-from constants import shared_perturbations as sps
-from constants import controls, min_relevant_intensity
-from constants import data_path as path
+from src.constants import batches as bids
+from src.constants import shared_perturbations as sps
+from src.constants import controls, min_relevant_intensity
+from src.constants import data_path as path
 
 
 def run_pca(data, n=100):

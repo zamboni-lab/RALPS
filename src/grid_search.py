@@ -199,7 +199,7 @@ def run_grid_from_console():
     grid = pandas.read_csv(path + name, index_col=0)
 
     # for i in tqdm(range(grid.shape[0])):
-    for i in tqdm(range(0, 10)):
+    for i in tqdm(range(90, 100)):
         parameters = dict(grid.iloc[i, :])
         adversarial.main(parameters)
 

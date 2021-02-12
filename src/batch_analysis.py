@@ -4,10 +4,10 @@ from matplotlib import pyplot
 import hdbscan, torch
 from sklearn.preprocessing import RobustScaler
 
-from constants import user, path_to_my_best_method
-from models.ae import Autoencoder
-from constants import benchmark_sample_types as benchmarks
-from constants import shared_perturbations as all_samples
+from src.constants import user, path_to_my_best_method
+from src.models.ae import Autoencoder
+from src.constants import benchmark_sample_types as benchmarks
+from src.constants import shared_perturbations as all_samples
 
 
 def get_samples_by_types_dict(samples_names, types_of_interest):

@@ -5,14 +5,15 @@ from sklearn.preprocessing import StandardScaler, RobustScaler
 from matplotlib import pyplot
 from tqdm import tqdm
 
-from models.cl import Classifier
-from models.ae import Autoencoder
-from constants import benchmark_sample_types as benchmarks
-from constants import regularization_sample_types as reg_types
-from constants import loss_mapper, user
-from batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
-from batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
-from batch_analysis import get_sample_cross_correlation_estimate
+from src.models.cl import Classifier
+from src.models.ae import Autoencoder
+from src.constants import shared_perturbations as all_samples_types
+from src.constants import benchmark_sample_types as benchmarks
+from src.constants import regularization_sample_types as reg_types
+from src.constants import loss_mapper, user
+from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
+from src.batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
+from src.batch_analysis import get_sample_cross_correlation_estimate
 
 
 def split_to_train_and_test(values, batches, scaler, proportion=0.7):
@@ -424,14 +425,15 @@ def main(parameters):
         val_acc_history.append(accuracy)  # save for plotting
 
         # collect variation coefficients for some samples of ALL reconstructed data
-        vcs = compute_cv_for_samples_types(reconstruction, sample_types_of_interest=reg_types)
-        vcs_sum = 0.
-        for sample in reg_types:
-            vcs_sum += vcs[sample]  # calculate sum of all variation coefs
+        vcs = compute_cv_for_samples_types(reconstruction, sample_types_of_interest=all_samples_types)
+        reg_vcs_sum = 0.
+        for sample in all_samples_types:
+            if sample in reg_types:
+                reg_vcs_sum += vcs[sample]  # calculate sum of (reg) variation coefs
             if sample in benchmarks:
                 benchmarks_variation_coefs[sample].append(vcs[sample])  # append vcs of benchmarks
 
-        reg_vc = vcs_sum / len(vcs)  # compute mean overall variation coef
+        reg_vc = reg_vcs_sum / len(vcs)  # compute mean overall variation coef
         reg_samples_vc_history.append(reg_vc)
 
         # collect clustering results for some samples of ALL encoded data
@@ -573,7 +575,7 @@ if __name__ == "__main__":
             'batch_size': 64,
             'g_epochs': 0,  # pretraining of generator (not implemented)
             'd_epochs': 0,  # pretraining of discriminator (not implemented)
-            'adversarial_epochs': 50,  # simultaneous competitive training
+            'adversarial_epochs': 10,  # simultaneous competitive training
 
             'skip_epochs': 5,  # number of epochs to skip before looking for the best
             'callback_step': -1,  # save callbacks every n epochs
