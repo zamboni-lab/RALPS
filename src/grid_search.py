@@ -140,6 +140,7 @@ def generate_and_save_repetitive_grids():
     grid_bb416f04['g_lr'] = 0.0006
     grid_bb416f04['d_lambda'] = 1.8
     grid_bb416f04['g_lambda'] = 2.8
+    grid_bb416f04['out_path'] = grid_bb416f04['out_path'].replace('grid_search', 'grid_bb416f04')
 
     generate_repetitive_grid(grid_bb416f04, grid_size, 'bb416f04', save_to)
 
@@ -149,6 +150,7 @@ def generate_and_save_repetitive_grids():
     grid_656cfcf3['g_lr'] = 0.0004
     grid_656cfcf3['d_lambda'] = 3.3
     grid_656cfcf3['g_lambda'] = 3.1
+    grid_656cfcf3['out_path'] = grid_656cfcf3['out_path'].replace('grid_search', 'grid_656cfcf3')
 
     generate_repetitive_grid(grid_656cfcf3, grid_size, '656cfcf3', save_to)
 
@@ -158,6 +160,7 @@ def generate_and_save_repetitive_grids():
     grid_1657c7f8['g_lr'] = 0.0004
     grid_1657c7f8['d_lambda'] = 2.2
     grid_1657c7f8['g_lambda'] = 5.5
+    grid_1657c7f8['out_path'] = grid_1657c7f8['out_path'].replace('grid_search', 'grid_1657c7f8')
 
     generate_repetitive_grid(grid_1657c7f8, grid_size, '1657c7f8', save_to)
 
@@ -167,6 +170,7 @@ def generate_and_save_repetitive_grids():
     grid_b3425959['g_lr'] = 0.0005
     grid_b3425959['d_lambda'] = 8.9
     grid_b3425959['g_lambda'] = 8.1
+    grid_b3425959['out_path'] = grid_b3425959['out_path'].replace('grid_search', 'grid_b3425959')
 
     generate_repetitive_grid(grid_b3425959, grid_size, 'b3425959', save_to)
 
@@ -192,8 +196,8 @@ def run_grid_from_console():
     path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
     grid = pandas.read_csv(path + name, index_col=0)
 
-    # for i in tqdm(range(grid.shape[0])):
-    for i in tqdm(range(90, 100)):
+    for i in tqdm(range(grid.shape[0])):
+    # for i in tqdm(range(90, 100)):
         parameters = dict(grid.iloc[i, :])
         adversarial.main(parameters)
 
@@ -255,10 +259,10 @@ def collect_results_of_repetitive_runs(path):
 if __name__ == "__main__":
 
     # generate_random_grids()
+    generate_and_save_repetitive_grids()
+
     # run_grid_from_console()
     # results = collect_results_of_grid_search()
-
-    generate_and_save_repetitive_grids()
 
     # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/best_model/'.format(user))
     # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/approx_best_model/'.format(user))
