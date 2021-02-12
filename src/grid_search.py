@@ -4,11 +4,11 @@ from tqdm import tqdm
 from multiprocessing import Process, Pool
 from matplotlib import pyplot
 
-from models import adversarial
-from models.ae import Autoencoder
-from batch_analysis import plot_batch_cross_correlations, plot_full_dataset_umap
-from constants import benchmark_sample_types as benchmarks
-from constants import user
+from src.models import adversarial
+from src.models.ae import Autoencoder
+from src.batch_analysis import plot_batch_cross_correlations, plot_full_dataset_umap
+from src.constants import benchmark_sample_types as benchmarks
+from src.constants import user
 
 
 def run_parallel(grid):
@@ -103,78 +103,72 @@ def generate_and_save_repetitive_grids():
     """ Two best parameters sets and two approximations of them are used to generate repetitve grids. """
 
     save_to = '/Users/{}/ETH/projects/normalization/data/'.format(user)
-    grid_size = 10
+    grid_size = 25
 
     grid_template = {
 
         'in_path': '/Users/{}/ETH/projects/normalization/data/'.format(user),
-        'out_path': '/Users/{}/ETH/projects/normalization/res/grid_search/'.format(user),
+        'out_path': '/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_search/'.format(user),
         'id': '',
 
         'n_features': 170,  # n of metabolites in initial dataset
-        'latent_dim': 100,  # n dimensions to reduce to
+        'latent_dim': 50,  # n dimensions to reduce to
         'n_batches': 7,
+        'n_replicates': 3,
 
         'd_lr': None,  # discriminator learning rate
         'g_lr': None,  # generator learning rate
         'd_loss': 'CE',
-        'g_loss': None,
+        'g_loss': 'MSE',
         'd_lambda': None,  # discriminator regularization term coefficient
         'g_lambda': None,  # generator regularization term coefficient
-        'use_g_regularization': None,  # whether to use generator regularization term
-        'train_ratio': 0.7,  # for train-test split
+        'use_g_regularization': True,  # whether to use generator regularization term
+        'train_ratio': 0.9,  # for train-test split
         'batch_size': 64,
         'g_epochs': 0,  # pretraining of generator
         'd_epochs': 0,  # pretraining of discriminator
-        'adversarial_epochs': 300,  # simultaneous competitive training
+        'adversarial_epochs': 50,  # simultaneous competitive training
 
-        'callback_step': 1,  # save callbacks every n epochs
-        'keep_checkpoints': True  # whether to keep all checkpoints, or just the best epoch
+        'skip_epochs': 5,
+        'callback_step': -1,  # save callbacks every n epochs
+        'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch
     }
 
     # set the best regularized parameter set
-    best_l1_reg_grid = grid_template.copy()
-    best_l1_reg_grid['d_lr'] = 0.0046
-    best_l1_reg_grid['g_lr'] = 0.0042
-    best_l1_reg_grid['g_loss'] = 'L1'
-    best_l1_reg_grid['d_lambda'] = 3.3
-    best_l1_reg_grid['g_lambda'] = 1.2
-    best_l1_reg_grid['use_g_regularization'] = True
+    grid_bb416f04 = grid_template.copy()
+    grid_bb416f04['d_lr'] = 0.0033
+    grid_bb416f04['g_lr'] = 0.0006
+    grid_bb416f04['d_lambda'] = 1.8
+    grid_bb416f04['g_lambda'] = 2.8
 
-    generate_repetitive_grid(best_l1_reg_grid, grid_size, 'l1_reg_best', save_to)
+    generate_repetitive_grid(grid_bb416f04, grid_size, 'bb416f04', save_to)
 
     # set the approximation of the best regularized parameter set
-    approx_best_l1_reg_grid = grid_template.copy()
-    approx_best_l1_reg_grid['d_lr'] = 0.004
-    approx_best_l1_reg_grid['g_lr'] = 0.004
-    approx_best_l1_reg_grid['g_loss'] = 'L1'
-    approx_best_l1_reg_grid['d_lambda'] = 3.
-    approx_best_l1_reg_grid['g_lambda'] = 1.
-    approx_best_l1_reg_grid['use_g_regularization'] = True
+    grid_656cfcf3 = grid_template.copy()
+    grid_656cfcf3['d_lr'] = 0.0035
+    grid_656cfcf3['g_lr'] = 0.0004
+    grid_656cfcf3['d_lambda'] = 3.3
+    grid_656cfcf3['g_lambda'] = 3.1
 
-    generate_repetitive_grid(approx_best_l1_reg_grid, grid_size, 'l1_reg_approx_best', save_to)
+    generate_repetitive_grid(grid_656cfcf3, grid_size, '656cfcf3', save_to)
 
     # set the best parameter set without regularization
-    best_l1_grid = grid_template.copy()
-    best_l1_grid['d_lr'] = 0.001
-    best_l1_grid['g_lr'] = 0.0049
-    best_l1_grid['g_loss'] = 'L1'
-    best_l1_grid['d_lambda'] = .4
-    best_l1_grid['g_lambda'] = 1.1
-    best_l1_grid['use_g_regularization'] = False
+    grid_1657c7f8 = grid_template.copy()
+    grid_1657c7f8['d_lr'] = 0.0015
+    grid_1657c7f8['g_lr'] = 0.0004
+    grid_1657c7f8['d_lambda'] = 2.2
+    grid_1657c7f8['g_lambda'] = 5.5
 
-    generate_repetitive_grid(best_l1_grid, grid_size, 'l1_best', save_to)
+    generate_repetitive_grid(grid_1657c7f8, grid_size, '1657c7f8', save_to)
 
     # set the approximation of the best parameter set without regularization
-    approx_best_l1_grid = grid_template.copy()
-    approx_best_l1_grid['d_lr'] = 0.001
-    approx_best_l1_grid['g_lr'] = 0.005
-    approx_best_l1_grid['g_loss'] = 'L1'
-    approx_best_l1_grid['d_lambda'] = .5
-    approx_best_l1_grid['g_lambda'] = 1.
-    approx_best_l1_grid['use_g_regularization'] = False
+    grid_b3425959 = grid_template.copy()
+    grid_b3425959['d_lr'] = 0.0046
+    grid_b3425959['g_lr'] = 0.0005
+    grid_b3425959['d_lambda'] = 8.9
+    grid_b3425959['g_lambda'] = 8.1
 
-    generate_repetitive_grid(approx_best_l1_grid, grid_size, 'l1_approx_best', save_to)
+    generate_repetitive_grid(grid_b3425959, grid_size, 'b3425959', save_to)
 
 
 def generate_random_grids():
@@ -208,9 +202,9 @@ def collect_results_of_grid_search():
     """ Collect history files for all the grids for manual inspection. """
 
     grids_path = '/Users/{}/ETH/projects/normalization/data/grids/'.format(user)
-    results_path = '/Users/{}/ETH/projects/normalization/res/grid_search/'.format(user)
+    results_path = '/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_search/'.format(user)
 
-    grids = ['grid_new_mse_reg_50']
+    grids = ['grid_fake_refs_mse_reg_50']
     results = {}
 
     for grid in grids:
@@ -232,7 +226,7 @@ def collect_results_of_grid_search():
 
     for grid in results:
         print('GRID:', grid, '\n')
-        top = adversarial.slice_by_grouping_and_correlation(results[grid], 10, 90)
+        top = adversarial.slice_by_grouping_and_correlation(results[grid], 30, 70)
         print(top.to_string(), '\n')
 
     return results
@@ -261,8 +255,10 @@ def collect_results_of_repetitive_runs(path):
 if __name__ == "__main__":
 
     # generate_random_grids()
-    run_grid_from_console()
+    # run_grid_from_console()
     # results = collect_results_of_grid_search()
+
+    generate_and_save_repetitive_grids()
 
     # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/best_model/'.format(user))
     # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/approx_best_model/'.format(user))
