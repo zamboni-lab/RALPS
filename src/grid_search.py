@@ -46,12 +46,12 @@ def generate_random_parameter_set(g_loss, regularization, grid_size, grid_name, 
     """ Generate a random parameter set to find out best parameter sets. """
 
     grid = range(grid_size)
-    latent_dim = 50
+    latent_dim = 50  # 50 principal components explain >95% of variance for Michelle's dataset
 
     parameters = {
 
         'in_path': ['/Users/{}/ETH/projects/normalization/data/'.format(user) for x in grid],
-        'out_path': ['/Users/{}/ETH/projects/normalization/res/grid_search/'.format(user) for x in grid],
+        'out_path': ['/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_search/'.format(user) for x in grid],
         'id': [str(uuid.uuid4())[:8] for x in grid],
 
         'n_features': [170 for x in grid],  # n of metabolites in initial dataset
@@ -68,8 +68,8 @@ def generate_random_parameter_set(g_loss, regularization, grid_size, grid_name, 
         'use_g_regularization': [regularization for x in grid],  # whether to use generator regularization term
         'train_ratio': [0.9 for x in grid],  # for train-test split
         'batch_size': [64 for x in grid],
-        'g_epochs': [0 for x in grid],  # pretraining of generator
-        'd_epochs': [0 for x in grid],  # pretraining of discriminator
+        'g_epochs': [0 for x in grid],  # pretraining of generator (not yet implemented)
+        'd_epochs': [0 for x in grid],  # pretraining of discriminator  (not yet implemented)
         'adversarial_epochs': [100 for x in grid],  # simultaneous competitive training
 
         'skip_epochs': [5 for x in grid],
@@ -184,8 +184,11 @@ def generate_random_grids():
     # generate_random_parameter_set('L1', False, 100, 'l1', save_to)
     # generate_random_parameter_set('SL1', True, 100, 'sl1_reg', save_to)
     # generate_random_parameter_set('SL1', False, 100, 'sl1', save_to)
-    generate_random_parameter_set('MSE', True, 100, 'new_mse_reg', save_to)
+    # generate_random_parameter_set('MSE', True, 100, 'new_mse_reg', save_to)
     # generate_random_parameter_set('MSE', False, 100, 'mse', save_to)
+
+    # for training with fake reference samples
+    generate_random_parameter_set('MSE', True, 100, 'fake_refs_mse_reg', save_to)
 
 
 def run_grid_from_console():
@@ -196,7 +199,7 @@ def run_grid_from_console():
     grid = pandas.read_csv(path + name, index_col=0)
 
     # for i in tqdm(range(grid.shape[0])):
-    for i in tqdm(range(75, 100)):
+    for i in tqdm(range(0, 10)):
         parameters = dict(grid.iloc[i, :])
         adversarial.main(parameters)
 
@@ -258,9 +261,9 @@ def collect_results_of_repetitive_runs(path):
 if __name__ == "__main__":
 
     # generate_random_grids()
-    # run_grid_from_console()
+    run_grid_from_console()
     # results = collect_results_of_grid_search()
 
-    results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/best_model/'.format(user))
-    results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/approx_best_model/'.format(user))
-    results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/another_model/'.format(user))
+    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/best_model/'.format(user))
+    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/approx_best_model/'.format(user))
+    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/another_model/'.format(user))
