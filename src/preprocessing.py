@@ -3,11 +3,12 @@ import numpy, pandas, scipy, seaborn, math, time, umap, h5py, json
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from matplotlib import pyplot
-from src.constants import batches as bids
-from src.constants import shared_perturbations as sps
-from src.constants import controls, min_relevant_intensity
 from sklearn.preprocessing import RobustScaler
-from src.constants import data_path as path
+
+from constants import batches as bids
+from constants import shared_perturbations as sps
+from constants import controls, min_relevant_intensity
+from constants import data_path as path
 
 
 def run_pca(data, n=100):
