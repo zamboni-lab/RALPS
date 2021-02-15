@@ -259,11 +259,12 @@ def collect_results_of_repetitive_runs(path):
 if __name__ == "__main__":
 
     # generate_random_grids()
-    generate_and_save_repetitive_grids()
+    # generate_and_save_repetitive_grids()
 
     # run_grid_from_console()
     # results = collect_results_of_grid_search()
 
-    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/best_model/'.format(user))
-    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/approx_best_model/'.format(user))
-    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/another_model/'.format(user))
+    results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_656cfcf3/'.format(user))
+    results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_1657c7f8/'.format(user))
+    results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_b3425959/'.format(user))
+    results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_bb416f04/'.format(user))

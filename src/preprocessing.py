@@ -7,8 +7,9 @@ from sklearn.preprocessing import RobustScaler
 
 from src.constants import batches as bids
 from src.constants import shared_perturbations as sps
-from src.constants import controls, min_relevant_intensity
+from src.constants import min_relevant_intensity
 from src.constants import data_path as path
+from src.constants import user
 
 
 def run_pca(data, n=100):
@@ -93,7 +94,7 @@ def get_all_data_from_h5(path):
 def check_shared_perturbations():
     """ Check how many perturbations are done in each batch and how many are shared. """
 
-    path = '/Users/andreidm/ETH/projects/normalization/data/'
+    path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
 
     perturbations = []
     unique_perturbations = set()
@@ -212,7 +213,7 @@ def merge_batches_and_save_dataset():
 
     assert len(merged_mz) == len(annotation)
 
-    all_data = pandas.DataFrame({'name': annotation, 'mz': merged_mz, 'rt': [1 for x in merged_mz]})
+    all_data = pandas.DataFrame({'name': annotation, 'mz': merged_mz, 'rt': [0 for x in merged_mz]})
     all_data = pandas.concat([all_data, shared_mz_df], axis=1)
 
     # collapse the same mzs
@@ -357,8 +358,81 @@ def implement_pipeline():
     get_fitted_scaler()
 
 
-if __name__ == '__main__':
-    pass
+def get_injection_order_and_names():
+    """ Dumb and ugly method to retrieve injection order from h5 files:
+        @:returns two lists of samples names and order indices"""
 
+    path = '/Users/{}/ETH/projects/normalization/data/raw/'.format(user)
+
+    inj_order_types = []
+    inj_order_batches = []
+
+    # collect all names
+    for bid in bids:
+        data = get_all_data_from_h5(path + 'harm_4_{}_DATA.h5'.format(bid))
+
+        sp_types = [x for x in data['samples']['names'] if x in sps]
+
+        inj_order_types.extend(sp_types)
+        inj_order_batches.extend([bid for x in sp_types])
+
+    inj_order = []
+    inj_order_names = []
+    # construct new names keeping injection sequence
+    for i in range(len(inj_order_types)):
+        inj_order_names.append('{}_{}_0'.format(inj_order_types[i], inj_order_batches[i]))
+        inj_order_names.append('{}_{}_1'.format(inj_order_types[i], inj_order_batches[i]))
+        inj_order_names.append('{}_{}_2'.format(inj_order_types[i], inj_order_batches[i]))
+
+        inj_order.append(3 * i + 1)
+        inj_order.append(3 * i + 2)
+        inj_order.append(3 * i + 3)
+
+    return inj_order, inj_order_names
+
+
+def edit_the_data_for_normae():
+    """ This method updates the data for usage of NormAE (proper comparison) with the following:
+        - rt = 0, as Nicola used,
+        - only SRM_000* samples are used as QCs,
+        - injection order is added as in .h5 files
+
+        Initial data files were replaced with the new ones.
+    """
+
+    inj_order, inj_order_names = get_injection_order_and_names()
+
+    path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
+    filtered_data = pandas.read_csv(path + 'filtered_data.csv')
+    batch_info = pandas.read_csv(path + 'batch_info.csv')
+
+    # refine meta info for NormAE input
+
+    # SCENARIO 1: no groups at all, SRMs as QCs
+    filtered_data['rt'] = 0  # as Nicola did
+
+    batch_info['group'] = 'Subject'
+    batch_info['class'] = 'Subject'
+
+    for i in range(batch_info.shape[0]):
+
+        sample_name = batch_info.loc[i, 'sample.name']
+        # set correct order
+        batch_info.loc[i, 'injection.order'] = inj_order[inj_order_names.index(sample_name)]
+
+        if 'SRM_000' in sample_name:
+            # set controls
+            batch_info.loc[i, 'class'] = 'QC'
+
+    filtered_data.to_csv(path + 'filtered_data.csv', index=False)
+    batch_info.to_csv(path + 'batch_info.csv', index=False)
+
+
+if __name__ == '__main__':
+
+
+
+
+    print()
 
 
