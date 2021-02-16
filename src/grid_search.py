@@ -112,7 +112,7 @@ def generate_and_save_repetitive_grids():
         'id': '',
 
         'n_features': 170,  # n of metabolites in initial dataset
-        'latent_dim': 50,  # n dimensions to reduce to
+        'latent_dim': 50,  # n dimensions to reduce to (50 makes 99% of variance in PCA)
         'n_batches': 7,
         'n_replicates': 3,
 
