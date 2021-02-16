@@ -4,7 +4,7 @@ from matplotlib import pyplot
 import hdbscan, torch
 from sklearn.preprocessing import RobustScaler
 
-from src.constants import user, path_to_my_best_method
+from src.constants import user, path_to_my_best_method_1
 from src.models.ae import Autoencoder
 from src.constants import benchmark_sample_types as benchmarks
 from src.constants import shared_perturbations as all_samples

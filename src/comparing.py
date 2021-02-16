@@ -10,36 +10,37 @@ from src.utils import combat
 from src.constants import benchmark_sample_types as benchmarks
 from src.constants import regularization_sample_types as regs
 from src.constants import data_path as path
-from src.constants import path_to_other_methods, path_to_my_best_method, user, batches
+from src.constants import path_to_other_methods_1, path_to_my_best_method_1, path_to_my_best_method_2, path_to_other_methods_2, user, batches
 from src.batch_analysis import get_sample_cross_correlation_estimate
 
 
-def plot_benchmarks_corrs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'my_best'], save_plot=False):
+def plot_benchmarks_corrs_for_methods(scenario=1, save_plot=False):
 
-    save_to = '/Users/{}/ETH/projects/normalization/res/other_methods/plots/'.format(user)
+    methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
+
     for method in methods:
-        plot_correlations_for_normalization(method, save_to, save_plot=save_plot)
-    print('benchmark correlations saved')
+
+        data = get_data(shuffle=False)
+        if method == 'none':
+            normalized = data.iloc[:, 1:]
+        elif method == 'my_best':
+            # hardcode
+            normalized = pandas.read_csv(path_to_my_best, index_col=0)
+        elif method == 'normAE':
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
+            normalized = normalized.loc[data.index, :]  # keep the ordering
+        else:
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+
+        plot_batch_cross_correlations(normalized, method, '', sample_types_of_interest=benchmarks, save_to=save_to, save_plot=save_plot)
+
+    if save_plot:
+        print('benchmark correlations saved')
 
 
-def plot_correlations_for_normalization(method, save_to, save_plot=False):
+def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
 
-    data = get_data(shuffle=False)
-    if method == 'none':
-        normalized = data.iloc[:, 1:]
-    elif method == 'my_best':
-        # hardcode
-        normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
-    elif method == 'normAE':
-        normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
-        normalized = normalized.loc[data.index, :]  # keep the ordering
-    else:
-        normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
-
-    plot_batch_cross_correlations(normalized, method, '', sample_types_of_interest=benchmarks, save_to=save_to, save_plot=save_plot)
-
-
-def plot_benchmarks_cvs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'my_best'], save_plot=False):
+    methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
     all_cvs = pandas.DataFrame()
     data = get_data(shuffle=False)
@@ -50,12 +51,12 @@ def plot_benchmarks_cvs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'comb
             normalized = data.iloc[:, 1:]
         elif method == 'my_best':
             # hardcode
-            normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
+            normalized = pandas.read_csv(path_to_my_best, index_col=0)
         elif method == 'normAE':
-            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
             normalized = normalized.loc[data.index, :]  # keep the ordering
         else:
-            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
 
         res = compute_cv_for_samples_types(normalized, sample_types_of_interest=benchmarks)
         res = pandas.DataFrame({'method': [method for x in range(len(res))],
@@ -81,13 +82,15 @@ def plot_benchmarks_cvs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'comb
     pyplot.tight_layout()
 
     if save_plot:
-        pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/cvs.pdf'.format(user))
+        pyplot.savefig(save_to + 'cvs.pdf')
         print('variation coefs saved')
     else:
         pyplot.show()
 
 
-def plot_samples_corrs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'my_best'], save_plot=False):
+def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
+
+    methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
     corrs = []
     data = get_data(shuffle=False)
@@ -98,12 +101,12 @@ def plot_samples_corrs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'comba
             normalized = data.iloc[:, 1:]
         elif method == 'my_best':
             # hardcode
-            normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
+            normalized = pandas.read_csv(path_to_my_best, index_col=0)
         elif method == 'normAE':
-            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
             normalized = normalized.loc[data.index, :]
         else:
-            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
 
         res = get_sample_cross_correlation_estimate(normalized, sample_types_of_interest=regs)
         corrs.append(res)
@@ -118,7 +121,7 @@ def plot_samples_corrs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'comba
     pyplot.tight_layout()
 
     if save_plot:
-        pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/corrs.pdf'.format(user))
+        pyplot.savefig(save_to + 'corrs.png')
         print('overall correlations saved')
     else:
         pyplot.show()
@@ -139,7 +142,27 @@ def get_grouping_coefs_for_samples(method, clustering, total_clusters):
     return grouping_coefs
 
 
-def plot_benchmarks_grouping_coefs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'my_best'], save_plot=False):
+def get_paths_and_methods(scenario):
+
+    if scenario == 1:
+        methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'my_best']
+        path_to_my_best = path_to_my_best_method_1
+        path_to_others = path_to_other_methods_1
+        save_to = '/Users/{}/ETH/projects/normalization/res/no_reference_samples/other_methods/plots/'.format(user)
+    elif scenario == 2:
+        methods = ['none', 'normAE', 'my_best']
+        path_to_my_best = path_to_my_best_method_2
+        path_to_others = path_to_other_methods_2
+        save_to = '/Users/{}/ETH/projects/normalization/res/fake_reference_samples/other_methods/plots/'.format(user)
+    else:
+        raise ValueError("Please, indicate application scenario.")
+
+    return methods, path_to_my_best, path_to_others, save_to
+
+
+def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
+
+    methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
     data = get_data()
     pars = {'latent_dim': data.shape[1], 'n_batches': 7, 'n_replicates': 3}
@@ -152,14 +175,14 @@ def plot_benchmarks_grouping_coefs_for_methods(methods=['none', 'lev+eig', 'pqn+
             normalized = data
         elif method == 'my_best':
             # hardcode
-            normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
+            normalized = pandas.read_csv(path_to_my_best, index_col=0)
             normalized['batch'] = data['batch']
         elif method == 'normAE':
-            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
             normalized = normalized.loc[data.index, :]  # keep the ordering as inn other datasets
             normalized['batch'] = data['batch']
         else:
-            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
             normalized['batch'] = data['batch']
 
         clustering, total_clusters = compute_number_of_clusters_with_hdbscan(normalized, pars, print_info=False, sample_types_of_interest=benchmarks)
@@ -187,15 +210,16 @@ def plot_benchmarks_grouping_coefs_for_methods(methods=['none', 'lev+eig', 'pqn+
     pyplot.tight_layout()
 
     if save_plot:
-        pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/grouping_coefs.pdf'.format(user))
+        pyplot.savefig(save_to + 'grouping_coefs.pdf')
         print('grouping coefs saved')
     else:
         pyplot.show()
 
 
-def plot_normalized_spectra_for_methods(file_ext='pdf', methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'my_best'], save_plot=False):
+def plot_normalized_spectra_for_methods(scenario=1, file_ext='pdf', save_plot=False):
 
-    save_to = '/Users/{}/ETH/projects/normalization/res/other_methods/plots/'.format(user)
+    methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
+
     mz = pandas.read_csv('/Users/{}/ETH/projects/normalization/data/filtered_data.csv'.format(user))['mz'].values
     color_dict = {'0108': 'k', '0110': 'g', '0124': 'r', '0219': 'c', '0221': 'm', '0304': 'y', '0306': 'b'}
 
@@ -206,12 +230,12 @@ def plot_normalized_spectra_for_methods(file_ext='pdf', methods=['none', 'lev+ei
         if method == 'none':
             normalized = data.drop(columns=['batch'])
         elif method == 'my_best':
-            normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
+            normalized = pandas.read_csv(path_to_my_best, index_col=0)
         elif method == 'normAE':
-            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
             normalized = normalized.loc[data.index, :]  # keep the ordering as inn other datasets
         else:
-            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
 
         samples = normalized.index
         normalized = normalized.values
@@ -243,8 +267,19 @@ def plot_normalized_spectra_for_methods(file_ext='pdf', methods=['none', 'lev+ei
         print('spectral patterns saved')
 
 
-def check_relevant_intensities_for_methods(methods=['combat', 'eigenMS', 'waveICA', 'my_best']):
+def check_relevant_intensities_for_methods(scenario=1):
     """ Methods 'lev+eig', 'pqn+pow', 'normAE' are excluded by default, since they don't output intensities. """
+
+    if scenario == 1:
+        methods = ['none', 'combat', 'eigenMS', 'waveICA', 'my_best']
+        path_to_my_best = path_to_my_best_method_1
+        path_to_others = path_to_other_methods_1
+    elif scenario == 2:
+        methods = ['none', 'my_best']
+        path_to_my_best = path_to_my_best_method_2
+        path_to_others = path_to_other_methods_2
+    else:
+        raise ValueError("Please, indicate application scenario.")
 
     data = get_data(shuffle=False)
     for method in methods:
@@ -252,12 +287,12 @@ def check_relevant_intensities_for_methods(methods=['combat', 'eigenMS', 'waveIC
             normalized = data.iloc[:, 1:]
         elif method == 'my_best':
             # hardcode
-            normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
+            normalized = pandas.read_csv(path_to_my_best, index_col=0)
         elif method == 'normAE':
-            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
             normalized = normalized.loc[data.index, :]
         else:
-            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
 
         print("method: {}".format(method))
         print('negative: {}%'.format(
@@ -269,15 +304,16 @@ def check_relevant_intensities_for_methods(methods=['combat', 'eigenMS', 'waveIC
 
 if __name__ == "__main__":
 
-    save_plots = False
+    save_plots = True
+    scenario = 2
 
     # benchmarks
-    plot_benchmarks_cvs_for_methods(save_plot=save_plots)
-    plot_benchmarks_grouping_coefs_for_methods(save_plot=save_plots)
-    plot_benchmarks_corrs_for_methods(save_plot=save_plots)
+    plot_benchmarks_cvs_for_methods(scenario=scenario, save_plot=save_plots)
+    plot_benchmarks_grouping_coefs_for_methods(scenario=scenario, save_plot=save_plots)
+    plot_benchmarks_corrs_for_methods(scenario=scenario, save_plot=save_plots)
 
     # all samples
-    plot_normalized_spectra_for_methods(file_ext='png', save_plot=save_plots)
-    plot_samples_corrs_for_methods(save_plot=save_plots)  # not very informative
-    check_relevant_intensities_for_methods()
+    plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
+    plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)  # not very informative
+    check_relevant_intensities_for_methods(scenario=scenario)
 

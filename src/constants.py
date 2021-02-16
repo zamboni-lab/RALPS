@@ -2,14 +2,19 @@
 from torch import nn
 
 # META
-version = "v.0.3.20"
+version = "v.0.3.21"
 user = 'andreidm'
 
 data_path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
 
 # SCENARIO #1: NO REFERENCE SAMPLES
-path_to_my_best_method = '/Users/{}/ETH/projects/normalization/res/no_reference_samples/best_model/2d48bfb2/normalized_2d48bfb2.csv'.format(user)
-path_to_other_methods = '/Users/{}/ETH/projects/normalization/res/no_reference_samples/other_methods/'.format(user)
+path_to_my_best_method_1 = '/Users/{}/ETH/projects/normalization/res/no_reference_samples/best_model/2d48bfb2/normalized_2d48bfb2.csv'.format(user)
+path_to_other_methods_1 = '/Users/{}/ETH/projects/normalization/res/no_reference_samples/other_methods/'.format(user)
+
+# SCENARIO #2: WITH SRMs AS REFERENCE SAMPLES
+path_to_my_best_method_2 = '/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_656cfcf3/11bf6f68/normalized_11bf6f68.csv'.format(user)
+path_to_other_methods_2 = '/Users/{}/ETH/projects/normalization/res/fake_reference_samples/other_methods/'.format(user)
+
 
 # PARAMETERS
 loss_mapper = {'CE': nn.CrossEntropyLoss(), 'L1': nn.L1Loss(), 'MSE': nn.MSELoss(), 'SL1': nn.SmoothL1Loss()}
@@ -50,8 +55,9 @@ shared_perturbations = ['P2_SRM_0001', 'P1_PP_0256', 'P2_SPP_0008', 'P2_SB_0008'
 # sample types that are used to evaluate normalization
 benchmark_sample_types = ['P1_FA_0001', 'P2_SF_0001', 'P2_SFA_0001', 'P2_SRM_0001', 'P2_SFA_0002', 'P1_FA_0008']
 # sample types that are used for regularization
-# regularization_sample_types = shared_perturbations[:]  # copy all perturbations for completely untargeted case
-regularization_sample_types = [x for x in shared_perturbations if 'SRM_000' in x]  # use 8 SRM samples in each batch as references (internal standards)
+
+# regularization_sample_types = shared_perturbations[:]  # SCENARIO #1: copy all perturbations for completely untargeted case
+regularization_sample_types = [x for x in shared_perturbations if 'SRM_000' in x]  # SCENARIO #2:  use 8 SRM samples in each batch as references (internal standards)
 
 
 # EXPLORATORY
