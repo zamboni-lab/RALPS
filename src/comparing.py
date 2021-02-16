@@ -14,40 +14,46 @@ from src.constants import path_to_other_methods, path_to_my_best_method, user, b
 from src.batch_analysis import get_sample_cross_correlation_estimate
 
 
-def plot_benchmarks_corrs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']):
+def plot_benchmarks_corrs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'my_best'], save_plot=False):
 
     save_to = '/Users/{}/ETH/projects/normalization/res/other_methods/plots/'.format(user)
     for method in methods:
-        plot_correlations_for_normalization(method, save_to)
+        plot_correlations_for_normalization(method, save_to, save_plot=save_plot)
     print('benchmark correlations saved')
 
 
-def plot_correlations_for_normalization(method, save_to):
+def plot_correlations_for_normalization(method, save_to, save_plot=False):
 
+    data = get_data(shuffle=False)
     if method == 'none':
-        data = get_data(shuffle=False)
         normalized = data.iloc[:, 1:]
     elif method == 'my_best':
         # hardcode
         normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
+    elif method == 'normAE':
+        normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
+        normalized = normalized.loc[data.index, :]  # keep the ordering
     else:
         normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
 
-    plot_batch_cross_correlations(normalized, method, '', sample_types_of_interest=benchmarks, save_to=save_to)
+    plot_batch_cross_correlations(normalized, method, '', sample_types_of_interest=benchmarks, save_to=save_to, save_plot=save_plot)
 
 
-def plot_benchmarks_cvs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']):
+def plot_benchmarks_cvs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'my_best'], save_plot=False):
 
     all_cvs = pandas.DataFrame()
+    data = get_data(shuffle=False)
 
     for method in methods:
 
         if method == 'none':
-            data = get_data(shuffle=False)
             normalized = data.iloc[:, 1:]
         elif method == 'my_best':
             # hardcode
             normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
+        elif method == 'normAE':
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
+            normalized = normalized.loc[data.index, :]  # keep the ordering
         else:
             normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
 
@@ -73,22 +79,29 @@ def plot_benchmarks_cvs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'comb
         ax.tick_params(labelrotation=45)
 
     pyplot.tight_layout()
-    # pyplot.show()
-    pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/cvs.pdf'.format(user))
-    print('variation coefs saved')
+
+    if save_plot:
+        pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/cvs.pdf'.format(user))
+        print('variation coefs saved')
+    else:
+        pyplot.show()
 
 
-def plot_samples_corrs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']):
+def plot_samples_corrs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'my_best'], save_plot=False):
 
     corrs = []
+    data = get_data(shuffle=False)
+
     for method in methods:
 
         if method == 'none':
-            data = get_data(shuffle=False)
             normalized = data.iloc[:, 1:]
         elif method == 'my_best':
             # hardcode
             normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
+        elif method == 'normAE':
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
+            normalized = normalized.loc[data.index, :]
         else:
             normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
 
@@ -103,9 +116,12 @@ def plot_samples_corrs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'comba
     pyplot.grid()
     pyplot.tick_params(labelrotation=45)
     pyplot.tight_layout()
-    # pyplot.show()
-    pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/corrs.pdf'.format(user))
-    print('overall correlations saved')
+
+    if save_plot:
+        pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/corrs.pdf'.format(user))
+        print('overall correlations saved')
+    else:
+        pyplot.show()
 
 
 def get_grouping_coefs_for_samples(method, clustering, total_clusters):
@@ -123,7 +139,7 @@ def get_grouping_coefs_for_samples(method, clustering, total_clusters):
     return grouping_coefs
 
 
-def plot_benchmarks_grouping_coefs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']):
+def plot_benchmarks_grouping_coefs_for_methods(methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'my_best'], save_plot=False):
 
     data = get_data()
     pars = {'latent_dim': data.shape[1], 'n_batches': 7, 'n_replicates': 3}
@@ -134,10 +150,13 @@ def plot_benchmarks_grouping_coefs_for_methods(methods=['none', 'lev+eig', 'pqn+
 
         if method == 'none':
             normalized = data
-
         elif method == 'my_best':
             # hardcode
             normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
+            normalized['batch'] = data['batch']
+        elif method == 'normAE':
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
+            normalized = normalized.loc[data.index, :]  # keep the ordering as inn other datasets
             normalized['batch'] = data['batch']
         else:
             normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
@@ -166,28 +185,36 @@ def plot_benchmarks_grouping_coefs_for_methods(methods=['none', 'lev+eig', 'pqn+
         ax.tick_params(labelrotation=45)
 
     pyplot.tight_layout()
-    # pyplot.show()
-    pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/grouping_coefs.pdf'.format(user))
-    print('grouping coefs saved')
+
+    if save_plot:
+        pyplot.savefig('/Users/{}/ETH/projects/normalization/res/other_methods/plots/grouping_coefs.pdf'.format(user))
+        print('grouping coefs saved')
+    else:
+        pyplot.show()
 
 
-def plot_normalized_spectra_for_methods(file_ext='pdf', methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'my_best']):
+def plot_normalized_spectra_for_methods(file_ext='pdf', methods=['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'my_best'], save_plot=False):
 
     save_to = '/Users/{}/ETH/projects/normalization/res/other_methods/plots/'.format(user)
     mz = pandas.read_csv('/Users/{}/ETH/projects/normalization/data/filtered_data.csv'.format(user))['mz'].values
     color_dict = {'0108': 'k', '0110': 'g', '0124': 'r', '0219': 'c', '0221': 'm', '0304': 'y', '0306': 'b'}
 
+    data = get_data(shuffle=False)
+
     for method in methods:
 
         if method == 'none':
-            data = get_data(shuffle=False).drop(columns=['batch'])
+            normalized = data.drop(columns=['batch'])
         elif method == 'my_best':
-            data = pandas.read_csv(path_to_my_best_method, index_col=0)
+            normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
+        elif method == 'normAE':
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
+            normalized = normalized.loc[data.index, :]  # keep the ordering as inn other datasets
         else:
-            data = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
 
-        samples = data.index
-        normalized = data.values
+        samples = normalized.index
+        normalized = normalized.values
 
         scaled = (normalized - numpy.mean(normalized)) / numpy.std(normalized)
 
@@ -206,21 +233,29 @@ def plot_normalized_spectra_for_methods(file_ext='pdf', methods=['none', 'lev+ei
         pyplot.xlabel('mz')
         pyplot.ylabel('scaled normalized intensities')
         pyplot.grid()
-        # pyplot.show()
-        pyplot.savefig(save_to + 'spectra_{}.{}'.format(method, file_ext))
-    print('spectral patterns saved')
+
+        if save_plot:
+            pyplot.savefig(save_to + 'spectra_{}.{}'.format(method, file_ext))
+        else:
+            pyplot.show()
+
+    if save_plot:
+        print('spectral patterns saved')
 
 
 def check_relevant_intensities_for_methods(methods=['combat', 'eigenMS', 'waveICA', 'my_best']):
-    """ Methods 'lev+eig', 'pqn+pow' are excludede by default, since they don't output intensities. """
+    """ Methods 'lev+eig', 'pqn+pow', 'normAE' are excluded by default, since they don't output intensities. """
 
+    data = get_data(shuffle=False)
     for method in methods:
         if method == 'none':
-            data = get_data(shuffle=False)
             normalized = data.iloc[:, 1:]
         elif method == 'my_best':
             # hardcode
             normalized = pandas.read_csv(path_to_my_best_method, index_col=0)
+        elif method == 'normAE':
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
+            normalized = normalized.loc[data.index, :]
         else:
             normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
 
@@ -234,13 +269,15 @@ def check_relevant_intensities_for_methods(methods=['combat', 'eigenMS', 'waveIC
 
 if __name__ == "__main__":
 
+    save_plots = False
+
     # benchmarks
-    plot_benchmarks_cvs_for_methods()
-    plot_benchmarks_grouping_coefs_for_methods()
-    plot_benchmarks_corrs_for_methods()
+    plot_benchmarks_cvs_for_methods(save_plot=save_plots)
+    plot_benchmarks_grouping_coefs_for_methods(save_plot=save_plots)
+    plot_benchmarks_corrs_for_methods(save_plot=save_plots)
 
     # all samples
-    plot_normalized_spectra_for_methods(file_ext='png')
-    plot_samples_corrs_for_methods()  # not very informative
+    plot_normalized_spectra_for_methods(file_ext='png', save_plot=save_plots)
+    plot_samples_corrs_for_methods(save_plot=save_plots)  # not very informative
     check_relevant_intensities_for_methods()
 

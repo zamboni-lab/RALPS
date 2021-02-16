@@ -2,13 +2,14 @@
 from torch import nn
 
 # META
-version = "v.0.3.19"
+version = "v.0.3.20"
 user = 'andreidm'
 
 data_path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
-path_to_my_best_method = '/Users/{}/ETH/projects/normalization/res/best_model/2d48bfb2/normalized_2d48bfb2.csv'.format(user)
-path_to_other_methods = '/Users/{}/ETH/projects/normalization/res/other_methods/'.format(user)
 
+# SCENARIO #1: NO REFERENCE SAMPLES
+path_to_my_best_method = '/Users/{}/ETH/projects/normalization/res/no_reference_samples/best_model/2d48bfb2/normalized_2d48bfb2.csv'.format(user)
+path_to_other_methods = '/Users/{}/ETH/projects/normalization/res/no_reference_samples/other_methods/'.format(user)
 
 # PARAMETERS
 loss_mapper = {'CE': nn.CrossEntropyLoss(), 'L1': nn.L1Loss(), 'MSE': nn.MSELoss(), 'SL1': nn.SmoothL1Loss()}

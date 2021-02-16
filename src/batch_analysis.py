@@ -35,7 +35,7 @@ def get_samples_by_types_dict(samples_names, types_of_interest):
     return samples_by_types
 
 
-def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interest=None, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
+def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interest=None, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user), save_plot=False):
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
@@ -66,8 +66,11 @@ def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interes
 
         pyplot.suptitle('Cross correlations: {}'.format(method_name))
         pyplot.tight_layout()
-        # pyplot.show()
-        pyplot.savefig(save_to + 'correlations_{}_{}.pdf'.format(method_name.replace(' ', '_'), id))
+
+        if save_plot:
+            pyplot.savefig(save_to + 'correlations_{}_{}.pdf'.format(method_name.replace(' ', '_'), id))
+        else:
+            pyplot.show()
 
 
 def get_sample_cross_correlation_estimate(data, percent=50, sample_types_of_interest=None):
