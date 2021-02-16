@@ -411,7 +411,7 @@ def edit_the_data_for_normae():
     # SCENARIO 2: no groups at all (as if all samples were different), SRMs as QCs
     filtered_data['rt'] = 0  # as Nicola did
 
-    batch_info['group'] = 'Subject'
+    batch_info['group'] = 1
     batch_info['class'] = 'Subject'
 
     for i in range(batch_info.shape[0]):
@@ -431,20 +431,23 @@ def edit_the_data_for_normae():
 if __name__ == '__main__':
 
     path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
-    batch_info = pandas.read_csv(path + 'batch_info.csv')
 
-    # refine meta info for NormAE input
+    # refine batch info for NormAE input
 
     # SCENARIO 1: groups defined as sample types, SRMs as QCs
+    batch_info = pandas.read_csv(path + 'batch_info.csv')
     for i in range(batch_info.shape[0]):
 
         sample_name = batch_info.loc[i, 'sample.name']
 
         for type in sps:
             if type in sample_name:
-                batch_info.loc[i, 'group'] = type
+                batch_info.loc[i, 'group'] = sps.index(type)
                 break
 
     batch_info.to_csv(path + 'batch_info.csv', index=False)
 
-
+    # SCENARIO 2: no groups at all (as if all samples were different), SRMs as QCs
+    batch_info = pandas.read_csv(path + 'batch_info_2.csv')
+    batch_info['group'] = 1  # must be int
+    batch_info.to_csv(path + 'batch_info_2.csv', index=False)
