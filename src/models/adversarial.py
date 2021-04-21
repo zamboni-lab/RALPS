@@ -478,7 +478,7 @@ def main(parameters):
         # plot every N epochs what happens with data
         if int(parameters['callback_step']) > 0 and epoch % int(parameters['callback_step']) == 0:
             # plot cross correlations of benchmarks in ALL reconstructed data
-            plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to+'/callbacks/')
+            plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to+'/callbacks/', save_plot=True)
             # plot umap of FULL encoded data
             plot_full_dataset_umap(encodings, 'epoch {}'.format(epoch+1), parameters, save_to=save_to+'/callbacks/')
             pyplot.close('all')
@@ -523,7 +523,7 @@ def main(parameters):
     reconstruction = pandas.DataFrame(reconstruction, index=data_values.index)
 
     # plot cross correlations of benchmarks in ALL reconstructed data
-    plot_batch_cross_correlations(reconstruction, 'best model at {}'.format(best_epoch + 1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to+'/benchmarks/')
+    plot_batch_cross_correlations(reconstruction, 'best model at {}'.format(best_epoch + 1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to+'/benchmarks/', save_plot=True)
     # plot umap of FULL encoded data
     plot_full_dataset_umap(encodings, 'best model at {}'.format(best_epoch + 1), parameters, save_to=save_to)
     pyplot.close('all')
