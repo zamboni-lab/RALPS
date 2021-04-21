@@ -51,7 +51,7 @@ def generate_random_parameter_set(g_loss, regularization, grid_size, grid_name, 
     parameters = {
 
         'in_path': ['/Users/{}/ETH/projects/normalization/data/'.format(user) for x in grid],
-        'out_path': ['/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_search/'.format(user) for x in grid],
+        'out_path': ['/Users/{}/ETH/projects/normalization/res/{}/grid_search/'.format(user, grid_name) for x in grid],
         'id': [str(uuid.uuid4())[:8] for x in grid],
 
         'n_features': [170 for x in grid],  # n of metabolites in initial dataset
@@ -178,6 +178,8 @@ def generate_and_save_repetitive_grids():
 def generate_random_grids():
 
     save_to = '/Users/{}/ETH/projects/normalization/data/'.format(user)
+
+    # # testing various parameters...
     # generate_random_parameter_set('L1', True, 100, 'l1_reg', save_to)
     # generate_random_parameter_set('L1', False, 100, 'l1', save_to)
     # generate_random_parameter_set('SL1', True, 100, 'sl1_reg', save_to)
@@ -185,8 +187,16 @@ def generate_random_grids():
     # generate_random_parameter_set('MSE', True, 100, 'new_mse_reg', save_to)
     # generate_random_parameter_set('MSE', False, 100, 'mse', save_to)
 
-    # for training with fake reference samples
-    generate_random_parameter_set('MSE', True, 100, 'fake_refs_mse_reg', save_to)
+    # # for training with fake reference samples
+    # generate_random_parameter_set('MSE', True, 100, 'fake_refs_mse_reg', save_to)
+
+    # for training with fewer reference samples
+    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SAA_0001', save_to)
+    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SB_0001', save_to)
+    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SFA_0001', save_to)
+    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SF_0001', save_to)
+    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_Full_0001', save_to)
+    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SPP_0001', save_to)
 
 
 def run_grid_from_console():
@@ -261,10 +271,10 @@ if __name__ == "__main__":
     # generate_random_grids()
     # generate_and_save_repetitive_grids()
 
-    # run_grid_from_console()
+    run_grid_from_console()
     # results = collect_results_of_grid_search()
 
-    results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_656cfcf3/'.format(user))
-    results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_1657c7f8/'.format(user))
-    results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_b3425959/'.format(user))
-    results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_bb416f04/'.format(user))
+    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_656cfcf3/'.format(user))
+    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_1657c7f8/'.format(user))
+    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_b3425959/'.format(user))
+    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_bb416f04/'.format(user))

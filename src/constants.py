@@ -2,7 +2,7 @@
 from torch import nn
 
 # META
-version = "v.0.3.21"
+version = "v.0.3.22"
 user = 'andreidm'
 
 data_path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
@@ -56,9 +56,18 @@ shared_perturbations = ['P2_SRM_0001', 'P1_PP_0256', 'P2_SPP_0008', 'P2_SB_0008'
 benchmark_sample_types = ['P1_FA_0001', 'P2_SF_0001', 'P2_SFA_0001', 'P2_SRM_0001', 'P2_SFA_0002', 'P1_FA_0008']
 # sample types that are used for regularization
 
-# regularization_sample_types = shared_perturbations[:]  # SCENARIO #1: copy all perturbations for completely untargeted case
-regularization_sample_types = [x for x in shared_perturbations if 'SRM_000' in x]  # SCENARIO #2:  use 8 SRM samples in each batch as references (internal standards)
+# # SCENARIO #1: copy all perturbations for completely untargeted case
+# regularization_sample_types = shared_perturbations[:]
+# # SCENARIO #2:  use 8 SRM samples in each batch as references (internal standards)
+# regularization_sample_types = [x for x in shared_perturbations if 'SRM_000' in x]
 
+# # other application SCENARIOS:
+regularization_sample_types = ['P2_SRM_0001', 'P2_SAA_0001']
+# regularization_sample_types = ['P2_SRM_0001', 'P2_SB_0001']
+# regularization_sample_types = ['P2_SRM_0001', 'P2_SFA_0001']
+# regularization_sample_types = ['P2_SRM_0001', 'P2_SF_0001']
+# regularization_sample_types = ['P2_SRM_0001', 'P2_Full_0001']
+# regularization_sample_types = ['P2_SRM_0001', 'P2_SPP_0001']
 
 # EXPLORATORY
 allowed_ppm_error = 5
