@@ -2,7 +2,7 @@
 from torch import nn
 
 # META
-version = "v.0.3.23"
+version = "v.0.3.24"
 user = 'andreidm'
 
 data_path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
@@ -62,12 +62,12 @@ benchmark_sample_types = ['P1_FA_0001', 'P2_SF_0001', 'P2_SFA_0001', 'P2_SRM_000
 # regularization_sample_types = [x for x in shared_perturbations if 'SRM_000' in x]
 
 # # other application SCENARIOS:
-regularization_sample_types = ['P2_SRM_0001', 'P2_SAA_0001']
-# regularization_sample_types = ['P2_SRM_0001', 'P2_SB_0001']
-# regularization_sample_types = ['P2_SRM_0001', 'P2_SFA_0001']
-# regularization_sample_types = ['P2_SRM_0001', 'P2_SF_0001']
-# regularization_sample_types = ['P2_SRM_0001', 'P2_Full_0001']
-# regularization_sample_types = ['P2_SRM_0001', 'P2_SPP_0001']
+regularization_sample_types = ['P2_SRM_0001', 'P1_SRM_0001']
+# regularization_sample_types = ['P2_SRM_0001', 'P2_SRM_0001', 'P2_SRM_0002']
+# regularization_sample_types = ['P2_SRM_0001', 'P2_SRM_0001', 'P2_SRM_0002', 'P1_SRM_0002']
+# regularization_sample_types = ['P2_SRM_0001', 'P2_SFA_0001']  # with 6a12d914
+# regularization_sample_types = ['P2_SRM_0001', 'P2_SF_0001']  # with 04b7b4ac
+# regularization_sample_types = ['P2_SRM_0001', 'P2_SPP_0001']  # with ba596703
 
 # EXPLORATORY
 allowed_ppm_error = 5
