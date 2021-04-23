@@ -190,8 +190,8 @@ def generate_random_grids():
 
     # for training with fewer reference samples
     generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P1_SRM_0001', save_to)
-    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SRM_0001+P2_SRM_0002', save_to)
-    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SRM_0001+P2_SRM_0002+P1_SRM_0002', save_to)
+    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P1_SRM_0001+P2_SRM_0002', save_to)
+    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P1_SRM_0001+P2_SRM_0002+P1_SRM_0002', save_to)
 
 
 def run_grid_from_console():
