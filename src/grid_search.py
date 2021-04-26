@@ -108,7 +108,7 @@ def generate_and_save_repetitive_grids():
     grid_template = {
 
         'in_path': '/Users/{}/ETH/projects/normalization/data/'.format(user),
-        'out_path': '/Users/{}/ETH/projects/normalization/res/P2_SRM_0001+P2_SFA_0001/grid_search/'.format(user),
+        'out_path': '/Users/{}/ETH/projects/normalization/res/initial_grid/grid_search/'.format(user),
         'id': '',
 
         'n_features': 170,  # n of metabolites in initial dataset
@@ -135,34 +135,28 @@ def generate_and_save_repetitive_grids():
     }
 
     # set the best regularized parameter set
-    grid_6a12d914 = grid_template.copy()
-    grid_6a12d914['d_lr'] = 0.0032
-    grid_6a12d914['g_lr'] = 0.0025
-    grid_6a12d914['d_lambda'] = 9.6
-    grid_6a12d914['g_lambda'] = 7.0
-    grid_6a12d914['out_path'] = grid_6a12d914['out_path'].replace('grid_search', 'grid_6a12d914')
+    grid_27e76a7f = grid_template.copy()
+    grid_27e76a7f['d_lr'] = 0.0023
+    grid_27e76a7f['g_lr'] = 0.0002
+    grid_27e76a7f['d_lambda'] = 3.3
+    grid_27e76a7f['g_lambda'] = 1.6
+    grid_27e76a7f['out_path'] = grid_27e76a7f['out_path']\
+        .replace('initial_grid','P2_SRM_0001+P1_SRM_0001+P2_SRM_0002')\
+        .replace('grid_search', 'grid_27e76a7f')
 
-    generate_repetitive_grid(grid_6a12d914, grid_size, 'SRM+SFA_6a12d914', save_to)
+    generate_repetitive_grid(grid_27e76a7f, grid_size, '3SRMs_27e76a7f', save_to)
 
     # set the approximation of the best regularized parameter set
-    grid_04b7b4ac = grid_template.copy()
-    grid_04b7b4ac['d_lr'] = 0.0001
-    grid_04b7b4ac['g_lr'] = 0.0008
-    grid_04b7b4ac['d_lambda'] = 6.3
-    grid_04b7b4ac['g_lambda'] = 1.1
-    grid_04b7b4ac['out_path'] = grid_04b7b4ac['out_path'].replace('grid_search', 'grid_04b7b4ac')
+    grid_b4256cc6 = grid_template.copy()
+    grid_b4256cc6['d_lr'] = 0.0047
+    grid_b4256cc6['g_lr'] = 0.0001
+    grid_b4256cc6['d_lambda'] = 7.1
+    grid_b4256cc6['g_lambda'] = 4.0
+    grid_b4256cc6['out_path'] = grid_b4256cc6['out_path']\
+        .replace('initial_grid','P2_SRM_0001+P1_SRM_0001+P2_SRM_0002+P1_SRM_0002')\
+        .replace('grid_search', 'grid_b4256cc6')
 
-    generate_repetitive_grid(grid_04b7b4ac, grid_size, 'SRM+SF_04b7b4ac', save_to)
-
-    # set the best parameter set without regularization
-    grid_ba596703 = grid_template.copy()
-    grid_ba596703['d_lr'] = 0.0014
-    grid_ba596703['g_lr'] = 0.0001
-    grid_ba596703['d_lambda'] = 8.0
-    grid_ba596703['g_lambda'] = 2.4
-    grid_ba596703['out_path'] = grid_ba596703['out_path'].replace('grid_search', 'grid_ba596703')
-
-    generate_repetitive_grid(grid_ba596703, grid_size, 'SRM+SPP_ba596703', save_to)
+    generate_repetitive_grid(grid_b4256cc6, grid_size, '4SRMs_b4256cc6', save_to)
 
 
 def generate_random_grids():
@@ -180,7 +174,7 @@ def generate_random_grids():
     # # for training with fake reference samples
     # generate_random_parameter_set('MSE', True, 100, 'fake_refs_mse_reg', save_to)
 
-    # for training with fewer reference samples
+    # for training with fewer reference samples 1
     # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SAA_0001', save_to)
     # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SB_0001', save_to)
     # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SFA_0001', save_to)
@@ -188,10 +182,15 @@ def generate_random_grids():
     # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_Full_0001', save_to)
     # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SPP_0001', save_to)
 
-    # for training with fewer reference samples
-    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P1_SRM_0001', save_to)
-    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P1_SRM_0001+P2_SRM_0002', save_to)
-    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P1_SRM_0001+P2_SRM_0002+P1_SRM_0002', save_to)
+    # # for training with fewer reference samples 2
+    # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P1_SRM_0001', save_to)
+    # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P1_SRM_0001+P2_SRM_0002', save_to)
+    # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P1_SRM_0001+P2_SRM_0002+P1_SRM_0002', save_to)
+
+    # for training with fewer reference samples 3
+    generate_random_parameter_set('MSE', True, 100, 'P1_SRM_0001+P2_SPP_0001', save_to)
+    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P1_SRM_0001+P2_SPP_0001', save_to)
+    generate_random_parameter_set('MSE', True, 100, 'P2_SPP_0001+P2_SPP_0002', save_to)
 
 
 def run_grid_from_console():
@@ -256,11 +255,11 @@ def collect_results_of_repetitive_runs(path):
 if __name__ == "__main__":
 
     # generate_random_grids()
-    # generate_and_save_repetitive_grids()
+    generate_and_save_repetitive_grids()
 
-    run_grid_from_console()
-    # results = collect_results_of_grid_search('/Users/{}/ETH/projects/normalization/res/P2_SRM_0001+P2_SPP_0001/grid_search/'.format(user),
-    #                                          'grid_P2_SRM_0001+P2_SPP_0001_50')
+    # run_grid_from_console()
+    # results = collect_results_of_grid_search('/Users/{}/ETH/projects/normalization/res/P2_SRM_0001+P2_SPP_0001/grid_ba596703/'.format(user),
+    #                                          'grid_SRM+SPP_ba596703')
 
     # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_656cfcf3/'.format(user))
     # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_1657c7f8/'.format(user))

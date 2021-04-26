@@ -237,9 +237,9 @@ def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/{
 def slice_by_grouping_and_correlation(history, g_percent, c_percent):
     try:
         # grouping slice
-        df = history[history['reg_grouping'] < numpy.percentile(history['reg_grouping'].values, g_percent)].sort_values('reg_grouping')
+        df = history[history['reg_grouping'] <= numpy.percentile(history['reg_grouping'].values, g_percent)].sort_values('reg_grouping')
         # correlation slice + sorting by variation coefs
-        df = df[df['reg_corr'] > numpy.percentile(df['reg_corr'].values, c_percent)].sort_values('reg_vc')
+        df = df[df['reg_corr'] >= numpy.percentile(df['reg_corr'].values, c_percent)].sort_values('reg_vc')
         # negative loss slice (desired by model construction)
         df = df[df['g_loss'] < 0]
         assert df.shape[0] > 0
