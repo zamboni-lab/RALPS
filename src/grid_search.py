@@ -187,10 +187,15 @@ def generate_random_grids():
     # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P1_SRM_0001+P2_SRM_0002', save_to)
     # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P1_SRM_0001+P2_SRM_0002+P1_SRM_0002', save_to)
 
-    # for training with fewer reference samples 3
-    generate_random_parameter_set('MSE', True, 100, 'P1_SRM_0001+P2_SPP_0001', save_to)
-    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P1_SRM_0001+P2_SPP_0001', save_to)
-    generate_random_parameter_set('MSE', True, 100, 'P2_SPP_0001+P2_SPP_0002', save_to)
+    # # for training with fewer reference samples 3
+    # generate_random_parameter_set('MSE', True, 100, 'P1_SRM_0001+P2_SPP_0001', save_to)
+    # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P1_SRM_0001+P2_SPP_0001', save_to)
+    # generate_random_parameter_set('MSE', True, 100, 'P2_SPP_0001+P2_SPP_0002', save_to)
+
+    # for training with fewer reference samples 4
+    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SRM_0002+P2_SPP_0001', save_to)
+    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SPP_0001+P2_SPP_0002', save_to)
+    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SRM_0002+P2_SPP_0001+P2_SPP_0002', save_to)
 
 
 def run_grid_from_console():
@@ -201,7 +206,6 @@ def run_grid_from_console():
     grid = pandas.read_csv(path + name, index_col=0)
 
     for i in tqdm(range(grid.shape[0])):
-    # for i in tqdm(range(67, 100)):
         parameters = dict(grid.iloc[i, :])
         adversarial.main(parameters)
 
@@ -255,11 +259,11 @@ def collect_results_of_repetitive_runs(path):
 if __name__ == "__main__":
 
     # generate_random_grids()
-    generate_and_save_repetitive_grids()
+    # generate_and_save_repetitive_grids()
 
-    # run_grid_from_console()
-    # results = collect_results_of_grid_search('/Users/{}/ETH/projects/normalization/res/P2_SRM_0001+P2_SPP_0001/grid_ba596703/'.format(user),
-    #                                          'grid_SRM+SPP_ba596703')
+    run_grid_from_console()
+    # results = collect_results_of_grid_search('/Users/{}/ETH/projects/normalization/res/P2_SRM_0001+P1_SRM_0001+P2_SPP_0001/grid_search/'.format(user),
+    #                                          'grid_P2_SRM_0001+P1_SRM_0001+P2_SPP_0001_50')
 
     # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_656cfcf3/'.format(user))
     # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_1657c7f8/'.format(user))
