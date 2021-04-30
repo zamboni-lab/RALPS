@@ -11,37 +11,6 @@ from src.constants import benchmark_sample_types as benchmarks
 from src.constants import user
 
 
-def run_parallel(grid):
-    """ Not working because of some weird Catalina error. """
-
-    chunks = []
-    for i in range(0, grid.shape[0], 3):
-        chunk = []
-        for j in range(i, i+3):
-
-            if j >= grid.shape[0]:
-                pass
-            else:
-                parameters = dict(grid.iloc[i,:])
-                parameters['id'] = str(uuid.uuid4())[:8]
-                chunk.append(parameters)
-        chunks.append(chunk)
-
-    for chunk in chunks:
-
-        p1 = Process(target=adversarial.main, args=(chunk[0],))
-        p2 = Process(target=adversarial.main, args=(chunk[1],))
-        p3 = Process(target=adversarial.main, args=(chunk[2],))
-
-        p1.start()
-        p2.start()
-        p3.start()
-
-        p1.join()
-        p2.join()
-        p3.join()
-
-
 def generate_random_parameter_set(g_loss, regularization, grid_size, grid_name, save_to):
     """ Generate a random parameter set to find out best parameter sets. """
 
@@ -180,10 +149,10 @@ def generate_random_grids():
     # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P1_SRM_0001+P2_SPP_0001', save_to)
     # generate_random_parameter_set('MSE', True, 100, 'P2_SPP_0001+P2_SPP_0002', save_to)
 
-    # for training with fewer reference samples 4
-    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SRM_0002+P2_SPP_0001', save_to)
-    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SPP_0001+P2_SPP_0002', save_to)
-    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SRM_0002+P2_SPP_0001+P2_SPP_0002', save_to)
+    # # for training with fewer reference samples 4
+    # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SRM_0002+P2_SPP_0001', save_to)
+    # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SPP_0001+P2_SPP_0002', save_to)
+    # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SRM_0002+P2_SPP_0001+P2_SPP_0002', save_to)
 
 
 def run_grid_from_console():
@@ -195,7 +164,8 @@ def run_grid_from_console():
 
     for i in tqdm(range(grid.shape[0])):
         parameters = dict(grid.iloc[i, :])
-        adversarial.main(parameters)
+        data = adversarial.get_data(parameters['in_path'])
+        adversarial.run_normalization(data, parameters)
 
 
 def collect_results_of_grid_search(results_path, grid_name):
@@ -244,16 +214,56 @@ def collect_results_of_repetitive_runs(path):
     return best_epochs
 
 
+def run_grid_for_data_fraction():
+    n_batches = sys.argv[1]
+    m_fraction = sys.argv[2]
+    # n_batches = 4
+    # m_fraction = 0.2
+
+    for i in tqdm(range(50)):
+        # PARAMETERS
+        parameters = {
+
+            'in_path': '/Users/{}/ETH/projects/normalization/data/'.format(user),
+            'out_path': '/Users/{}/ETH/projects/normalization/res/fractions_P2_SRM_0001+P2_SPP_0001/{}_batches_{}_metabolites/'.format(user, n_batches, m_fraction),
+            'id': str(uuid.uuid4())[:8],
+
+            'n_features': int(m_fraction * 170),  # n of metabolites in initial dataset
+            'latent_dim': -1,  # n dimensions to reduce to (50 makes 99% of variance in PCA)
+            'n_batches': n_batches,
+            'n_replicates': 3,
+
+            'd_lr': 0.0014,  # discriminator learning rate
+            'g_lr': 0.0001,  # generator learning rate
+            'd_loss': 'CE',
+            'g_loss': 'MSE',
+            'd_lambda': 8,  # discriminator regularization term coefficient
+            'g_lambda': 2.4,  # generator regularization term coefficient
+            'use_g_regularization': True,  # whether to use generator regularization term
+            'train_ratio': 0.9,  # for train-test split
+            'batch_size': 64,
+            'g_epochs': 0,  # pretraining of generator (not implemented)
+            'd_epochs': 0,  # pretraining of discriminator (not implemented)
+            'adversarial_epochs': 50,  # simultaneous competitive training
+
+            'skip_epochs': 5,  # number of epochs to skip before looking for the best
+            'callback_step': -1,  # save callbacks every n epochs
+            'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch
+        }
+
+        data = adversarial.get_data(parameters['in_path'], n_batches=n_batches, m_fraction=m_fraction)
+        adversarial.run_normalization(data, parameters)
+
+
 if __name__ == "__main__":
 
     # generate_random_grids()
     # generate_and_save_repetitive_grids()
 
-    run_grid_from_console()
-    # results = collect_results_of_grid_search('/Users/{}/ETH/projects/normalization/res/P2_SRM_0001+P2_SRM_0002+P2_SPP_0001+P2_SPP_0002/grid_search/'.format(user),
-    #                                          'grid_P2_SRM_0001+P2_SRM_0002+P2_SPP_0001+P2_SPP_0002_50')
+    # run_grid_from_console()
+    # results = collect_results_of_grid_search('/Users/{}/ETH/projects/normalization/res/P2_SRM_0001+P2_SRM_0002+P2_SPP_0001+P2_SPP_0002/grid_504c09ce/'.format(user),
+    #                                          'grid_2SRM+2SPP_504c09ce')
 
     # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_656cfcf3/'.format(user))
-    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_1657c7f8/'.format(user))
-    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_b3425959/'.format(user))
-    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_bb416f04/'.format(user))
+
+    run_grid_for_data_fraction()

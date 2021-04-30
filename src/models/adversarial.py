@@ -1,4 +1,4 @@
-import torch, numpy, pandas, time, os, uuid
+import torch, numpy, pandas, time, os, uuid, random
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import StandardScaler, RobustScaler
@@ -12,7 +12,7 @@ from src.constants import shared_perturbations as all_samples_types
 from src.constants import benchmark_sample_types as benchmarks
 from src.constants import regularization_sample_types as reg_types
 from src.constants import latent_dim_explained_variance_ratio as min_variance_ratio
-from src.constants import loss_mapper, user
+from src.constants import loss_mapper, user, batches
 from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
 from src.batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
 from src.batch_analysis import get_sample_cross_correlation_estimate
@@ -39,7 +39,7 @@ def split_to_train_and_test(values, batches, scaler, proportion=0.7):
     return x_train, x_val, y_train, y_val
 
 
-def get_data(path):
+def get_data(path, n_batches=None, m_fraction=None):
     # collect merged dataset
     data = pandas.read_csv(path + 'filtered_data.csv')
     batch_info = pandas.read_csv(path + 'batch_info.csv')
@@ -50,6 +50,17 @@ def get_data(path):
     # add batch and shuffle
     data.insert(0, 'batch', batch_info['batch'].values)
     data = data.sample(frac=1)
+
+    if n_batches is not None:
+        data_batches = list(set(data['batch']))
+        n_random_batches = random.sample(data_batches, n_batches)
+        data = data.loc[numpy.isin(data['batch'].values, n_random_batches)]
+
+    if m_fraction is not None:
+        # randomly select a fraction of metabolites
+        all_metabolites = list(data.columns[1:])
+        metabolites_to_drop = random.sample(all_metabolites, int((1-m_fraction) * len(all_metabolites)))
+        data = data.drop(labels=metabolites_to_drop, axis=1)
 
     return data
 
@@ -276,14 +287,12 @@ def define_latent_dim_with_pca(data):
     scaled_data = scaler.fit_transform(data)
     transformer.fit(scaled_data)
 
-    for i in range(0, len(transformer.explained_variance_ratio_), 10):
+    for i in range(0, len(transformer.explained_variance_ratio_), 5):
         if sum(transformer.explained_variance_ratio_[:i]) > min_variance_ratio:
             return i
 
 
-def main(parameters):
-
-    data = get_data(parameters['in_path'])
+def run_normalization(data, parameters):
 
     if int(parameters['latent_dim']) < 0:
         # latent_dim is defined by PCA and desired level of variance explained
@@ -594,4 +603,5 @@ if __name__ == "__main__":
             'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch
         }
 
-        main(parameters)
+        data = get_data(parameters['in_path'])
+        run_normalization(data, parameters)
