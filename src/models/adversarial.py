@@ -310,8 +310,8 @@ def main(parameters):
     train_dataset = TensorDataset(torch.Tensor(X_train), torch.LongTensor(y_train))
     test_dataset = TensorDataset(torch.Tensor(X_test), torch.LongTensor(y_test))
 
-    train_loader = DataLoader(train_dataset, batch_size=int(parameters['batch_size']), shuffle=True, num_workers=4, pin_memory=False)
-    test_loader = DataLoader(test_dataset, batch_size=int(parameters['batch_size']), shuffle=False, num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=int(parameters['batch_size']), shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=int(parameters['batch_size']), shuffle=False)
 
     # create folders to save results
     save_to = parameters['out_path'] + '{}/'.format(parameters['id'])

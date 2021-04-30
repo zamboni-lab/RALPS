@@ -108,7 +108,7 @@ def generate_and_save_repetitive_grids():
     grid_template = {
 
         'in_path': '/Users/{}/ETH/projects/normalization/data/'.format(user),
-        'out_path': '/Users/{}/ETH/projects/normalization/res/initial_grid/grid_search/'.format(user),
+        'out_path': '/Users/{}/ETH/projects/normalization/res/initial_grid_folder/grid_search/'.format(user),
         'id': '',
 
         'n_features': 170,  # n of metabolites in initial dataset
@@ -135,28 +135,16 @@ def generate_and_save_repetitive_grids():
     }
 
     # set the best regularized parameter set
-    grid_27e76a7f = grid_template.copy()
-    grid_27e76a7f['d_lr'] = 0.0023
-    grid_27e76a7f['g_lr'] = 0.0002
-    grid_27e76a7f['d_lambda'] = 3.3
-    grid_27e76a7f['g_lambda'] = 1.6
-    grid_27e76a7f['out_path'] = grid_27e76a7f['out_path']\
-        .replace('initial_grid','P2_SRM_0001+P1_SRM_0001+P2_SRM_0002')\
-        .replace('grid_search', 'grid_27e76a7f')
+    grid_504c09ce = grid_template.copy()
+    grid_504c09ce['d_lr'] = 0.0011
+    grid_504c09ce['g_lr'] = 0.0012
+    grid_504c09ce['d_lambda'] = 3.0
+    grid_504c09ce['g_lambda'] = 2.3
+    grid_504c09ce['out_path'] = grid_504c09ce['out_path']\
+        .replace('initial_grid_folder','P2_SRM_0001+P2_SRM_0002+P2_SPP_0001+P2_SPP_0002')\
+        .replace('grid_search', 'grid_504c09ce')
 
-    generate_repetitive_grid(grid_27e76a7f, grid_size, '3SRMs_27e76a7f', save_to)
-
-    # set the approximation of the best regularized parameter set
-    grid_b4256cc6 = grid_template.copy()
-    grid_b4256cc6['d_lr'] = 0.0047
-    grid_b4256cc6['g_lr'] = 0.0001
-    grid_b4256cc6['d_lambda'] = 7.1
-    grid_b4256cc6['g_lambda'] = 4.0
-    grid_b4256cc6['out_path'] = grid_b4256cc6['out_path']\
-        .replace('initial_grid','P2_SRM_0001+P1_SRM_0001+P2_SRM_0002+P1_SRM_0002')\
-        .replace('grid_search', 'grid_b4256cc6')
-
-    generate_repetitive_grid(grid_b4256cc6, grid_size, '4SRMs_b4256cc6', save_to)
+    generate_repetitive_grid(grid_504c09ce, grid_size, '2SRM+2SPP_504c09ce', save_to)
 
 
 def generate_random_grids():
@@ -262,8 +250,8 @@ if __name__ == "__main__":
     # generate_and_save_repetitive_grids()
 
     run_grid_from_console()
-    # results = collect_results_of_grid_search('/Users/{}/ETH/projects/normalization/res/P2_SRM_0001+P1_SRM_0001+P2_SPP_0001/grid_search/'.format(user),
-    #                                          'grid_P2_SRM_0001+P1_SRM_0001+P2_SPP_0001_50')
+    # results = collect_results_of_grid_search('/Users/{}/ETH/projects/normalization/res/P2_SRM_0001+P2_SRM_0002+P2_SPP_0001+P2_SPP_0002/grid_search/'.format(user),
+    #                                          'grid_P2_SRM_0001+P2_SRM_0002+P2_SPP_0001+P2_SPP_0002_50')
 
     # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_656cfcf3/'.format(user))
     # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_1657c7f8/'.format(user))
