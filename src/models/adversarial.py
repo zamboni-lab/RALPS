@@ -57,7 +57,7 @@ def get_data(path, n_batches=None, m_fraction=None):
     if m_fraction is not None:
         # randomly select a fraction of metabolites
         all_metabolites = list(data.columns[1:])
-        metabolites_to_drop = random.sample(all_metabolites, int((1-m_fraction) * len(all_metabolites)))
+        metabolites_to_drop = random.sample(all_metabolites, int(round(1-m_fraction, 2) * len(all_metabolites)))
         data = data.drop(labels=metabolites_to_drop, axis=1)
 
     return data

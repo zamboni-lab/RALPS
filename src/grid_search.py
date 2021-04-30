@@ -217,8 +217,8 @@ def collect_results_of_repetitive_runs(path):
 def run_grid_for_data_fraction():
     # n_batches = int(sys.argv[1])
     # m_fraction = float(sys.argv[2])
-    n_batches = 4
-    m_fraction = 0.4
+    n_batches = 7
+    m_fraction = 0.8
 
     for i in tqdm(range(50)):
         # PARAMETERS
@@ -228,7 +228,7 @@ def run_grid_for_data_fraction():
             'out_path': '/Users/{}/ETH/projects/normalization/res/fractions_P2_SRM_0001+P2_SPP_0001/{}_batches_{}_metabolites/'.format(user, n_batches, m_fraction),
             'id': str(uuid.uuid4())[:8],
 
-            'n_features': int(m_fraction * 170),  # n of metabolites in initial dataset
+            'n_features': int(round(m_fraction, 2) * 170),  # n of metabolites in initial dataset
             'latent_dim': -1,  # n dimensions to reduce to (50 makes 99% of variance in PCA)
             'n_batches': n_batches,
             'n_replicates': 3,
