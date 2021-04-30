@@ -487,7 +487,7 @@ def main(parameters):
         timing = int(time.time() - start)
         print("epoch {}/{}, {} sec elapsed:\n"
               "g_loss = {:.4f}, rec_loss = {:.4f}, d_loss = {:.4f}, "
-              "val_acc = {:.4f}, reg_grouping = {:.4f}, reg_corr = {:.4f}, reg_vc = {:.4f}".format(epoch + 1, total_epochs, timing, g_loss, rec_loss, d_loss, accuracy, reg_grouping, reg_corr, reg_vc))
+              "val_acc = {:.4f}, reg_grouping = {:.4f}, reg_corr = {:.4f}, reg_vc = {:.4f}\n".format(epoch + 1, total_epochs, timing, g_loss, rec_loss, d_loss, accuracy, reg_grouping, reg_corr, reg_vc))
 
     # PLOT TRAINING HISTORY
     history = pandas.DataFrame({'epoch': [x for x in range(len(d_loss_history))], 'best': [False for x in range(len(d_loss_history))],
