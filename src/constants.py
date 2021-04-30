@@ -2,7 +2,7 @@
 from torch import nn
 
 # META
-version = "v.0.3.28"
+version = "v.0.3.30"
 user = 'andreidm'
 
 data_path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
@@ -22,6 +22,7 @@ loss_mapper = {'CE': nn.CrossEntropyLoss(), 'L1': nn.L1Loss(), 'MSE': nn.MSELoss
 
 # DATA
 min_relevant_intensity = 1000
+latent_dim_explained_variance_ratio = 0.99
 
 amino_acids = [
         ["Alanine", "C3H7NO2"],
@@ -63,13 +64,12 @@ benchmark_sample_types = ['P1_FA_0001', 'P2_SF_0001', 'P2_SFA_0001', 'P2_SRM_000
 
 # # other application SCENARIOS:
 
-# regularization_sample_types = ['P2_SRM_0001', 'P2_SPP_0001']
+regularization_sample_types = ['P2_SRM_0001', 'P2_SPP_0001']
 # regularization_sample_types = ['P2_SPP_0001', 'P2_SPP_0002']
 # regularization_sample_types = ['P2_SRM_0001', 'P1_SRM_0001', 'P2_SRM_0002']
 # regularization_sample_types = ['P2_SRM_0001', 'P1_SRM_0001', 'P2_SRM_0002', 'P1_SRM_0002']
 
-
-regularization_sample_types = ['P2_SRM_0001', 'P2_SRM_0002', 'P2_SPP_0001', 'P2_SPP_0002']
+# regularization_sample_types = ['P2_SRM_0001', 'P2_SRM_0002', 'P2_SPP_0001', 'P2_SPP_0002']
 # regularization_sample_types = ['P2_SRM_0001', 'P2_SF_0001']  # with 04b7b4ac
 # regularization_sample_types = ['P2_SRM_0001', 'P2_SFA_0001']  # with 6a12d914
 # regularization_sample_types = ['P2_SRM_0001', 'P2_SPP_0001']  # with ba596703

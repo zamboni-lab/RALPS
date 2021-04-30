@@ -2,6 +2,7 @@ import torch, numpy, pandas, time, os, uuid
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
 from sklearn.preprocessing import StandardScaler, RobustScaler
+from sklearn.decomposition import PCA
 from matplotlib import pyplot
 from tqdm import tqdm
 
@@ -10,6 +11,7 @@ from src.models.ae import Autoencoder
 from src.constants import shared_perturbations as all_samples_types
 from src.constants import benchmark_sample_types as benchmarks
 from src.constants import regularization_sample_types as reg_types
+from src.constants import latent_dim_explained_variance_ratio as min_variance_ratio
 from src.constants import loss_mapper, user
 from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
 from src.batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
@@ -49,10 +51,7 @@ def get_data(path):
     data.insert(0, 'batch', batch_info['batch'].values)
     data = data.sample(frac=1)
 
-    # collect encodings of the data by pretrained autoencoder
-    encodings = pandas.read_csv(path.replace('data', 'res') + 'autoencoder/encodings.csv', index_col=0)
-
-    return data, encodings
+    return data
 
 
 def plot_losses(rec_loss, d_loss, g_loss, best_epoch, parameters, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
@@ -250,8 +249,6 @@ def slice_by_grouping_and_correlation(history, g_percent, c_percent):
 
 
 def find_best_epoch(history, skip_epochs=10):
-
-    # TODO: make it an intelligent decision, not just hardcode
     # skip first n epochs
     history = history.iloc[skip_epochs:, :]
 
@@ -271,12 +268,29 @@ def find_best_epoch(history, skip_epochs=10):
     return int(df['epoch'].values[0])
 
 
+def define_latent_dim_with_pca(data):
+
+    transformer = PCA()
+    scaler = StandardScaler()
+
+    scaled_data = scaler.fit_transform(data)
+    transformer.fit(scaled_data)
+
+    for i in range(0, len(transformer.explained_variance_ratio_), 10):
+        if sum(transformer.explained_variance_ratio_[:i]) > min_variance_ratio:
+            return i
+
+
 def main(parameters):
 
-    device = torch.device("cpu")
-    torch.set_num_threads(1)
+    data = get_data(parameters['in_path'])
+
+    if int(parameters['latent_dim']) < 0:
+        # latent_dim is defined by PCA and desired level of variance explained
+        parameters['latent_dim'] = define_latent_dim_with_pca(data)
 
     # create models
+    device = torch.device("cpu")
     discriminator = Classifier(input_shape=int(parameters['latent_dim']), n_batches=int(parameters['n_batches'])).to(device)
     generator = Autoencoder(input_shape=int(parameters['n_features']), latent_dim=int(parameters['latent_dim'])).to(device)
 
@@ -293,7 +307,6 @@ def main(parameters):
     d_criterion = loss_mapper[parameters['d_loss']]
     g_criterion = loss_mapper[parameters['g_loss']]
 
-    data, pretrained_encodings = get_data(parameters['in_path'])
     # split to values and batches
     data_batch_labels = data.iloc[:, 0]
     data_values = data.iloc[:, 1:]
@@ -549,8 +562,7 @@ def main(parameters):
 
 if __name__ == "__main__":
 
-    # checkout stability
-    for i in tqdm(range(10)):
+    for i in tqdm(range(50)):
 
         # PARAMETERS
         parameters = {
@@ -560,22 +572,22 @@ if __name__ == "__main__":
             'id': str(uuid.uuid4())[:8],
 
             'n_features': 170,  # n of metabolites in initial dataset
-            'latent_dim': 50,  # n dimensions to reduce to (50 makes 99% of variance in PCA)
+            'latent_dim': -1,  # n dimensions to reduce to (50 makes 99% of variance in PCA)
             'n_batches': 7,
             'n_replicates': 3,
 
-            'd_lr': 0.003,  # discriminator learning rate
-            'g_lr': 0.0015,  # generator learning rate
+            'd_lr': 0.0014,  # discriminator learning rate
+            'g_lr': 0.0001,  # generator learning rate
             'd_loss': 'CE',
             'g_loss': 'MSE',
-            'd_lambda': 5,  # discriminator regularization term coefficient
-            'g_lambda': 5,  # generator regularization term coefficient
+            'd_lambda': 8,  # discriminator regularization term coefficient
+            'g_lambda': 2.4,  # generator regularization term coefficient
             'use_g_regularization': True,  # whether to use generator regularization term
             'train_ratio': 0.9,  # for train-test split
             'batch_size': 64,
             'g_epochs': 0,  # pretraining of generator (not implemented)
             'd_epochs': 0,  # pretraining of discriminator (not implemented)
-            'adversarial_epochs': 10,  # simultaneous competitive training
+            'adversarial_epochs': 50,  # simultaneous competitive training
 
             'skip_epochs': 5,  # number of epochs to skip before looking for the best
             'callback_step': -1,  # save callbacks every n epochs
