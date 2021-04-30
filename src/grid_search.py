@@ -215,10 +215,10 @@ def collect_results_of_repetitive_runs(path):
 
 
 def run_grid_for_data_fraction():
-    n_batches = sys.argv[1]
-    m_fraction = sys.argv[2]
-    # n_batches = 4
-    # m_fraction = 0.2
+    # n_batches = int(sys.argv[1])
+    # m_fraction = float(sys.argv[2])
+    n_batches = 4
+    m_fraction = 0.4
 
     for i in tqdm(range(50)):
         # PARAMETERS

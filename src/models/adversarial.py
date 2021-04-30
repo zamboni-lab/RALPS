@@ -52,9 +52,7 @@ def get_data(path, n_batches=None, m_fraction=None):
     data = data.sample(frac=1)
 
     if n_batches is not None:
-        data_batches = list(set(data['batch']))
-        n_random_batches = random.sample(data_batches, n_batches)
-        data = data.loc[numpy.isin(data['batch'].values, n_random_batches)]
+        data = data.loc[data['batch'] <= n_batches, :]
 
     if m_fraction is not None:
         # randomly select a fraction of metabolites
