@@ -2,7 +2,7 @@
 from torch import nn
 
 # META
-version = "v.0.3.34"
+version = "v.0.3.35"
 user = 'andreidm'
 
 data_path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
@@ -64,11 +64,11 @@ benchmark_sample_types = ['P1_FA_0001', 'P2_SF_0001', 'P2_SFA_0001', 'P2_SRM_000
 
 # # other application SCENARIOS:
 
-regularization_sample_types = ['P2_SRM_0001', 'P2_SRM_0002']
+# regularization_sample_types = ['P2_SRM_0001', 'P2_SRM_0002']
 # regularization_sample_types = ['P2_SRM_0001', 'P2_SRM_0002', 'P2_SRM_0004']
 # regularization_sample_types = ['P2_SRM_0001', 'P2_SRM_0002', 'P2_SRM_0004', 'P2_SRM_0008']
 
-# regularization_sample_types = ['P2_SRM_0001', 'P2_SPP_0001']
+regularization_sample_types = ['P2_SRM_0001', 'P2_SPP_0001']
 # regularization_sample_types = ['P2_SRM_0001', 'P1_SRM_0001', 'P2_SRM_0002']
 # regularization_sample_types = ['P2_SRM_0001', 'P1_SRM_0001', 'P2_SRM_0002', 'P1_SRM_0002']
 

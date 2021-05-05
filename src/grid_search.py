@@ -221,7 +221,9 @@ def collect_results_of_repetitive_runs(path):
 
 def run_grid_for_data_fraction():
     n_batches = int(sys.argv[1])
-    m_fraction = float(sys.argv[2])
+    m_fraction = float(sys.argv[2])  # fraction of metabolites to use
+    na_fraction = float(sys.argv[3])  # fraction of values to mask with 0s
+
     # n_batches = 7
     # m_fraction = 0.8
 
@@ -230,7 +232,7 @@ def run_grid_for_data_fraction():
         parameters = {
 
             'in_path': '/Users/{}/ETH/projects/normalization/data/'.format(user),
-            'out_path': '/Users/{}/ETH/projects/normalization/res/fractions_P2_SRM_0001+P2_SPP_0001/{}_batches_{}_metabolites/'.format(user, n_batches, m_fraction),
+            'out_path': '/Users/{}/ETH/projects/normalization/res/fractions_P2_SRM_0001+P2_SPP_0001/{}_batches_{}_metabolites_{}_NAs/'.format(user, n_batches, m_fraction, na_fraction),
             'id': str(uuid.uuid4())[:8],
 
             'n_features': int(round(m_fraction, 2) * 170),  # n of metabolites in initial dataset
@@ -256,7 +258,7 @@ def run_grid_for_data_fraction():
             'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch
         }
 
-        data = adversarial.get_data(parameters['in_path'], n_batches=n_batches, m_fraction=m_fraction)
+        data = adversarial.get_data(parameters['in_path'], n_batches=n_batches, m_fraction=m_fraction, na_fraction=na_fraction)
         adversarial.run_normalization(data, parameters)
 
 
@@ -265,10 +267,10 @@ if __name__ == "__main__":
     # generate_random_grids()
     # generate_and_save_repetitive_grids()
 
-    run_grid_from_console()
+    # run_grid_from_console()
     # results = collect_results_of_grid_search('/Users/{}/ETH/projects/normalization/res/P2_SRM_0001+P2_SRM_0002+P2_SPP_0001+P2_SPP_0002/grid_504c09ce/'.format(user),
     #                                          'grid_2SRM+2SPP_504c09ce')
 
     # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fractions_P2_SRM_0001+P2_SPP_0001/7_batches_0.8_metabolites/'.format(user))
 
-    # run_grid_for_data_fraction()
+    run_grid_for_data_fraction()

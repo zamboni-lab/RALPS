@@ -39,7 +39,7 @@ def split_to_train_and_test(values, batches, scaler, proportion=0.7):
     return x_train, x_val, y_train, y_val
 
 
-def get_data(path, n_batches=None, m_fraction=None):
+def get_data(path, n_batches=None, m_fraction=None, na_fraction=None):
     # collect merged dataset
     data = pandas.read_csv(path + 'filtered_data.csv')
     batch_info = pandas.read_csv(path + 'batch_info.csv')
@@ -47,18 +47,26 @@ def get_data(path, n_batches=None, m_fraction=None):
     # transpose and remove metainfo
     data = data.iloc[:, 3:].T
 
+    # TODO: fillna with 0s, if it works fine
+
+    if m_fraction is not None:
+        # randomly select a fraction of metabolites
+        all_metabolites = list(data.columns)
+        metabolites_to_drop = random.sample(all_metabolites, int(round(1 - m_fraction, 2) * len(all_metabolites)))
+        data = data.drop(labels=metabolites_to_drop, axis=1)
+
+    if na_fraction is not None:
+        # randomly mask a fraction of values
+        data = data.mask(numpy.random.random(data.shape) < na_fraction)
+        data = data.fillna(0)
+
     # add batch and shuffle
     data.insert(0, 'batch', batch_info['batch'].values)
     data = data.sample(frac=1)
 
     if n_batches is not None:
+        # select first n batches
         data = data.loc[data['batch'] <= n_batches, :]
-
-    if m_fraction is not None:
-        # randomly select a fraction of metabolites
-        all_metabolites = list(data.columns[1:])
-        metabolites_to_drop = random.sample(all_metabolites, int(round(1-m_fraction, 2) * len(all_metabolites)))
-        data = data.drop(labels=metabolites_to_drop, axis=1)
 
     return data
 
@@ -601,5 +609,5 @@ if __name__ == "__main__":
             'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch
         }
 
-        data = get_data(parameters['in_path'])
+        data = get_data(parameters['in_path'], na_fraction=0.1)
         run_normalization(data, parameters)
