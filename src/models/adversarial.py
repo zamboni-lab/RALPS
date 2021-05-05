@@ -12,7 +12,7 @@ from src.constants import shared_perturbations as all_samples_types
 from src.constants import benchmark_sample_types as benchmarks
 from src.constants import regularization_sample_types as reg_types
 from src.constants import latent_dim_explained_variance_ratio as min_variance_ratio
-from src.constants import loss_mapper, user, batches
+from src.constants import loss_mapper, user, batches, min_relevant_intensity
 from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
 from src.batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
 from src.batch_analysis import get_sample_cross_correlation_estimate
@@ -58,7 +58,7 @@ def get_data(path, n_batches=None, m_fraction=None, na_fraction=None):
     if na_fraction is not None:
         # randomly mask a fraction of values
         data = data.mask(numpy.random.random(data.shape) < na_fraction)
-        data = data.fillna(0)
+        data = data.fillna(min_relevant_intensity / 2)
 
     # add batch and shuffle
     data.insert(0, 'batch', batch_info['batch'].values)
