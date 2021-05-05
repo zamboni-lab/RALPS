@@ -154,6 +154,11 @@ def generate_random_grids():
     # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SPP_0001+P2_SPP_0002', save_to)
     # generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SRM_0002+P2_SPP_0001+P2_SPP_0002', save_to)
 
+    # # for training with fewer reference samples 5
+    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SRM_0002', save_to)
+    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SRM_0002+P2_SRM_0004', save_to)
+    generate_random_parameter_set('MSE', True, 100, 'P2_SRM_0001+P2_SRM_0002+P2_SRM_0004+P2_SRM_0008', save_to)
+
 
 def run_grid_from_console():
     """ To run from terminal with a single parameter: a grid file name. """
@@ -215,10 +220,10 @@ def collect_results_of_repetitive_runs(path):
 
 
 def run_grid_for_data_fraction():
-    # n_batches = int(sys.argv[1])
-    # m_fraction = float(sys.argv[2])
-    n_batches = 7
-    m_fraction = 0.8
+    n_batches = int(sys.argv[1])
+    m_fraction = float(sys.argv[2])
+    # n_batches = 7
+    # m_fraction = 0.8
 
     for i in tqdm(range(50)):
         # PARAMETERS
@@ -260,10 +265,10 @@ if __name__ == "__main__":
     # generate_random_grids()
     # generate_and_save_repetitive_grids()
 
-    # run_grid_from_console()
+    run_grid_from_console()
     # results = collect_results_of_grid_search('/Users/{}/ETH/projects/normalization/res/P2_SRM_0001+P2_SRM_0002+P2_SPP_0001+P2_SPP_0002/grid_504c09ce/'.format(user),
     #                                          'grid_2SRM+2SPP_504c09ce')
 
-    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_656cfcf3/'.format(user))
+    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fractions_P2_SRM_0001+P2_SPP_0001/7_batches_0.8_metabolites/'.format(user))
 
-    run_grid_for_data_fraction()
+    # run_grid_for_data_fraction()
