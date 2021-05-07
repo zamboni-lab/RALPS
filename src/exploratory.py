@@ -1,12 +1,36 @@
 
 import h5py, numpy, pandas
 from pyopenms import EmpiricalFormula, CoarseIsotopePatternGenerator
-from src.constants import amino_acids, allowed_ppm_error
 from src.constants import shared_perturbations as sps
 from src.constants import batches as bids
 from matplotlib import pyplot
 from src.utils.combat import combat
 from src.preprocessing import get_all_data_from_h5
+
+amino_acids = [
+        ["Alanine", "C3H7NO2"],
+        ["Arginine", "C6H14N4O2"],
+        ["Asparagine", "C4H8N2O3"],
+        ["Aspartate", "C4H7NO4"],
+        ["Cysteine", "C3H7NO2S"],
+        ['Glutamine', "C5H10N2O3"],
+        ["Glutamate", "C5H9NO4"],  # Glutamic acid
+        ["Glycine", "C2H5NO2"],
+        ["Histidine", "C6H9N3O2"],
+        ["Isoleucine", "C6H13NO2"],
+        ["Leucine", "C6H13NO2"],
+        ["Lysine", "C6H14N2O2"],
+        ["Methionine", "C5H11NO2S"],
+        ["Phenylalanine", "C9H11NO2"],
+        ["Proline", "C5H9NO2"],
+        ["Serine", "C3H7NO3"],
+        ["Threonine", "C4H9NO3"],
+        ["Tryptophan", "C11H12N2O2"],
+        ["Tyrosine", "C9H11NO3"],
+        ["Valine", "C5H11NO2"]
+    ]
+
+allowed_ppm_error = 5
 
 
 def find_closest_ion_mz_index(mz_axis, ion_mz):

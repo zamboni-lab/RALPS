@@ -46,8 +46,7 @@ def get_data(path, n_batches=None, m_fraction=None, na_fraction=None):
 
     # transpose and remove metainfo
     data = data.iloc[:, 3:].T
-
-    # TODO: fillna with 0s, if it works fine
+    data = data.fillna(min_relevant_intensity)
 
     if m_fraction is not None:
         # randomly select a fraction of metabolites

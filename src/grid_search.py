@@ -225,7 +225,14 @@ def collect_results_of_repetitive_runs(path):
             best_epochs = pandas.concat([best_epochs, id_results])
             del id_results
 
-    print('Results for {}:'.format(path.split('/')[-2]))
+    try:
+        print('Top results for {}:'.format(path.split('/')[-2]))
+        top = adversarial.slice_by_grouping_and_correlation(best_epochs, 30, 70)
+        print(top.to_string(), '\n')
+    except Exception:
+        pass
+
+    print('All results for {}:'.format(path.split('/')[-2]))
     print(best_epochs.to_string(),'\n')
 
     return best_epochs
@@ -279,16 +286,12 @@ if __name__ == "__main__":
     # generate_random_grids()
     # generate_and_save_repetitive_grids()
 
-    # TODO:
-    #  - run repetitive for SRMS,
-    #  - check fractions with NAs,
-    #  - implement scenario 3 with only 2 SRMs in each batch,
-    #  - run scenario 3
-
-    run_grid_from_console()
+    # run_grid_from_console()
     # results = collect_results_of_grid_search('/Users/{}/ETH/projects/normalization/res/P2_SRM_0001+P2_SRM_0002+P2_SRM_0004+P2_SRM_0008/grid_search/'.format(user),
     #                                          'grid_P2_SRM_0001+P2_SRM_0002+P2_SRM_0004+P2_SRM_0008_50')
 
-    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fractions_P2_SRM_0001+P2_SPP_0001/7_batches_0.8_metabolites/'.format(user))
+    # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fractions_P2_SRM_0001+P2_SPP_0001/7_batches_1.0_metabolites_0.5_NAs/'.format(user))
 
     # run_grid_for_data_fraction()
+
+    pass

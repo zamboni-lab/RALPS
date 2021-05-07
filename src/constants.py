@@ -2,7 +2,7 @@
 from torch import nn
 
 # META
-version = "v.0.3.37"
+version = "v.0.3.38"
 user = 'andreidm'
 
 data_path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
@@ -11,7 +11,7 @@ data_path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
 path_to_my_best_method_1 = '/Users/{}/ETH/projects/normalization/res/no_reference_samples/best_model/2d48bfb2/normalized_2d48bfb2.csv'.format(user)
 path_to_other_methods_1 = '/Users/{}/ETH/projects/normalization/res/no_reference_samples/other_methods/'.format(user)
 
-# SCENARIO #2: WITH SRMs AS REFERENCE SAMPLES
+# SCENARIO #2: WITH 8 SRMs AS REFERENCE SAMPLES
 path_to_my_best_method_2 = '/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_656cfcf3/11bf6f68/normalized_11bf6f68.csv'.format(user)
 path_to_other_methods_2 = '/Users/{}/ETH/projects/normalization/res/fake_reference_samples/other_methods/'.format(user)
 
@@ -24,29 +24,6 @@ loss_mapper = {'CE': nn.CrossEntropyLoss(), 'L1': nn.L1Loss(), 'MSE': nn.MSELoss
 min_relevant_intensity = 1000
 latent_dim_explained_variance_ratio = 0.99
 
-amino_acids = [
-        ["Alanine", "C3H7NO2"],
-        ["Arginine", "C6H14N4O2"],
-        ["Asparagine", "C4H8N2O3"],
-        ["Aspartate", "C4H7NO4"],
-        ["Cysteine", "C3H7NO2S"],
-        ['Glutamine', "C5H10N2O3"],
-        ["Glutamate", "C5H9NO4"],  # Glutamic acid
-        ["Glycine", "C2H5NO2"],
-        ["Histidine", "C6H9N3O2"],
-        ["Isoleucine", "C6H13NO2"],
-        ["Leucine", "C6H13NO2"],
-        ["Lysine", "C6H14N2O2"],
-        ["Methionine", "C5H11NO2S"],
-        ["Phenylalanine", "C9H11NO2"],
-        ["Proline", "C5H9NO2"],
-        ["Serine", "C3H7NO3"],
-        ["Threonine", "C4H9NO3"],
-        ["Tryptophan", "C11H12N2O2"],
-        ["Tyrosine", "C9H11NO3"],
-        ["Valine", "C5H11NO2"]
-    ]
-
 batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
 
 # list of perturbations appearing in all 7 batches
@@ -55,26 +32,23 @@ shared_perturbations = ['P2_SRM_0001', 'P1_PP_0256', 'P2_SPP_0008', 'P2_SB_0008'
 # TODO: account for any number of benchmarks
 # sample types that are used to evaluate normalization
 benchmark_sample_types = ['P1_FA_0001', 'P2_SF_0001', 'P2_SFA_0001', 'P2_SRM_0001', 'P2_SFA_0002', 'P1_FA_0008']
+
 # sample types that are used for regularization
 
 # # SCENARIO #1: copy all perturbations for completely untargeted case
 # regularization_sample_types = shared_perturbations[:]
+
 # # SCENARIO #2:  use 8 SRM samples in each batch as references (internal standards)
 # regularization_sample_types = [x for x in shared_perturbations if 'SRM_000' in x]
 
-# # other application SCENARIOS:
-
-# regularization_sample_types = ['P2_SRM_0001', 'P2_SRM_0002']
-# regularization_sample_types = ['P2_SRM_0001', 'P2_SRM_0002', 'P2_SRM_0004']
+# # SCENARIO #2 with the other reference samples:
+regularization_sample_types = ['P2_SRM_0001', 'P2_SRM_0002', 'P2_SRM_0004']
 # regularization_sample_types = ['P2_SRM_0001', 'P2_SRM_0002', 'P2_SRM_0004', 'P2_SRM_0008']
 
-regularization_sample_types = ['P2_SRM_0001', 'P2_SPP_0001']
+# regularization_sample_types = ['P2_SRM_0001', 'P2_SPP_0001']
 # regularization_sample_types = ['P2_SRM_0001', 'P1_SRM_0001', 'P2_SRM_0002']
 # regularization_sample_types = ['P2_SRM_0001', 'P1_SRM_0001', 'P2_SRM_0002', 'P1_SRM_0002']
 
 # regularization_sample_types = ['P2_SRM_0001', 'P2_SRM_0002', 'P2_SPP_0001', 'P2_SPP_0002']  # with 504c09ce
 # regularization_sample_types = ['P2_SRM_0001', 'P2_SF_0001']  # with 04b7b4ac
 # regularization_sample_types = ['P2_SRM_0001', 'P2_SFA_0001']  # with 6a12d914
-
-# EXPLORATORY
-allowed_ppm_error = 5
