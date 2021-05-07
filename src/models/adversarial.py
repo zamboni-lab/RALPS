@@ -58,7 +58,7 @@ def get_data(path, n_batches=None, m_fraction=None, na_fraction=None):
     if na_fraction is not None:
         # randomly mask a fraction of values
         data = data.mask(numpy.random.random(data.shape) < na_fraction)
-        data = data.fillna(min_relevant_intensity / 2)
+        data = data.fillna(min_relevant_intensity)
 
     # add batch and shuffle
     data.insert(0, 'batch', batch_info['batch'].values)

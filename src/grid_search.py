@@ -104,16 +104,28 @@ def generate_and_save_repetitive_grids():
     }
 
     # set the best regularized parameter set
-    grid_504c09ce = grid_template.copy()
-    grid_504c09ce['d_lr'] = 0.0011
-    grid_504c09ce['g_lr'] = 0.0012
-    grid_504c09ce['d_lambda'] = 3.0
-    grid_504c09ce['g_lambda'] = 2.3
-    grid_504c09ce['out_path'] = grid_504c09ce['out_path']\
-        .replace('initial_grid_folder','P2_SRM_0001+P2_SRM_0002+P2_SPP_0001+P2_SPP_0002')\
-        .replace('grid_search', 'grid_504c09ce')
+    grid_836988de = grid_template.copy()
+    grid_836988de['d_lr'] = 0.0024
+    grid_836988de['g_lr'] = 0.0001
+    grid_836988de['d_lambda'] = 9.6
+    grid_836988de['g_lambda'] = 1.4
+    grid_836988de['out_path'] = grid_836988de['out_path']\
+        .replace('initial_grid_folder','P2_SRM_0001+P2_SRM_0002+P2_SRM_0004')\
+        .replace('grid_search', 'grid_836988de')
 
-    generate_repetitive_grid(grid_504c09ce, grid_size, '2SRM+2SPP_504c09ce', save_to)
+    generate_repetitive_grid(grid_836988de, grid_size, '3SRMs_P2_504c09ce', save_to)
+
+    # set the best regularized parameter set
+    grid_9c6e763d = grid_template.copy()
+    grid_9c6e763d['d_lr'] = 0.0039
+    grid_9c6e763d['g_lr'] = 0.0004
+    grid_9c6e763d['d_lambda'] = 5.3
+    grid_9c6e763d['g_lambda'] = 0.3
+    grid_9c6e763d['out_path'] = grid_9c6e763d['out_path']\
+        .replace('initial_grid_folder','P2_SRM_0001+P2_SRM_0002+P2_SRM_0004+P2_SRM_0008')\
+        .replace('grid_search', 'grid_9c6e763d')
+
+    generate_repetitive_grid(grid_9c6e763d, grid_size, '4SRMs_P2_9c6e763d', save_to)
 
 
 def generate_random_grids():
@@ -227,7 +239,7 @@ def run_grid_for_data_fraction():
     # n_batches = 7
     # m_fraction = 0.8
 
-    for i in tqdm(range(50)):
+    for i in tqdm(range(30, 50)):
         # PARAMETERS
         parameters = {
 
@@ -267,10 +279,16 @@ if __name__ == "__main__":
     # generate_random_grids()
     # generate_and_save_repetitive_grids()
 
-    # run_grid_from_console()
-    # results = collect_results_of_grid_search('/Users/{}/ETH/projects/normalization/res/P2_SRM_0001+P2_SRM_0002+P2_SPP_0001+P2_SPP_0002/grid_504c09ce/'.format(user),
-    #                                          'grid_2SRM+2SPP_504c09ce')
+    # TODO:
+    #  - run repetitive for SRMS,
+    #  - check fractions with NAs,
+    #  - implement scenario 3 with only 2 SRMs in each batch,
+    #  - run scenario 3
+
+    run_grid_from_console()
+    # results = collect_results_of_grid_search('/Users/{}/ETH/projects/normalization/res/P2_SRM_0001+P2_SRM_0002+P2_SRM_0004+P2_SRM_0008/grid_search/'.format(user),
+    #                                          'grid_P2_SRM_0001+P2_SRM_0002+P2_SRM_0004+P2_SRM_0008_50')
 
     # results = collect_results_of_repetitive_runs('/Users/{}/ETH/projects/normalization/res/fractions_P2_SRM_0001+P2_SPP_0001/7_batches_0.8_metabolites/'.format(user))
 
-    run_grid_for_data_fraction()
+    # run_grid_for_data_fraction()
