@@ -266,7 +266,8 @@ def slice_by_grouping_and_correlation(history, g_percent, c_percent):
 
 def find_best_epoch(history, skip_epochs=10):
     # skip first n epochs
-    history = history.iloc[skip_epochs:, :]
+    if skip_epochs < history.shape[0]:
+        history = history.iloc[skip_epochs:, :]
 
     df = slice_by_grouping_and_correlation(history, 10, 90)
     if df is None:
@@ -363,8 +364,8 @@ def run_normalization(data, parameters):
     benchmarks_variation_coefs = dict([(sample, []) for sample in benchmarks])
 
     g_regularizer = 0
-    total_epochs = int(parameters['g_epochs']) + int(parameters['d_epochs']) + int(parameters['adversarial_epochs'])
-    for epoch in range(total_epochs+1):
+    total_epochs = int(parameters['epochs'])
+    for epoch in range(total_epochs):
 
         start = time.time()
         d_loss_per_epoch = 0
@@ -499,7 +500,7 @@ def run_normalization(data, parameters):
             g_regularizer = float(parameters['g_lambda']) * reg_grouping
 
         # SAVE MODEL
-        torch.save(generator.state_dict(), save_to + '/checkpoints/ae_at_{}_{}.models'.format(epoch, parameters['id']))
+        torch.save(generator.state_dict(), save_to + '/checkpoints/ae_at_{}_{}.torch'.format(epoch, parameters['id']))
 
         # PRINT AND PLOT EPOCH INFO
         # plot every N epochs what happens with data
@@ -534,7 +535,7 @@ def run_normalization(data, parameters):
 
     # LOAD BEST MODEL
     generator = Autoencoder(input_shape=int(parameters['n_features']), latent_dim=int(parameters['latent_dim'])).to(device)
-    generator.load_state_dict(torch.load(save_to + 'checkpoints/ae_at_{}_{}.models'.format(best_epoch, parameters['id']), map_location=device))
+    generator.load_state_dict(torch.load(save_to + 'checkpoints/ae_at_{}_{}.torch'.format(best_epoch, parameters['id']), map_location=device))
     generator.eval()
 
     # PLOT BEST EPOCH CALLBACKS
@@ -599,9 +600,7 @@ if __name__ == "__main__":
             'use_g_regularization': True,  # whether to use generator regularization term
             'train_ratio': 0.9,  # for train-test split
             'batch_size': 64,
-            'g_epochs': 0,  # pretraining of generator (not implemented)
-            'd_epochs': 0,  # pretraining of discriminator (not implemented)
-            'adversarial_epochs': 50,  # simultaneous competitive training
+            'epochs': 50,  # simultaneous competitive training
 
             'skip_epochs': 5,  # number of epochs to skip before looking for the best
             'callback_step': -1,  # save callbacks every n epochs

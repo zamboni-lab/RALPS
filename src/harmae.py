@@ -1,12 +1,13 @@
 
+from src.models.adversarial import get_data, run_normalization
 
 if __name__ == "__main__":
 
     # read config file
     config = {
 
-        'data_path': '/Users/andreidm/ETH/projects/normalization/data/',
-        'info_path': '/Users/andreidm/ETH/projects/normalization/data/',  # TODO: implement parsing batch info
+        'data_path': '/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv',
+        'info_path': '/Users/andreidm/ETH/projects/normalization/data/batch_info.csv',  # TODO: update parsing batch info
         'out_path': '/Users/andreidm/ETH/projects/normalization/res/',
 
         'n_features': 170,  # TODO: infer from data
@@ -26,17 +27,21 @@ if __name__ == "__main__":
 
         'train_ratio': 0.9,  # TODO: make sure it is used where it's needed
         'batch_size': 64,
-        'adversarial_epochs': 50,  # simultaneous competitive training
+        'epochs': 3,  # simultaneous competitive training
 
         'skip_epochs': 5,  # # TODO: test automatic skip, based on losses
-        'callback_step': -1,  # TODO: test performance
-        'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch
+        'callback_step': 1,  # TODO: test performance
+        'keep_checkpoints': True  # whether to keep all checkpoints, or just the best epoch
     }
 
+    data = get_data(config['data_path'], config['info_path'])
 
     # create grid
+    parameters = config.copy()
+    parameters['id'] = 'noid'
 
     # run grid
+    run_normalization(data, parameters)
 
     # print best epochs
 
