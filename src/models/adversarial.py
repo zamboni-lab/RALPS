@@ -319,8 +319,8 @@ def run_normalization(data, parameters):
     g_optimizer = optim.Adam(generator.parameters(), lr=float(parameters['g_lr']))
 
     # define losses
-    d_criterion = loss_mapper[parameters['d_loss']]
-    g_criterion = loss_mapper[parameters['g_loss']]
+    d_criterion = nn.CrossEntropyLoss()
+    g_criterion = nn.MSELoss()
 
     # split to values and batches
     data_batch_labels = data.iloc[:, 0]
@@ -593,11 +593,10 @@ if __name__ == "__main__":
 
             'd_lr': 0.0014,  # discriminator learning rate
             'g_lr': 0.0001,  # generator learning rate
-            'd_loss': 'CE',
-            'g_loss': 'MSE',
+
             'd_lambda': 8,  # discriminator regularization term coefficient
             'g_lambda': 2.4,  # generator regularization term coefficient
-            'use_g_regularization': True,  # whether to use generator regularization term
+
             'train_ratio': 0.9,  # for train-test split
             'batch_size': 64,
             'epochs': 50,  # simultaneous competitive training

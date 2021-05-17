@@ -2,7 +2,7 @@
 from torch import nn
 
 # META
-version = "v.0.3.41"
+version = "v.0.3.42"
 user = 'andreidm'
 
 data_path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
@@ -14,11 +14,6 @@ path_to_other_methods_1 = '/Users/{}/ETH/projects/normalization/res/no_reference
 # SCENARIO #2: WITH 8 SRMs AS REFERENCE SAMPLES
 path_to_my_best_method_2 = '/Users/{}/ETH/projects/normalization/res/fake_reference_samples/grid_656cfcf3/11bf6f68/normalized_11bf6f68.csv'.format(user)
 path_to_other_methods_2 = '/Users/{}/ETH/projects/normalization/res/fake_reference_samples/other_methods/'.format(user)
-
-
-# PARAMETERS
-loss_mapper = {'CE': nn.CrossEntropyLoss(), 'L1': nn.L1Loss(), 'MSE': nn.MSELoss(), 'SL1': nn.SmoothL1Loss()}
-
 
 # DATA
 min_relevant_intensity = 1000

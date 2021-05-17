@@ -261,11 +261,10 @@ def run_grid_for_data_fraction():
 
             'd_lr': 0.0014,  # discriminator learning rate
             'g_lr': 0.0001,  # generator learning rate
-            'd_loss': 'CE',
-            'g_loss': 'MSE',
+
             'd_lambda': 8,  # discriminator regularization term coefficient
             'g_lambda': 2.4,  # generator regularization term coefficient
-            'use_g_regularization': True,  # whether to use generator regularization term
+
             'train_ratio': 0.9,  # for train-test split
             'batch_size': 64,
             'g_epochs': 0,  # pretraining of generator (not implemented)

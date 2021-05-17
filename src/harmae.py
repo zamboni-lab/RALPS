@@ -21,10 +21,6 @@ if __name__ == "__main__":
         'd_lambda': 8,  # TODO: implement intervals
         'g_lambda': 2.4,  # TODO: implement intervals
 
-        'd_loss': 'CE',  # TODO: fix
-        'g_loss': 'MSE',  # TODO: fix
-        'use_g_regularization': True,  # TODO: fix
-
         'train_ratio': 0.9,  # TODO: make sure it is used where it's needed
         'batch_size': 64,
         'epochs': 3,  # simultaneous competitive training
