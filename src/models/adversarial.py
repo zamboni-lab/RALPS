@@ -12,7 +12,7 @@ from src.constants import shared_perturbations as all_samples_types
 from src.constants import benchmark_sample_types as benchmarks
 from src.constants import regularization_sample_types as reg_types
 from src.constants import latent_dim_explained_variance_ratio as min_variance_ratio
-from src.constants import loss_mapper, user, batches, min_relevant_intensity
+from src.constants import user, batches, min_relevant_intensity
 from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
 from src.batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
 from src.batch_analysis import get_sample_cross_correlation_estimate
@@ -80,24 +80,21 @@ def plot_losses(rec_loss, d_loss, g_loss, best_epoch, parameters, save_to='/User
     axs[0].axvline(best_epoch+1, c='black', label='Best')
     axs[0].set_title('Classifier loss')
     axs[0].set_xlabel('Epochs')
-    axs[0].set_ylabel(parameters['d_loss'])
+    axs[0].set_ylabel('Cross-entropy')
     axs[0].grid(True)
 
     axs[1].plot(range(1, 1+len(g_loss)), g_loss)
     axs[1].axvline(best_epoch + 1, c='black', label='Best')
     axs[1].set_title('Autoencoder loss')
     axs[1].set_xlabel('Epochs')
-    if parameters['use_g_regularization']:
-        axs[1].set_ylabel('Regularized {} - {}'.format(parameters['g_loss'], parameters['d_loss']))
-    else:
-        axs[1].set_ylabel('{} - {}'.format(parameters['g_loss'], parameters['d_loss']))
+    axs[1].set_ylabel('Regularized MSE - Cross-entropy')
     axs[1].grid(True)
 
     axs[2].plot(range(1, 1 + len(rec_loss)), rec_loss)
     axs[2].axvline(best_epoch + 1, c='black', label='Best')
     axs[2].set_title('Reconstruction loss')
     axs[2].set_xlabel('Epochs')
-    axs[2].set_ylabel(parameters['g_loss'])
+    axs[2].set_ylabel('MSE')
     axs[2].grid(True)
 
     pyplot.tight_layout()
@@ -496,8 +493,7 @@ def run_normalization(data, parameters):
         reg_samples_grouping_history.append(reg_grouping)
 
         # SET REGULARIZATION FOR GENERATOR'S NEXT ITERATION
-        if parameters['use_g_regularization']:
-            g_regularizer = float(parameters['g_lambda']) * reg_grouping
+        g_regularizer = float(parameters['g_lambda']) * reg_grouping
 
         # SAVE MODEL
         torch.save(generator.state_dict(), save_to + '/checkpoints/ae_at_{}_{}.torch'.format(epoch, parameters['id']))

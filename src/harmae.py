@@ -25,7 +25,7 @@ if __name__ == "__main__":
         'batch_size': 64,
         'epochs': 3,  # simultaneous competitive training
 
-        'skip_epochs': 5,  # # TODO: test automatic skip, based on losses
+        'skip_epochs': 5,  # # TODO: implement and test automatic skip, based on losses
         'callback_step': 1,  # TODO: test performance
         'keep_checkpoints': True  # whether to keep all checkpoints, or just the best epoch
     }
