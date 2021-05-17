@@ -6,8 +6,8 @@ if __name__ == "__main__":
     # read config file
     config = {
 
-        'data_path': '/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv',
-        'info_path': '/Users/andreidm/ETH/projects/normalization/data/batch_info.csv',  # TODO: update parsing batch info
+        'data_path': '/Users/andreidm/ETH/projects/normalization/data/filtered_data_v4.csv',
+        'info_path': '/Users/andreidm/ETH/projects/normalization/data/batch_info_v4.csv',
         'out_path': '/Users/andreidm/ETH/projects/normalization/res/',
 
         'n_features': 170,  # TODO: infer from data
@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     data = get_data(config['data_path'], config['info_path'])
 
-    # create grid
+    # parse parameters and create grid
     parameters = config.copy()
     parameters['id'] = 'noid'
 

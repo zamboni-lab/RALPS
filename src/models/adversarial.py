@@ -8,6 +8,7 @@ from tqdm import tqdm
 
 from src.models.cl import Classifier
 from src.models.ae import Autoencoder
+from src import constants
 from src.constants import shared_perturbations as all_samples_types
 from src.constants import benchmark_sample_types as benchmarks
 from src.constants import regularization_sample_types as reg_types
@@ -44,9 +45,20 @@ def get_data(path_to_data, path_to_batch_info, n_batches=None, m_fraction=None, 
     data = pandas.read_csv(path_to_data)
     batch_info = pandas.read_csv(path_to_batch_info)
 
-    # transpose and remove metainfo
-    data = data.iloc[:, 3:].T
+    # transpose and remove annotation
+    data = data.iloc[:, 1:].T
+    # fill in missing values
     data = data.fillna(min_relevant_intensity)
+
+    # create prefixes for grouping
+    new_index = data.index.values
+    groups_indices = numpy.where(batch_info['group'] != 0)[0]
+    new_index[groups_indices] = 'group_' + batch_info['group'][groups_indices].astype('str') + '_' + new_index[groups_indices]
+
+    # create prefixes for benchmarks
+    benchmarks_indices = numpy.where(batch_info['benchmark'] != 0)[0]
+    new_index[benchmarks_indices] = 'bench_' + batch_info['benchmark'][benchmarks_indices].astype('str') + '_' + new_index[benchmarks_indices]
+    data.index = new_index
 
     if m_fraction is not None:
         # randomly select a fraction of metabolites
@@ -300,6 +312,8 @@ def run_normalization(data, parameters):
     if int(parameters['latent_dim']) < 0:
         # latent_dim is defined by PCA and desired level of variance explained
         parameters['latent_dim'] = define_latent_dim_with_pca(data)
+
+    # TODO: pull out reg_types and benchmarks
 
     # create models
     device = torch.device("cpu")

@@ -13,10 +13,6 @@ from src.constants import shared_perturbations as all_samples
 def get_samples_by_types_dict(samples_names, types_of_interest):
     """ Create a dict like this: {'P1_FA_0001': ['P1_FA_0001_0306_0', ..., 'P1_FA_0001_0306_2'], ...}  """
 
-    if types_of_interest is None:
-        # get unique types + filter out diluted samples
-        types_of_interest = list(set(['_'.join(x.split('_')[:3]) for x in samples_names if x.split('_')[2] == '0001']))
-
     samples_by_types = {}
     for i, sample in enumerate(samples_names):
         # check which type this sample has
