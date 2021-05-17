@@ -181,7 +181,7 @@ def run_grid_from_console():
 
     for i in tqdm(range(grid.shape[0])):
         parameters = dict(grid.iloc[i, :])
-        data = adversarial.get_data(parameters['in_path'])
+        data = adversarial.get_data(parameters['in_path'] + 'filtered_data.csv', parameters['in_path'] + 'batch_info.csv',)
         adversarial.run_normalization(data, parameters)
 
 
@@ -277,7 +277,10 @@ def run_grid_for_data_fraction():
             'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch
         }
 
-        data = adversarial.get_data(parameters['in_path'], n_batches=n_batches, m_fraction=m_fraction, na_fraction=na_fraction)
+        data = adversarial.get_data(parameters['in_path'] + 'filtered_data.csv',
+                                    parameters['in_path'] + 'batch_info.csv',
+                                    n_batches=n_batches, m_fraction=m_fraction, na_fraction=na_fraction)
+
         adversarial.run_normalization(data, parameters)
 
 

@@ -39,10 +39,10 @@ def split_to_train_and_test(values, batches, scaler, proportion=0.7):
     return x_train, x_val, y_train, y_val
 
 
-def get_data(path, n_batches=None, m_fraction=None, na_fraction=None):
+def get_data(path_to_data, path_to_batch_info, n_batches=None, m_fraction=None, na_fraction=None):
     # collect merged dataset
-    data = pandas.read_csv(path + 'filtered_data.csv')
-    batch_info = pandas.read_csv(path + 'batch_info.csv')
+    data = pandas.read_csv(path_to_data)
+    batch_info = pandas.read_csv(path_to_batch_info)
 
     # transpose and remove metainfo
     data = data.iloc[:, 3:].T
@@ -586,7 +586,7 @@ if __name__ == "__main__":
             'id': str(uuid.uuid4())[:8],
 
             'n_features': 170,  # n of metabolites in initial dataset
-            'latent_dim': -1,  # n dimensions to reduce to (50 makes 99% of variance in PCA)
+            'latent_dim': -1,  # dimensions to reduce to (50 makes 99% of variance in PCA)
             'n_batches': 7,
             'n_replicates': 3,
 
@@ -608,5 +608,5 @@ if __name__ == "__main__":
             'keep_checkpoints': False  # whether to keep all checkpoints, or just the best epoch
         }
 
-        data = get_data(parameters['in_path'], na_fraction=0.1)
+        data = get_data(parameters['in_path'] + 'filtered_data.csv', parameters['in_path'] + 'batch_info.csv')
         run_normalization(data, parameters)
