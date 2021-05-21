@@ -28,8 +28,8 @@ def generate_random_parameter_set(g_loss, regularization, grid_size, grid_name, 
         'n_batches': [7 for x in grid],
         'n_replicates': [3 for x in grid],
 
-        'd_lr': [round(random.uniform(5e-5, 5e-3), 4) for x in grid],  # discriminator learning rate
-        'g_lr': [round(random.uniform(5e-5, 5e-3), 4) for x in grid],  # generator learning rate
+        'd_lr': [round(random.uniform(5e-5, 5e-3), 5) for x in grid],  # discriminator learning rate
+        'g_lr': [round(random.uniform(5e-5, 5e-3), 5) for x in grid],  # generator learning rate
         'd_loss': ['CE' for x in grid],
         'g_loss': [g_loss for x in grid],
         'd_lambda': [round(random.uniform(0., 10.), 1) for x in grid],  # discriminator regularization term coefficient

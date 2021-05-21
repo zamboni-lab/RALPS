@@ -42,6 +42,8 @@ def get_data(path_to_data, path_to_batch_info, n_batches=None, m_fraction=None, 
     data = pandas.read_csv(path_to_data)
     batch_info = pandas.read_csv(path_to_batch_info)
 
+    # TODO: raise errors if crappy data or batch info is provided
+
     # transpose and remove annotation
     data = data.iloc[:, 1:].T
     # fill in missing values
@@ -306,7 +308,7 @@ def define_latent_dim_with_pca(data):
 
 def run_normalization(data, parameters):
 
-    if int(parameters['latent_dim']) < 0:
+    if int(parameters['latent_dim']) <= 0:
         # latent_dim is defined by PCA and desired level of variance explained
         parameters['latent_dim'] = define_latent_dim_with_pca(data)
 
