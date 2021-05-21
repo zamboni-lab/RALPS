@@ -58,7 +58,7 @@ def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
         else:
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
 
-        res = compute_cv_for_samples_types(normalized, sample_types_of_interest=benchmarks)
+        res = compute_cv_for_samples_types(normalized, benchmarks)
         res = pandas.DataFrame({'method': [method for x in range(len(res))],
                                 'sample': list(res.keys()),
                                 'cv': [res[key] for key in res.keys()]})
@@ -108,7 +108,7 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
         else:
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
 
-        res = get_sample_cross_correlation_estimate(normalized, sample_types_of_interest=regs)
+        res = get_sample_cross_correlation_estimate(normalized, regs)
         corrs.append(res)
 
     res = pandas.DataFrame({'method': methods, 'corr': corrs})
@@ -185,7 +185,7 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
             normalized['batch'] = data['batch']
 
-        clustering, total_clusters = compute_number_of_clusters_with_hdbscan(normalized, pars, print_info=False, sample_types_of_interest=benchmarks)
+        clustering, total_clusters = compute_number_of_clusters_with_hdbscan(normalized, pars, benchmarks, print_info=False)
         grouping_dict = get_grouping_coefs_for_samples(method, clustering, total_clusters)
 
         res = pandas.DataFrame({'method': [method for x in range(len(grouping_dict))],

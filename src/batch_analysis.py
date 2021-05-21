@@ -1,8 +1,8 @@
 
-import numpy, pandas, seaborn, umap, time
+import numpy, pandas, seaborn, umap, time, hdbscan, torch, matplotlib
 from matplotlib import pyplot
-import hdbscan, torch
 from sklearn.preprocessing import RobustScaler
+from sys import platform
 
 from src.constants import user, path_to_my_best_method_1
 from src.models.ae import Autoencoder
@@ -29,34 +29,21 @@ def get_samples_by_types_dict(samples_names, types_of_interest):
     return samples_by_types
 
 
-def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interest=None, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user), save_plot=False):
+def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interest, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user), save_plot=False):
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
-    if sample_types_of_interest is None:
-        for i, type in enumerate(samples_by_types):
-            df = data.loc[numpy.array(samples_by_types[type]), :]
-            df = df.T  # transpose to call corr() on samples, not metabolites
-            df.columns = [x[-6:] for x in df.columns]
-            df = df.corr()
+    pyplot.figure(figsize=(12,8))
 
-            seaborn.heatmap(df, vmin=0, vmax=1)
-            pyplot.title('Cross correlations: {}: {}'.format(type, method_name))
-            pyplot.tight_layout()
-            pyplot.show()
+    for i, type in enumerate(samples_by_types):
+        df = data.loc[numpy.array(samples_by_types[type]), :]
+        df = df.T  # transpose to call corr() on samples, not metabolites
+        df.columns = sorted([x[-6:] for x in df.columns])
+        df = df.corr()
 
-    else:
-        pyplot.figure(figsize=(12,8))
-
-        for i, type in enumerate(samples_by_types):
-            df = data.loc[numpy.array(samples_by_types[type]), :]
-            df = df.T  # transpose to call corr() on samples, not metabolites
-            df.columns = sorted([x[-6:] for x in df.columns])
-            df = df.corr()
-
-            ax = pyplot.subplot(2, 3, i+1)
-            seaborn.heatmap(df, vmin=0, vmax=1)
-            ax.set_title(type)
+        ax = pyplot.subplot(2, 3, i+1)
+        seaborn.heatmap(df, vmin=0, vmax=1)
+        ax.set_title(type)
 
         pyplot.suptitle('Cross correlations: {}'.format(method_name))
         pyplot.tight_layout()
@@ -67,7 +54,7 @@ def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interes
             pyplot.show()
 
 
-def get_sample_cross_correlation_estimate(data, percent=50, sample_types_of_interest=None):
+def get_sample_cross_correlation_estimate(data, sample_types_of_interest, percent=50):
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
@@ -81,7 +68,7 @@ def get_sample_cross_correlation_estimate(data, percent=50, sample_types_of_inte
     return numpy.sum(corrs)
 
 
-def compute_cv_for_samples_types(data, sample_types_of_interest=None):
+def compute_cv_for_samples_types(data, sample_types_of_interest):
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
@@ -114,7 +101,6 @@ def plot_full_dataset_umap(encodings, method_name, parameters, save_to='/Users/{
     pyplot.legend(title='Batch', bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=10)
     pyplot.title('UMAP: {}: n={}, metric={}'.format(method_name, neighbors, metric))
     pyplot.tight_layout()
-    # pyplot.show()
     pyplot.savefig(save_to + 'umap_batches_{}_{}.pdf'.format(method_name.replace(' ', '_'), parameters['id']))
 
 
@@ -161,7 +147,7 @@ def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, samp
     pyplot.savefig(save_to + 'umap_benchmarks_{}_{}.pdf'.format(method_name.replace(' ', '_'), parameters['id']))
 
 
-def compute_number_of_clusters_with_hdbscan(encodings, parameters, print_info=True, sample_types_of_interest=None):
+def compute_number_of_clusters_with_hdbscan(encodings, parameters, sample_types_of_interest, print_info=True):
 
     samples_by_types = get_samples_by_types_dict(encodings.index.values, sample_types_of_interest)
 
@@ -212,14 +198,13 @@ if __name__ == '__main__':
     data = pandas.read_csv('/Users/{}/ETH/projects/normalization/data/filtered_data.csv'.format(user))
     data = data.iloc[:, 3:]
 
-    plot_batch_cross_correlations(data.T, 'original samples', '',
-                                  sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-                                                            'P2_SFA_0001', 'P2_SRM_0001',
-                                                            'P2_SFA_0002', 'P1_FA_0008'])
+    plot_batch_cross_correlations(data.T, 'original samples', '', ['P1_FA_0001', 'P2_SF_0001',
+                                                                   'P2_SFA_0001', 'P2_SRM_0001',
+                                                                   'P2_SFA_0002', 'P1_FA_0008'])
 
-    res = compute_cv_for_samples_types(data.T, sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-                                                                       'P2_SFA_0001', 'P2_SRM_0001',
-                                                                       'P2_SFA_0002', 'P1_FA_0008'])
+    res = compute_cv_for_samples_types(data.T, ['P1_FA_0001', 'P2_SF_0001',
+                                                'P2_SFA_0001', 'P2_SRM_0001',
+                                                'P2_SFA_0002', 'P1_FA_0008'])
     print(res)
 
     # get encodings of the SEPARATELY TRAINED autoencoder
@@ -230,10 +215,10 @@ if __name__ == '__main__':
                            save_to='/Users/andreidm/ETH/projects/normalization/res/')
 
     pars = {'latent_dim': 100, 'n_batches': 7, 'n_replicates': 3}
-    res, _ = compute_number_of_clusters_with_hdbscan(encodings, pars, print_info=True,
-                                                  sample_types_of_interest=['P1_FA_0001', 'P2_SF_0001',
-                                                                            'P2_SFA_0001', 'P2_SRM_0001',
-                                                                            'P2_SFA_0002', 'P1_FA_0008'])
+    res, _ = compute_number_of_clusters_with_hdbscan(encodings, pars, ['P1_FA_0001', 'P2_SF_0001',
+                                                                       'P2_SFA_0001', 'P2_SRM_0001',
+                                                                       'P2_SFA_0002', 'P1_FA_0008'],
+                                                     print_info=True)
     print(res)
 
     encodings_raw = pandas.read_csv('/Users/{}/ETH/projects/normalization/res/autoencoder/encodings.csv'.format(user), index_col=0)

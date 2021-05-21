@@ -41,17 +41,20 @@ def sample_from_default_ranges(par_name):
         return random.sample([32, 64, 128], 1)[0]
 
 
-def sample_parameter(name, string_value):
+def set_parameter(name, string_value):
 
     if ',' in string_value:
+        # sample from options
         value = float(random.sample(string_value.split(','), 1)[0])
     elif string_value[0] != '-' and '-' in string_value:
-        lower, upper = string_value.split('-')  # interval
+        # sample from interval
+        lower, upper = string_value.split('-')
         value = round(random.uniform(float(lower), float(upper)), 5)
     else:
+        # set provided value
         value = float(string_value)
-        if value < 0:
-            # -1 supplied, so
+        if value <= 0:
+            # -1 supplied, so set defaults
             value = sample_from_default_ranges(name)
 
     return value
@@ -98,16 +101,16 @@ def generate_parameters_grid(config, data):
 
     grid = []
     for _ in range(get_grid_size(config)):
-        new_set = parameters.copy()
+        new_pars = parameters.copy()
         # sample the other parameters
-        new_set['id'] = str(uuid.uuid4())[:8]
-        new_set['d_lr'] = sample_parameter('d_lr', new_set['d_lr'])
-        new_set['g_lr'] = sample_parameter('g_lr', new_set['g_lr'])
-        new_set['d_lambda'] = sample_parameter('d_lambda', new_set['d_lambda'])
-        new_set['g_lambda'] = sample_parameter('g_lambda', new_set['g_lambda'])
-        new_set['batch_size'] = int(sample_parameter('batch_size', new_set['batch_size']))
+        new_pars['id'] = str(uuid.uuid4())[:8]
+        new_pars['d_lr'] = set_parameter('d_lr', new_pars['d_lr'])
+        new_pars['g_lr'] = set_parameter('g_lr', new_pars['g_lr'])
+        new_pars['d_lambda'] = set_parameter('d_lambda', new_pars['d_lambda'])
+        new_pars['g_lambda'] = set_parameter('g_lambda', new_pars['g_lambda'])
+        new_pars['batch_size'] = int(set_parameter('batch_size', new_pars['batch_size']))
 
-        grid.append(new_set)
+        grid.append(new_pars)
 
     return grid
 
@@ -119,6 +122,11 @@ if __name__ == "__main__":
 
     data = get_data(config['data_path'], config['info_path'])
     grid = generate_parameters_grid(config, data)
+
+    # TODO: few things left:
+    #  - skip epochs,
+    #  - global refactoring,
+    #  - integration test
 
     for parameters in tqdm(grid):
         # run grid

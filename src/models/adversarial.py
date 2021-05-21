@@ -339,7 +339,7 @@ def run_normalization(data, parameters):
     data_values = data.iloc[:, 1:]
 
     # get CV of benchmarks in original data
-    cv_dict_original = compute_cv_for_samples_types(data_values, sample_types_of_interest=benchmarks)
+    cv_dict_original = compute_cv_for_samples_types(data_values, benchmarks)
 
     # create and fit the scaler
     scaler = RobustScaler().fit(data_values)
@@ -465,7 +465,7 @@ def run_normalization(data, parameters):
         val_acc_history.append(accuracy)  # for plotting
 
         # collect variation coefficients for reg_types and benchmarks
-        vcs = compute_cv_for_samples_types(reconstruction, sample_types_of_interest=all_samples_types)
+        vcs = compute_cv_for_samples_types(reconstruction, all_samples_types)
         reg_vcs_sum = 0.
         for sample in all_samples_types:
             if sample in reg_types:
@@ -477,15 +477,15 @@ def run_normalization(data, parameters):
         reg_samples_vc_history.append(reg_vc)
 
         # assess cross correlations of regularization samples
-        reg_corr = get_sample_cross_correlation_estimate(reconstruction, percent=25, sample_types_of_interest=reg_types)
+        reg_corr = get_sample_cross_correlation_estimate(reconstruction, reg_types, percent=25)
         reg_samples_corr_history.append(reg_corr)
 
         # assess cross correlations of benchmarks
-        b_corr = get_sample_cross_correlation_estimate(reconstruction, sample_types_of_interest=benchmarks)
+        b_corr = get_sample_cross_correlation_estimate(reconstruction, benchmarks)
         benchmarks_corr_history.append(b_corr)
 
         # collect clustering results for reg_types and benchmarks
-        clustering, total_clusters = compute_number_of_clusters_with_hdbscan(encodings, parameters, print_info=False, sample_types_of_interest=all_samples_types)
+        clustering, total_clusters = compute_number_of_clusters_with_hdbscan(encodings, parameters, all_samples_types, print_info=False)
         # assess grouping of samples: compute g_lambda, so that it equals
         # 0, when all samples of a reg_type belong to the sample cluster
         # 1, when N samples of a reg_type belong to N different clusters
@@ -516,7 +516,7 @@ def run_normalization(data, parameters):
         # plot every N epochs what happens with data
         if int(parameters['callback_step']) > 0 and epoch % int(parameters['callback_step']) == 0:
             # plot cross correlations of benchmarks in ALL reconstructed data
-            plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to+'/callbacks/', save_plot=True)
+            plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], benchmarks, save_to=save_to+'/callbacks/', save_plot=True)
             # plot umap of FULL encoded data
             plot_full_dataset_umap(encodings, 'epoch {}'.format(epoch+1), parameters, save_to=save_to+'/callbacks/')
             pyplot.close('all')
@@ -561,7 +561,7 @@ def run_normalization(data, parameters):
     reconstruction = pandas.DataFrame(reconstruction, index=data_values.index)
 
     # plot cross correlations of benchmarks in ALL reconstructed data
-    plot_batch_cross_correlations(reconstruction, 'best model at {}'.format(best_epoch + 1), parameters['id'], sample_types_of_interest=benchmarks, save_to=save_to+'/benchmarks/', save_plot=True)
+    plot_batch_cross_correlations(reconstruction, 'best model at {}'.format(best_epoch + 1), parameters['id'], benchmarks, save_to=save_to+'/benchmarks/', save_plot=True)
     # plot umap of FULL encoded data
     plot_full_dataset_umap(encodings, 'best model at {}'.format(best_epoch + 1), parameters, save_to=save_to)
     pyplot.close('all')

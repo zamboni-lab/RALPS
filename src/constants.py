@@ -2,7 +2,7 @@
 from torch import nn
 
 # META
-version = "v.0.3.46"
+version = "v.0.3.47"
 
 default_parameters_values = {
     'latent_dim': -1,
