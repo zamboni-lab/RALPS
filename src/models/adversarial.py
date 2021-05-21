@@ -9,9 +9,6 @@ from tqdm import tqdm
 from src.models.cl import Classifier
 from src.models.ae import Autoencoder
 from src import constants
-from src.constants import shared_perturbations as all_samples_types
-from src.constants import benchmark_sample_types as benchmarks
-from src.constants import regularization_sample_types as reg_types
 from src.constants import latent_dim_explained_variance_ratio as min_variance_ratio
 from src.constants import user, batches, min_relevant_intensity
 from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
@@ -52,11 +49,11 @@ def get_data(path_to_data, path_to_batch_info, n_batches=None, m_fraction=None, 
 
     # create prefixes for grouping
     new_index = data.index.values
-    groups_indices = numpy.where(batch_info['group'] != 0)[0]
+    groups_indices = numpy.where(batch_info['group'].astype('str') != '0')[0]
     new_index[groups_indices] = 'group_' + batch_info['group'][groups_indices].astype('str') + '_' + new_index[groups_indices]
 
     # create prefixes for benchmarks
-    benchmarks_indices = numpy.where(batch_info['benchmark'] != 0)[0]
+    benchmarks_indices = numpy.where(batch_info['benchmark'].astype('str') != '0')[0]
     new_index[benchmarks_indices] = 'bench_' + batch_info['benchmark'][benchmarks_indices].astype('str') + '_' + new_index[benchmarks_indices]
     data.index = new_index
 
@@ -313,7 +310,9 @@ def run_normalization(data, parameters):
         # latent_dim is defined by PCA and desired level of variance explained
         parameters['latent_dim'] = define_latent_dim_with_pca(data)
 
-    # TODO: pull out reg_types and benchmarks
+    reg_types = parameters['reg_types'].split(',')
+    benchmarks = parameters['benchmarks'].split(',')
+    all_samples_types = [*benchmarks, *reg_types]
 
     # create models
     device = torch.device("cpu")
@@ -460,48 +459,47 @@ def run_normalization(data, parameters):
             batch_accuracy = true_positives.sum() / len(true_positives)
             accuracy.append(batch_accuracy)
 
-        accuracy = numpy.mean(accuracy)  # save for printing
-        val_acc_history.append(accuracy)  # save for plotting
+        accuracy = numpy.mean(accuracy)  # for printing
+        val_acc_history.append(accuracy)  # for plotting
 
-        # collect variation coefficients for some samples of ALL reconstructed data
+        # collect variation coefficients for reg_types and benchmarks
         vcs = compute_cv_for_samples_types(reconstruction, sample_types_of_interest=all_samples_types)
         reg_vcs_sum = 0.
         for sample in all_samples_types:
             if sample in reg_types:
                 reg_vcs_sum += vcs[sample]  # calculate sum of (reg) variation coefs
             if sample in benchmarks:
-                benchmarks_variation_coefs[sample].append(vcs[sample])  # append vcs of benchmarks
+                benchmarks_variation_coefs[sample].append(vcs[sample])
 
         reg_vc = reg_vcs_sum / len(vcs)  # compute mean overall variation coef
         reg_samples_vc_history.append(reg_vc)
 
-        # collect clustering results for some samples of ALL encoded data
-        clustering, total_clusters = compute_number_of_clusters_with_hdbscan(encodings, parameters, print_info=False, sample_types_of_interest=reg_types)
-
-        # assess cross correlations of regularization samples in ALL reconstructed data
+        # assess cross correlations of regularization samples
         reg_corr = get_sample_cross_correlation_estimate(reconstruction, percent=25, sample_types_of_interest=reg_types)
         reg_samples_corr_history.append(reg_corr)
 
-        # assess cross correlations of benchmarks in ALL reconstructed data
+        # assess cross correlations of benchmarks
         b_corr = get_sample_cross_correlation_estimate(reconstruction, sample_types_of_interest=benchmarks)
         benchmarks_corr_history.append(b_corr)
 
+        # collect clustering results for reg_types and benchmarks
+        clustering, total_clusters = compute_number_of_clusters_with_hdbscan(encodings, parameters, print_info=False, sample_types_of_interest=all_samples_types)
         # assess grouping of samples: compute g_lambda, so that it equals
         # 0, when all samples of a reg_type belong to the sample cluster
         # 1, when N samples of a reg_type belong to N different clusters
         b_grouping_coefs = []
         reg_grouping_coefs = []
-        for sample in reg_types:
-
+        for sample in all_samples_types:
             n_sample_clusters = len(set(clustering[sample]))
             max_n_clusters = len(clustering[sample]) if len(clustering[sample]) <= total_clusters else total_clusters
             coef = (n_sample_clusters - 1) / max_n_clusters  # minus 1 to account for uncertainty in HDBSCAN
-            reg_grouping_coefs.append(coef)
+            if sample in reg_types:
+                reg_grouping_coefs.append(coef)
             if sample in benchmarks:
-                b_grouping_coefs.append(coef)  # append a coef for a benchmark
+                b_grouping_coefs.append(coef)
 
         b_grouping = numpy.mean(b_grouping_coefs)
-        reg_grouping = numpy.mean(reg_grouping_coefs)  # there are more samples here, I assume
+        reg_grouping = numpy.mean(reg_grouping_coefs)
 
         benchmarks_grouping_history.append(b_grouping)
         reg_samples_grouping_history.append(reg_grouping)
@@ -571,7 +569,7 @@ def run_normalization(data, parameters):
     reconstruction.to_csv(save_to + 'normalized_{}.csv'.format(parameters['id']))
 
     # SAVE PARAMETERS AND HISTORY
-    pandas.DataFrame(parameters, index=[0]).to_csv(save_to + 'parameters_{}.csv'.format(parameters['id']), index=False)
+    pandas.DataFrame(parameters, index=['values'], columns=parameters.keys()).T.to_csv(save_to + 'parameters_{}.csv'.format(parameters['id']))
     history.to_csv(save_to + 'history_{}.csv'.format(parameters['id']), index=False)
 
     # REFACTOR CHECKPOINTS

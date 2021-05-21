@@ -1,4 +1,5 @@
 
+import pandas
 from src.models.adversarial import get_data, run_normalization
 
 if __name__ == "__main__":
@@ -7,11 +8,8 @@ if __name__ == "__main__":
     config = {
 
         'data_path': '/Users/andreidm/ETH/projects/normalization/data/filtered_data_v4.csv',
-        'info_path': '/Users/andreidm/ETH/projects/normalization/data/batch_info_v4.csv',
+        'info_path': '/Users/andreidm/ETH/projects/normalization/data/batch_info_v41.csv',
         'out_path': '/Users/andreidm/ETH/projects/normalization/res/',
-
-        'n_features': 170,  # TODO: infer from data
-        'n_batches': 7,  # TODO: infer from batch info
 
         'latent_dim': -1,  # dimensions to reduce to (50 makes 99% of variance in PCA)
         'n_replicates': 3,
@@ -26,7 +24,7 @@ if __name__ == "__main__":
         'epochs': 3,  # simultaneous competitive training
 
         'skip_epochs': 5,  # # TODO: implement and test automatic skip, based on losses
-        'callback_step': 1,  # TODO: test performance
+        'callback_step': -1,  # TODO: test performance
         'keep_checkpoints': True  # whether to keep all checkpoints, or just the best epoch
     }
 
@@ -34,6 +32,20 @@ if __name__ == "__main__":
 
     # parse parameters and create grid
     parameters = config.copy()
+    parameters['n_features'] = data.shape[1]-1
+    parameters['n_batches'] = data['batch'].unique().shape[0]
+
+    reg_types = set()
+    benchmarks = set()
+    for i in range(data.index.shape[0]):
+        if 'group_' in data.index[i]:
+            reg_types.add('group_{}'.format(data.index[i].split('group')[1].split('_')[1]))
+        if 'bench_' in data.index[i]:
+            benchmarks.add('bench_{}'.format(data.index[i].split('bench')[1].split('_')[1]))
+
+    parameters['reg_types'] = ','.join(list(reg_types))
+    parameters['benchmarks'] = ','.join(list(benchmarks))
+
     parameters['id'] = 'noid'
 
     # run grid

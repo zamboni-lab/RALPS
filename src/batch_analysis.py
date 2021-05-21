@@ -18,13 +18,11 @@ def get_samples_by_types_dict(samples_names, types_of_interest):
         # check which type this sample has
         for type in types_of_interest:
             if type in sample and type not in samples_by_types:
-                # if new type, putt in the dict, create a list
+                # if new type, put in the dict, create a list
                 samples_by_types[type] = [sample]
-                break
             elif type in sample and type in samples_by_types:
                 # if type already exists in the dict, append sample
                 samples_by_types[type].append(sample)
-                break
             else:
                 pass
 
