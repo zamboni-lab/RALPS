@@ -2,16 +2,12 @@
 import numpy, pandas, seaborn, umap, time, hdbscan, torch, matplotlib
 from matplotlib import pyplot
 from sklearn.preprocessing import RobustScaler
-from sys import platform
 
-from src.constants import user, path_to_my_best_method_1
 from src.models.ae import Autoencoder
-from src.constants import benchmark_sample_types as benchmarks
-from src.constants import shared_perturbations as all_samples
 
 
 def get_samples_by_types_dict(samples_names, types_of_interest):
-    """ Create a dict like this: {'P1_FA_0001': ['P1_FA_0001_0306_0', ..., 'P1_FA_0001_0306_2'], ...}  """
+    """ Create a dict like this: {'sample_type_1': ['sample_1', ..., 'sample_1_diluted'], 'sample_type_2': [...] }  """
 
     samples_by_types = {}
     for i, sample in enumerate(samples_names):
@@ -30,6 +26,7 @@ def get_samples_by_types_dict(samples_names, types_of_interest):
 
 
 def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interest, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user), save_plot=False):
+    """ This method plots heatmaps of intra-batch correaltions of the same samples of interest. """
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
@@ -74,6 +71,8 @@ def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interes
 
 
 def get_sample_cross_correlation_estimate(data, sample_types_of_interest, percent=50):
+    """ This method computes intra-batch correlations for the samples of interest.
+        A simple statistic is computed then to give an estimate (ex., median, or 25th percentile). """
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
@@ -88,6 +87,7 @@ def get_sample_cross_correlation_estimate(data, sample_types_of_interest, percen
 
 
 def compute_cv_for_samples_types(data, sample_types_of_interest):
+    """ This method computes variation coefs for samples of interest. """
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
@@ -102,8 +102,10 @@ def compute_cv_for_samples_types(data, sample_types_of_interest):
 
 
 def plot_full_dataset_umap(encodings, method_name, parameters, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
+    """ This method visualizes UMAP embeddings of the data encodings.
+        It helps to assess batch effects on the high level."""
 
-    batches = encodings['batch'].values - 1
+    batches = encodings['batch'].values
     values = encodings.iloc[:, 1:].values
 
     neighbors = int(parameters['n_batches'] * parameters['n_replicates'])
@@ -125,7 +127,7 @@ def plot_full_dataset_umap(encodings, method_name, parameters, save_to='/Users/{
 
 def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, sample_types_of_interest=None, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
     """ Produces a plot with UMAP embeddings, colored after specified samples.
-        Seems to be not very useful... """
+        Seems to be not very useful. """
 
     values = encodings.iloc[:, 1:].values
 
@@ -167,6 +169,8 @@ def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, samp
 
 
 def compute_number_of_clusters_with_hdbscan(encodings, parameters, sample_types_of_interest, print_info=True):
+    """ This method applied HDBSCAN clustering on the encodings,
+        and returns assigned clusters to the samples of interest.  """
 
     samples_by_types = get_samples_by_types_dict(encodings.index.values, sample_types_of_interest)
 
@@ -215,7 +219,7 @@ def compute_number_of_clusters_with_hdbscan(encodings, parameters, sample_types_
 if __name__ == '__main__':
 
     data = pandas.read_csv('/Users/{}/ETH/projects/normalization/data/filtered_data.csv'.format(user))
-    data = data.iloc[:, 3:]
+    data = data.iloc[:, 1:]
 
     plot_batch_cross_correlations(data.T, 'original samples', '', ['P1_FA_0001', 'P2_SF_0001',
                                                                    'P2_SFA_0001', 'P2_SRM_0001',
@@ -227,7 +231,7 @@ if __name__ == '__main__':
     print(res)
 
     # get encodings of the SEPARATELY TRAINED autoencoder
-    encodings = pandas.read_csv('/Users/{}/ETH/projects/normalization/res/encodings.csv'.format(user), index_col=0)
+    encodings = pandas.read_csv('/Users/{}/ETH/projects/normalization/res/autoencoder/encodings.csv'.format(user), index_col=0)
 
     pars = {'n_batches': 7, 'n_replicates': 3, 'id': ''}
     plot_full_dataset_umap(encodings, 'original samples', pars,
@@ -241,7 +245,7 @@ if __name__ == '__main__':
     print(res)
 
     encodings_raw = pandas.read_csv('/Users/{}/ETH/projects/normalization/res/autoencoder/encodings.csv'.format(user), index_col=0)
-    encodings_normalized = pandas.read_csv('/Users/{}/ETH/projects/normalization/res/best_model/2d48bfb2/encodings_2d48bfb2.csv'.format(user), index_col=0)
+    encodings_normalized = pandas.read_csv('/Users/{}/ETH/projects/normalization/res/no_reference_samples/best_model/2d48bfb2_best/encodings_2d48bfb2.csv'.format(user), index_col=0)
 
     pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'ae'}
     plot_full_dataset_umap(encodings_raw, 'original', pars)

@@ -7,9 +7,32 @@ from sklearn.preprocessing import RobustScaler
 
 from src.constants import batches as bids
 from src.constants import shared_perturbations as sps
-from src.constants import min_relevant_intensity
 from src.constants import data_path as path
 from src.constants import user
+
+# const
+min_relevant_intensity = 1000
+
+
+def split_to_train_and_test(values, batches, scaler, proportion=0.7):
+    """ Split data for the classifier of the adversarial training loop. """
+
+    n_samples, n_features = values.shape
+
+    # scale
+    scaled = scaler.transform(values)
+    # split values to train and val
+    x_train = scaled[:int(proportion * n_samples), :]
+    x_val = scaled[int(proportion * n_samples):, :]
+    y_train = batches[:int(proportion * n_samples)]
+    y_val = batches[int(proportion * n_samples):]
+
+    if numpy.min(batches) == 1:
+        # enumerate batches from 0 to n
+        y_train -= 1
+        y_val -= 1
+
+    return x_train, x_val, y_train, y_val
 
 
 def run_pca(data, n=100):
@@ -171,7 +194,7 @@ def collapse_same_mzs(all_data, precision=2):
 
 def merge_batches_and_save_dataset():
     """ It gets all batches, merges mz axis
-    and makes a single dataset of shared perturbations (samples with spike-ins). """
+        and makes a single dataset of shared perturbations (samples with spike-ins). """
 
     path = '/Users/andreidm/ETH/projects/normalization/data/'
 
@@ -240,7 +263,7 @@ def generate_batch_info(file, path='/Users/andreidm/ETH/projects/normalization/d
         A5, 7, 2, 1, Subject\n
         A6, 8, 2, 1, Subject\n
 
-        This was done for NormAE (which doesn't work), but kept anyways.
+        This was done for NormAE.
     """
 
     data = pandas.read_csv(path + file)
@@ -270,60 +293,6 @@ def generate_batch_info(file, path='/Users/andreidm/ETH/projects/normalization/d
     batch_information.to_csv(path + 'batch_info.csv', index=False)
 
 
-def filter_out_diluted_samples(data):
-    """ I had an idea to filter them out. But not sure. """
-
-    less_diluted_samples = []
-    for sample in data.columns.values:
-        if '2048' in sample or '1024' in sample or '0512' in sample or '0256' in sample:
-            continue
-        else:
-            less_diluted_samples.append(sample)
-
-    return data.loc[:, numpy.array(less_diluted_samples)]
-
-
-def split_data_to_train_and_test():
-
-    path = '/Users/andreidm/ETH/projects/normalization/data/'
-
-    # collect merged dataset
-    data = pandas.read_csv(path + 'filtered_data.csv')
-    batch_info = pandas.read_csv(path + 'batch_info.csv')
-
-    # transpose and remove metainfo
-    data = data.iloc[:, 3:].T
-
-    # add batch and shuffle
-    data.insert(0, 'batch', batch_info['batch'].values)
-    data = data.sample(frac=1)
-
-    train_data = data.iloc[:int(0.8 * data.shape[0]), :]
-    test_data = data.iloc[int(0.8 * data.shape[0]):, :]
-
-    samples = {'train': list(train_data.index), 'test': list(test_data.index)}
-
-    train_data.to_csv(path + 'train.csv', index=False)
-    test_data.to_csv(path + 'test.csv', index=False)
-
-    with open(path + 'samples.json', 'w') as file:
-        json.dump(samples, file)
-
-
-def get_fitted_scaler():
-
-    # collect merged dataset
-    data = pandas.read_csv(path + 'filtered_data.csv')
-
-    # transpose and remove metainfo
-    data = data.iloc[:, 3:].T.values
-
-    # fit scaler
-    scaler = RobustScaler().fit(data)
-
-    return scaler
-
-
 def implement_pipeline():
     """ A collection of retrospective steps. """
 
@@ -351,16 +320,10 @@ def implement_pipeline():
     # generate file with batch information
     generate_batch_info('filtered_data.csv', path=path)
 
-    # split data to train and test, to easily form the Dataset structures in TensorFlow
-    split_data_to_train_and_test()
-
-    # get full data, fit and return the scaler
-    get_fitted_scaler()
-
 
 def get_injection_order_and_names():
     """ Dumb and ugly method to retrieve injection order from h5 files:
-        @:returns two lists of samples names and order indices"""
+        :returns two lists of samples names and order indices"""
 
     path = '/Users/{}/ETH/projects/normalization/data/raw/'.format(user)
 

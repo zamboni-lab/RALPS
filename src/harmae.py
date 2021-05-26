@@ -2,11 +2,12 @@
 import pandas, sys, uuid, random, os
 from tqdm import tqdm
 
-from src.models.adversarial import get_data, run_normalization, slice_by_grouping_and_correlation
+from src.models.adversarial import run_normalization
+from src.evaluation import evaluate_models, slice_by_grouping_and_correlation
 from src.constants import default_parameters_values
+from src.constants import latent_dim_explained_variance_ratio as min_variance_ratio
 from src.constants import grouping_threshold_percent as g_percent
 from src.constants import correlation_threshold_percent as c_percent
-
 
 
 def parse_config(path=None):
@@ -16,6 +17,48 @@ def parse_config(path=None):
         config = dict(pandas.read_csv(sys.argv[1], index_col=0).iloc[:,0])
 
     return config
+
+
+def get_data(path_to_data, path_to_batch_info, n_batches=None, m_fraction=None, na_fraction=None):
+    # collect merged dataset
+    data = pandas.read_csv(path_to_data)
+    batch_info = pandas.read_csv(path_to_batch_info)
+
+    # transpose and remove annotation
+    data = data.iloc[:, 1:].T
+    # fill in missing values
+    data = data.fillna(min_relevant_intensity)
+
+    # create prefixes for grouping
+    new_index = data.index.values
+    groups_indices = numpy.where(batch_info['group'].astype('str') != '0')[0]
+    new_index[groups_indices] = 'group_' + batch_info['group'][groups_indices].astype('str') + '_' + new_index[groups_indices]
+
+    # create prefixes for benchmarks
+    benchmarks_indices = numpy.where(batch_info['benchmark'].astype('str') != '0')[0]
+    new_index[benchmarks_indices] = 'bench_' + batch_info['benchmark'][benchmarks_indices].astype('str') + '_' + new_index[benchmarks_indices]
+    data.index = new_index
+
+    if m_fraction is not None:
+        # randomly select a fraction of metabolites
+        all_metabolites = list(data.columns)
+        metabolites_to_drop = random.sample(all_metabolites, int(round(1 - m_fraction, 2) * len(all_metabolites)))
+        data = data.drop(labels=metabolites_to_drop, axis=1)
+
+    if na_fraction is not None:
+        # randomly mask a fraction of values
+        data = data.mask(numpy.random.random(data.shape) < na_fraction)
+        data = data.fillna(min_relevant_intensity)
+
+    # add batch and shuffle
+    data.insert(0, 'batch', batch_info['batch'].values)
+    data = data.sample(frac=1)
+
+    if n_batches is not None:
+        # select first n batches
+        data = data.loc[data['batch'] <= n_batches, :]
+
+    return data
 
 
 def get_grid_size(config):
@@ -67,11 +110,12 @@ def initialise_constant_parameters(config):
 
     parameters = config.copy()
     # set types and defaults for constant parameters
-    for int_par_name in ['latent_dim', 'n_replicates', 'epochs', 'skip_epochs', 'callback_step']:
+    for int_par_name in ['latent_dim', 'n_replicates', 'epochs', 'skip_epochs', 'callback_step', 'min_relevant_intensity']:
         try:
             parameters[int_par_name] = int(parameters[int_par_name])
         except Exception:
             parameters[int_par_name] = default_parameters_values[int_par_name]
+
     try:
         parameters['train_ratio'] = float(parameters['train_ratio'])
     except Exception:
@@ -85,11 +129,32 @@ def initialise_constant_parameters(config):
     return parameters
 
 
+def define_latent_dim_with_pca(data):
+    """ Latent_dim is defined by PCA and desired level of variance explained (defaults to 0.99). """
+
+    transformer = PCA()
+    scaler = StandardScaler()
+
+    scaled_data = scaler.fit_transform(data)
+    transformer.fit(scaled_data)
+
+    for i in range(0, len(transformer.explained_variance_ratio_), 5):
+        if sum(transformer.explained_variance_ratio_[:i]) > min_variance_ratio:
+            return i
+
+
 def generate_parameters_grid(config, data):
 
     parameters = initialise_constant_parameters(config)
     parameters['n_features'] = data.shape[1]-1
     parameters['n_batches'] = data['batch'].unique().shape[0]
+
+    # TODO: check inputs and set correct values
+    if parameters['latent_dim'] <= 0:
+        parameters['latent_dim'] = define_latent_dim_with_pca(data)
+
+    if parameters['min_relevant_intensity'] < 0:
+        parameters['min_relevant_intensity'] = default_parameters_values['min_relevant_intensity']
 
     reg_types = set()
     benchmarks = set()
@@ -106,7 +171,7 @@ def generate_parameters_grid(config, data):
     grid = []
     for _ in range(get_grid_size(config)):
         new_pars = parameters.copy()
-        # sample the other parameters
+        # sample the other parameters, if not provided
         new_pars['id'] = str(uuid.uuid4())[:8]
         new_pars['d_lr'] = set_parameter('d_lr', new_pars['d_lr'])
         new_pars['g_lr'] = set_parameter('g_lr', new_pars['g_lr'])
@@ -119,43 +184,17 @@ def generate_parameters_grid(config, data):
     return grid
 
 
-if __name__ == "__main__":
-
-    # read config file
-    config = parse_config(path='/Users/andreidm/ETH/projects/normalization/data/config_v41.csv')
+def harmae(config):
 
     data = get_data(config['data_path'], config['info_path'])
     grid = generate_parameters_grid(config, data)
 
     for parameters in tqdm(grid):
-        # run grid
         run_normalization(data, parameters)
 
-    best_epochs = pandas.DataFrame()
-    for id in os.listdir(config['out_path']):
-        if id.startswith('.'):
-            pass
-        else:
-            id_results = pandas.read_csv(config['out_path'] + id + '/history_{}.csv'.format(id))
-            id_results = id_results.loc[id_results['best'] == True, :]
-            id_results['id'] = id
-            best_epochs = pandas.concat([best_epochs, id_results])
-            del id_results
-    best_epochs['best'] = False
+    evaluate_models(config)
 
-    # pick best models
-    print('GRID SEARCH BEST MODELS:', '\n')
-    top = slice_by_grouping_and_correlation(best_epochs, g_percent, c_percent)
-    if top is None:
-        print('WARNING: could not find the best model, returning the list sorted by reg_grouping\n')
-        best_epochs = best_epochs.sort_values('reg_grouping')
-        print(best_epochs.to_string(), '\n')
 
-    else:
-        for top_id in top['id'].values:
-            # mark the best models
-            best_epochs.loc[best_epochs['id'] == top_id, 'best'] = True
-        print(top.to_string(), '\n')
-
-    best_epochs.to_csv(config['out_path'] + 'best_models.csv', index=False)
-    print('full grid saved to {}best_models.csv'.format(config['out_path']))
+if __name__ == "__main__":
+    config = parse_config(sys.argv[1])
+    harmae(config)

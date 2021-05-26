@@ -10,8 +10,13 @@ from src.utils import combat
 from src.constants import benchmark_sample_types as benchmarks
 from src.constants import regularization_sample_types as regs
 from src.constants import data_path as path
-from src.constants import path_to_other_methods_1, path_to_my_best_method_1, path_to_my_best_method_2, path_to_other_methods_2, user, batches
+from src.constants import path_to_other_methods_1, path_to_my_best_method_1, path_to_my_best_method_2, path_to_other_methods_2, user
 from src.batch_analysis import get_sample_cross_correlation_estimate
+
+
+batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
+
+# TODO: go through the code and refactor
 
 
 def plot_benchmarks_corrs_for_methods(scenario=1, save_plot=False):
