@@ -2,7 +2,7 @@
 from torch import nn
 
 # META
-version = "v.0.3.48"
+version = "v.0.3.49"
 
 default_parameters_values = {
     'latent_dim': -1,
@@ -14,6 +14,10 @@ default_parameters_values = {
     'train_ratio': 0.9,
     'keep_checkpoints': False
 }
+
+# MODEL SELECTION
+grouping_threshold_percent = 30
+correlation_threshold_percent = 70
 
 user = 'andreidm'
 

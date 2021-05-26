@@ -1,9 +1,12 @@
 
-import pandas, sys, uuid, random
+import pandas, sys, uuid, random, os
 from tqdm import tqdm
 
-from src.models.adversarial import get_data, run_normalization
+from src.models.adversarial import get_data, run_normalization, slice_by_grouping_and_correlation
 from src.constants import default_parameters_values
+from src.constants import grouping_threshold_percent as g_percent
+from src.constants import correlation_threshold_percent as c_percent
+
 
 
 def parse_config(path=None):
@@ -121,18 +124,42 @@ if __name__ == "__main__":
     # read config file
     config = parse_config(path='/Users/andreidm/ETH/projects/normalization/data/config_v41.csv')
 
-    data = get_data(config['data_path'], config['info_path'])
-    grid = generate_parameters_grid(config, data)
+    # data = get_data(config['data_path'], config['info_path'])
+    # grid = generate_parameters_grid(config, data)
+    #
+    # # TODO: few things left:
+    # #  - global refactoring,
+    # #  - integration test
+    #
+    # for parameters in tqdm(grid):
+    #     # run grid
+    #     run_normalization(data, parameters)
 
-    # TODO: few things left:
-    #  - global refactoring,
-    #  - integration test
+    best_epochs = pandas.DataFrame()
+    for id in os.listdir(config['out_path']):
+        if id.startswith('.'):
+            pass
+        else:
+            id_results = pandas.read_csv(config['out_path'] + id + '/history_{}.csv'.format(id))
+            id_results = id_results.loc[id_results['best'] == True, :]
+            id_results['id'] = id
+            best_epochs = pandas.concat([best_epochs, id_results])
+            del id_results
+    best_epochs['best'] = False
 
-    for parameters in tqdm(grid):
-        # run grid
-        run_normalization(data, parameters)
+    # pick best models
+    print('GRID SEARCH BEST MODELS:', '\n')
+    top = slice_by_grouping_and_correlation(best_epochs, g_percent, c_percent)
+    if top is None:
+        print('WARNING: could not find the best model, returning the list sorted by reg_grouping\n')
+        best_epochs = best_epochs.sort_values('reg_grouping')
+        print(best_epochs.to_string(), '\n')
 
-    # TODO: save best models from grid
+    else:
+        for top_id in top['id'].values:
+            # mark the best models
+            best_epochs.loc[best_epochs['id'] == top_id, 'best'] = True
+        print(top.to_string(), '\n')
 
-
-    pass
+    best_epochs.to_csv(config['out_path'] + 'best_models.csv', index=False)
+    print('full grid saved to {}best_models.csv'.format(config['out_path']))
