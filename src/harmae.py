@@ -124,16 +124,12 @@ if __name__ == "__main__":
     # read config file
     config = parse_config(path='/Users/andreidm/ETH/projects/normalization/data/config_v41.csv')
 
-    # data = get_data(config['data_path'], config['info_path'])
-    # grid = generate_parameters_grid(config, data)
-    #
-    # # TODO: few things left:
-    # #  - global refactoring,
-    # #  - integration test
-    #
-    # for parameters in tqdm(grid):
-    #     # run grid
-    #     run_normalization(data, parameters)
+    data = get_data(config['data_path'], config['info_path'])
+    grid = generate_parameters_grid(config, data)
+
+    for parameters in tqdm(grid):
+        # run grid
+        run_normalization(data, parameters)
 
     best_epochs = pandas.DataFrame()
     for id in os.listdir(config['out_path']):
