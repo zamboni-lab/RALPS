@@ -73,10 +73,11 @@ def initialise_constant_parameters(config):
         parameters['train_ratio'] = float(parameters['train_ratio'])
     except Exception:
         parameters['train_ratio'] = default_parameters_values['train_ratio']
-    try:
-        parameters['keep_checkpoints'] = bool(parameters['keep_checkpoints'])
-    except Exception:
+
+    if parameters['keep_checkpoints'].lower() not in ['true', '1']:
         parameters['keep_checkpoints'] = default_parameters_values['keep_checkpoints']
+    else:
+        parameters['keep_checkpoints'] = True
 
     return parameters
 
@@ -118,13 +119,12 @@ def generate_parameters_grid(config, data):
 if __name__ == "__main__":
 
     # read config file
-    config = parse_config(path='/Users/andreidm/ETH/projects/normalization/data/config_v4.csv')
+    config = parse_config(path='/Users/andreidm/ETH/projects/normalization/data/config_v41.csv')
 
     data = get_data(config['data_path'], config['info_path'])
     grid = generate_parameters_grid(config, data)
 
     # TODO: few things left:
-    #  - skip epochs,
     #  - global refactoring,
     #  - integration test
 
@@ -132,7 +132,7 @@ if __name__ == "__main__":
         # run grid
         run_normalization(data, parameters)
 
-    # print best epochs
+    # TODO: save best models from grid
 
 
     pass

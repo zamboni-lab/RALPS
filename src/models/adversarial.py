@@ -176,7 +176,7 @@ def plot_benchmarks_metrics(b_correlations, b_grouping, best_epoch, id, save_to=
 
 def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
 
-    if len(vc_dict) == 6:
+    if len(vc_dict) <= 6:
         # save all on one figure
         pyplot.figure(figsize=(12, 8))
         for i, type in enumerate(vc_dict):
@@ -213,6 +213,7 @@ def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Us
             pyplot.xlabel('Epochs')
             pyplot.title('Variation coefficient for {}'.format(type))
             pyplot.grid(True)
+            pyplot.legend()
             pyplot.tight_layout()
             pyplot.savefig(save_to + 'vcs_{}_{}.pdf'.format(type, id))
 
@@ -272,9 +273,10 @@ def slice_by_grouping_and_correlation(history, g_percent, c_percent):
     return df
 
 
-def find_best_epoch(history, skip_epochs=10):
+def find_best_epoch(history, skip_epochs=5):
+
     # skip first n epochs
-    if skip_epochs < history.shape[0]:
+    if 0 < skip_epochs < history.shape[0]:
         history = history.iloc[skip_epochs:, :]
 
     df = slice_by_grouping_and_correlation(history, 10, 90)
@@ -561,9 +563,9 @@ def run_normalization(data, parameters):
     reconstruction = pandas.DataFrame(reconstruction, index=data_values.index)
 
     # plot cross correlations of benchmarks in ALL reconstructed data
-    plot_batch_cross_correlations(reconstruction, 'best model at {}'.format(best_epoch + 1), parameters['id'], benchmarks, save_to=save_to+'/benchmarks/', save_plot=True)
+    plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch + 1), parameters['id'], benchmarks, save_to=save_to+'/benchmarks/', save_plot=True)
     # plot umap of FULL encoded data
-    plot_full_dataset_umap(encodings, 'best model at {}'.format(best_epoch + 1), parameters, save_to=save_to)
+    plot_full_dataset_umap(encodings, 'at epoch {}'.format(best_epoch + 1), parameters, save_to=save_to)
     pyplot.close('all')
 
     # SAVE ENCODED AND NORMALIZED DATA
