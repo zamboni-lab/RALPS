@@ -8,11 +8,8 @@ from tqdm import tqdm
 
 from src.models.cl import Classifier
 from src.models.ae import Autoencoder
-from src.preprocessing import split_to_train_and_test
 from src.constants import latent_dim_explained_variance_ratio as min_variance_ratio
-from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
-from src.batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_data_umaps
-from src.batch_analysis import get_sample_cross_correlation_estimate
+from src import evaluation, batch_analysis, preprocessing
 
 
 def run_normalization(data, parameters):
@@ -44,12 +41,12 @@ def run_normalization(data, parameters):
     data_values = data.iloc[:, 1:]
 
     # get CV of benchmarks in original data
-    cv_dict_original = compute_cv_for_samples_types(data_values, benchmarks)
+    cv_dict_original = batch_analysis.compute_cv_for_samples_types(data_values, benchmarks)
 
     # create and fit the scaler
     scaler = RobustScaler().fit(data_values)
     # apply scaling and do train test split
-    X_train, X_test, y_train, y_test = split_to_train_and_test(data_values, data_batch_labels, scaler, proportion=parameters['train_ratio'])
+    X_train, X_test, y_train, y_test = preprocessing.split_to_train_and_test(data_values, data_batch_labels, scaler, proportion=parameters['train_ratio'])
 
     # make datasets
     train_dataset = TensorDataset(torch.Tensor(X_train), torch.LongTensor(y_train))
@@ -170,7 +167,7 @@ def run_normalization(data, parameters):
         val_acc_history.append(accuracy)  # for plotting
 
         # collect variation coefficients for reg_types and benchmarks
-        vcs = compute_cv_for_samples_types(reconstruction, all_samples_types)
+        vcs = batch_analysis.compute_cv_for_samples_types(reconstruction, all_samples_types)
         reg_vcs_sum = 0.
         for sample in all_samples_types:
             if sample in reg_types:
@@ -182,15 +179,15 @@ def run_normalization(data, parameters):
         reg_samples_vc_history.append(reg_vc)
 
         # assess cross correlations of regularization samples
-        reg_corr = get_sample_cross_correlation_estimate(reconstruction, reg_types, percent=25)
+        reg_corr = batch_analysis.get_sample_cross_correlation_estimate(reconstruction, reg_types, percent=25)
         reg_samples_corr_history.append(reg_corr)
 
         # assess cross correlations of benchmarks
-        b_corr = get_sample_cross_correlation_estimate(reconstruction, benchmarks)
+        b_corr = batch_analysis.get_sample_cross_correlation_estimate(reconstruction, benchmarks)
         benchmarks_corr_history.append(b_corr)
 
         # collect clustering results for reg_types and benchmarks
-        clustering, total_clusters = compute_number_of_clusters_with_hdbscan(encodings, parameters, all_samples_types, print_info=False)
+        clustering, total_clusters = batch_analysis.compute_number_of_clusters_with_hdbscan(encodings, parameters, all_samples_types, print_info=False)
         # assess grouping of samples: compute g_lambda, so that it equals
         # 0, when all samples of a reg_type belong to the sample cluster
         # 1, when N samples of a reg_type belong to N different clusters
@@ -221,9 +218,9 @@ def run_normalization(data, parameters):
         # plot every N epochs what happens with data
         if parameters['callback_step'] > 0 and epoch % parameters['callback_step'] == 0:
             # plot cross correlations of benchmarks in ALL reconstructed data
-            plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], benchmarks, save_to=save_to+'/callbacks/', save_plot=True)
+            batch_analysis.plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], benchmarks, save_to=save_to+'/callbacks/', save_plot=True)
             # plot umap of FULL encoded data
-            plot_encodings_umap(encodings, 'epoch {}'.format(epoch + 1), parameters, save_to=save_to + '/callbacks/')
+            batch_analysis.plot_encodings_umap(encodings, 'epoch {}'.format(epoch + 1), parameters, save_to=save_to + '/callbacks/')
             pyplot.close('all')
 
         # display the epoch training loss
@@ -238,15 +235,15 @@ def run_normalization(data, parameters):
                                 'reg_grouping': reg_samples_grouping_history, 'reg_corr': reg_samples_corr_history, 'reg_vc': reg_samples_vc_history,
                                 'val_acc': val_acc_history, 'b_corr': benchmarks_corr_history, 'b_grouping': benchmarks_grouping_history})
 
-    best_epoch = find_best_epoch(history, skip_epochs=parameters['skip_epochs'])
+    best_epoch = evaluation.find_best_epoch(history, skip_epochs=parameters['skip_epochs'])
     history.loc[best_epoch, 'best'] = True  # mark the best epoch
 
-    plot_losses(rec_loss_history, d_loss_history, g_loss_history, best_epoch, parameters, save_to=save_to)
-    plot_metrics(val_acc_history, reg_samples_corr_history, reg_samples_grouping_history, reg_samples_vc_history,
+    evaluation.plot_losses(rec_loss_history, d_loss_history, g_loss_history, best_epoch, parameters, save_to=save_to)
+    evaluation.plot_metrics(val_acc_history, reg_samples_corr_history, reg_samples_grouping_history, reg_samples_vc_history,
                  best_epoch, parameters['id'], save_to=save_to)
 
-    plot_benchmarks_metrics(benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters['id'], save_to=save_to+'/benchmarks/')
-    plot_variation_coefs(benchmarks_variation_coefs, cv_dict_original, best_epoch, parameters['id'], save_to=save_to+'/benchmarks/')
+    evaluation.plot_benchmarks_metrics(benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters['id'], save_to=save_to+'/benchmarks/')
+    evaluation.plot_variation_coefs(benchmarks_variation_coefs, cv_dict_original, best_epoch, parameters['id'], save_to=save_to+'/benchmarks/')
 
     # LOAD BEST MODEL
     generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
@@ -264,9 +261,9 @@ def run_normalization(data, parameters):
     reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
 
     # plot cross correlations of benchmarks in ALL reconstructed data
-    plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch + 1), parameters['id'], benchmarks, save_to=save_to+'/benchmarks/', save_plot=True)
+    batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch + 1), parameters['id'], benchmarks, save_to=save_to+'/benchmarks/', save_plot=True)
     # plot umap of FULL encoded data
-    plot_full_data_umaps(data, encodings, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch + 1), save_to=save_to)
+    batch_analysis.plot_full_data_umaps(data_values, encodings, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch + 1), save_to=save_to)
     pyplot.close('all')
 
     # TODO:
