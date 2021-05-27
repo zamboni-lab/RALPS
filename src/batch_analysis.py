@@ -25,7 +25,7 @@ def get_samples_by_types_dict(samples_names, types_of_interest):
     return samples_by_types
 
 
-def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interest, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user), save_plot=False):
+def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interest, save_to='/Users/andreidm/ETH/projects/normalization/res/', save_plot=False):
     """ This method plots heatmaps of intra-batch correaltions of the same samples of interest. """
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
@@ -101,7 +101,36 @@ def compute_cv_for_samples_types(data, sample_types_of_interest):
     return cv_dict
 
 
-def plot_full_dataset_umap(encodings, method_name, parameters, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
+def get_pca_reduced_data(data, parameters):
+
+    transformer = PCA(n_components=parameters['latent_dim'])
+    scaler = StandardScaler()
+
+    scaled_data = scaler.fit_transform(data)
+    pca_reduced = pandas.DataFrame(transformer.fit_transform(scaled_data))
+
+    return pca_reduced
+
+
+def plot_full_data_umaps(data, encodings, reconstruction, batch_labels, parameters, common_plot_label, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+    """ This method plots UMAP embeddings of PCA reduced data (initial, normalized and model encoded). """
+
+    # plot initial data
+    initial_data_reduced = get_pca_reduced_data(data, parameters)
+    initial_data_reduced.insert(0, 'batch', batch_labels)
+    plot_encodings_umap(initial_data_reduced, 'initial ' + common_plot_label, parameters, save_to=save_to)
+
+    # plot normalized data
+    normalized_data_reduced = get_pca_reduced_data(reconstruction, parameters)
+    normalized_data_reduced.insert(0, 'batch', batch_labels)
+    plot_encodings_umap(normalized_data_reduced, 'normalized ' + common_plot_label, parameters, save_to=save_to)
+
+    # plot encodings
+    encodings.insert(0, 'batch', batch_labels)
+    plot_encodings_umap(encodings, 'encodings ' + common_plot_label, parameters, save_to=save_to)
+
+
+def plot_encodings_umap(encodings, plot_label, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
     """ This method visualizes UMAP embeddings of the data encodings.
         It helps to assess batch effects on the high level."""
 
@@ -120,12 +149,12 @@ def plot_full_dataset_umap(encodings, method_name, parameters, save_to='/Users/{
 
     seaborn.scatterplot(x=embeddings[:, 0], y=embeddings[:, 1], hue=batches, alpha=.8, palette=seaborn.color_palette('deep', n_colors=len(set(batches))))
     pyplot.legend(title='Batch', bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=10)
-    pyplot.title('UMAP: {}: n={}, metric={}'.format(method_name, neighbors, metric))
+    pyplot.title('UMAP: {}: n={}, metric={}'.format(plot_label, neighbors, metric))
     pyplot.tight_layout()
-    pyplot.savefig(save_to + 'umap_batches_{}_{}.pdf'.format(method_name.replace(' ', '_'), parameters['id']))
+    pyplot.savefig(save_to + 'umap_{}_{}.pdf'.format(plot_label.replace(' ', '_'), parameters['id']))
 
 
-def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, sample_types_of_interest=None, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
+def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
     """ Produces a plot with UMAP embeddings, colored after specified samples.
         Seems to be not very useful. """
 
@@ -218,7 +247,7 @@ def compute_number_of_clusters_with_hdbscan(encodings, parameters, sample_types_
 
 if __name__ == '__main__':
 
-    data = pandas.read_csv('/Users/{}/ETH/projects/normalization/data/filtered_data.csv'.format(user))
+    data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv')
     data = data.iloc[:, 1:]
 
     plot_batch_cross_correlations(data.T, 'original samples', '', ['P1_FA_0001', 'P2_SF_0001',
@@ -231,11 +260,11 @@ if __name__ == '__main__':
     print(res)
 
     # get encodings of the SEPARATELY TRAINED autoencoder
-    encodings = pandas.read_csv('/Users/{}/ETH/projects/normalization/res/autoencoder/encodings.csv'.format(user), index_col=0)
+    encodings = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/autoencoder/encodings.csv', index_col=0)
 
     pars = {'n_batches': 7, 'n_replicates': 3, 'id': ''}
-    plot_full_dataset_umap(encodings, 'original samples', pars,
-                           save_to='/Users/andreidm/ETH/projects/normalization/res/')
+    plot_encodings_umap(encodings, 'original samples', pars,
+                        save_to='/Users/andreidm/ETH/projects/normalization/res/')
 
     pars = {'latent_dim': 100, 'n_batches': 7, 'n_replicates': 3}
     res, _ = compute_number_of_clusters_with_hdbscan(encodings, pars, ['P1_FA_0001', 'P2_SF_0001',
@@ -244,13 +273,13 @@ if __name__ == '__main__':
                                                      print_info=True)
     print(res)
 
-    encodings_raw = pandas.read_csv('/Users/{}/ETH/projects/normalization/res/autoencoder/encodings.csv'.format(user), index_col=0)
-    encodings_normalized = pandas.read_csv('/Users/{}/ETH/projects/normalization/res/no_reference_samples/best_model/2d48bfb2_best/encodings_2d48bfb2.csv'.format(user), index_col=0)
+    encodings_raw = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/autoencoder/encodings.csv', index_col=0)
+    encodings_normalized = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/no_reference_samples/best_model/2d48bfb2_best/encodings_2d48bfb2.csv', index_col=0)
 
     pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'ae'}
-    plot_full_dataset_umap(encodings_raw, 'original', pars)
+    plot_encodings_umap(encodings_raw, 'original', pars)
     pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': '2d48bfb2'}
-    plot_full_dataset_umap(encodings_normalized, 'normalized', pars)
+    plot_encodings_umap(encodings_normalized, 'normalized', pars)
 
     samples = [sample for sample in all_samples if 'SRM_000' in sample]
 

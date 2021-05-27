@@ -1,6 +1,8 @@
 
-import pandas, sys, uuid, random, os
+import pandas, sys, uuid, random, os, numpy
 from tqdm import tqdm
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
 
 from src.models.adversarial import run_normalization
 from src.evaluation import evaluate_models, slice_by_grouping_and_correlation
@@ -19,15 +21,17 @@ def parse_config(path=None):
     return config
 
 
-def get_data(path_to_data, path_to_batch_info, n_batches=None, m_fraction=None, na_fraction=None):
+def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
     # collect merged dataset
-    data = pandas.read_csv(path_to_data)
-    batch_info = pandas.read_csv(path_to_batch_info)
+    data = pandas.read_csv(config['data_path'])
+    batch_info = pandas.read_csv(config['info_path'])
 
     # transpose and remove annotation
+    annotation = data.iloc[:, 0]
     data = data.iloc[:, 1:].T
+    data.columns = annotation
     # fill in missing values
-    data = data.fillna(min_relevant_intensity)
+    data = data.fillna(config['min_relevant_intensity'])
 
     # create prefixes for grouping
     new_index = data.index.values
@@ -48,7 +52,7 @@ def get_data(path_to_data, path_to_batch_info, n_batches=None, m_fraction=None, 
     if na_fraction is not None:
         # randomly mask a fraction of values
         data = data.mask(numpy.random.random(data.shape) < na_fraction)
-        data = data.fillna(min_relevant_intensity)
+        data = data.fillna(config['min_relevant_intensity'])
 
     # add batch and shuffle
     data.insert(0, 'batch', batch_info['batch'].values)
@@ -186,7 +190,7 @@ def generate_parameters_grid(config, data):
 
 def harmae(config):
 
-    data = get_data(config['data_path'], config['info_path'])
+    data = get_data(config)
     grid = generate_parameters_grid(config, data)
 
     for parameters in tqdm(grid):
@@ -196,5 +200,6 @@ def harmae(config):
 
 
 if __name__ == "__main__":
-    config = parse_config(sys.argv[1])
+    # config = parse_config(sys.argv[1])
+    config = parse_config('/Users/andreidm/ETH/projects/normalization/data/config_v4.csv')
     harmae(config)

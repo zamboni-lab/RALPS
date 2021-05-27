@@ -79,7 +79,7 @@ def find_best_epoch(history, skip_epochs=5):
     return int(df['epoch'].values[0])
 
 
-def plot_losses(rec_loss, d_loss, g_loss, best_epoch, parameters, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
+def plot_losses(rec_loss, d_loss, g_loss, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     fig, axs = pyplot.subplots(3, figsize=(6,9))
 
@@ -110,7 +110,7 @@ def plot_losses(rec_loss, d_loss, g_loss, best_epoch, parameters, save_to='/User
     pyplot.savefig(save_to + 'losses_{}.pdf'.format(parameters['id']))
 
 
-def plot_metrics(d_accuracy, reg_correlation, reg_clustering, reg_vc, best_epoch, id, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
+def plot_metrics(d_accuracy, reg_correlation, reg_clustering, reg_vc, best_epoch, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     fig, axs = pyplot.subplots(2, 2, figsize=(9,6))
 
@@ -148,7 +148,7 @@ def plot_metrics(d_accuracy, reg_correlation, reg_clustering, reg_vc, best_epoch
     pyplot.savefig(save_to + 'metrics_{}.pdf'.format(id))
 
 
-def plot_benchmarks_metrics(b_correlations, b_grouping, best_epoch, id, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
+def plot_benchmarks_metrics(b_correlations, b_grouping, best_epoch, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     fig, axs = pyplot.subplots(2, figsize=(6,6))
 
@@ -172,7 +172,7 @@ def plot_benchmarks_metrics(b_correlations, b_grouping, best_epoch, id, save_to=
     pyplot.savefig(save_to + 'benchmarks_metrics_{}.pdf'.format(id))
 
 
-def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
+def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     if len(vc_dict) <= 6:
         # save all on one figure
@@ -216,7 +216,7 @@ def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Us
             pyplot.savefig(save_to + 'vcs_{}_{}.pdf'.format(type, id))
 
 
-def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/{}/ETH/projects/normalization/res/'.format(user)):
+def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     if len(clusters_dict) == 6:
         # save all on one figure

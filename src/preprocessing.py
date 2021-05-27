@@ -5,13 +5,12 @@ from sklearn.preprocessing import StandardScaler
 from matplotlib import pyplot
 from sklearn.preprocessing import RobustScaler
 
-from src.constants import batches as bids
-from src.constants import shared_perturbations as sps
-from src.constants import data_path as path
-from src.constants import user
-
-# const
+# constants
+user = 'andreidm'
+path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
 min_relevant_intensity = 1000
+batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
+sps = []  # set shared perturbations
 
 
 def split_to_train_and_test(values, batches, scaler, proportion=0.7):

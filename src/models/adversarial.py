@@ -10,9 +10,8 @@ from src.models.cl import Classifier
 from src.models.ae import Autoencoder
 from src.preprocessing import split_to_train_and_test
 from src.constants import latent_dim_explained_variance_ratio as min_variance_ratio
-from src.constants import user, batches, min_relevant_intensity
 from src.batch_analysis import compute_cv_for_samples_types, plot_batch_cross_correlations
-from src.batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_dataset_umap
+from src.batch_analysis import compute_number_of_clusters_with_hdbscan, plot_full_data_umaps
 from src.batch_analysis import get_sample_cross_correlation_estimate
 
 
@@ -224,7 +223,7 @@ def run_normalization(data, parameters):
             # plot cross correlations of benchmarks in ALL reconstructed data
             plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], benchmarks, save_to=save_to+'/callbacks/', save_plot=True)
             # plot umap of FULL encoded data
-            plot_full_dataset_umap(encodings, 'epoch {}'.format(epoch+1), parameters, save_to=save_to+'/callbacks/')
+            plot_encodings_umap(encodings, 'epoch {}'.format(epoch + 1), parameters, save_to=save_to + '/callbacks/')
             pyplot.close('all')
 
         # display the epoch training loss
@@ -261,24 +260,21 @@ def run_normalization(data, parameters):
     reconstruction = generator.decode(encodings)
 
     encodings = pandas.DataFrame(encodings.detach().numpy(), index=data_values.index)
-    encodings.insert(0, 'batch', data_batch_labels)
-
     reconstruction = scaler.inverse_transform(reconstruction.detach().numpy())
-    reconstruction = pandas.DataFrame(reconstruction, index=data_values.index)
+    reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
 
     # plot cross correlations of benchmarks in ALL reconstructed data
     plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch + 1), parameters['id'], benchmarks, save_to=save_to+'/benchmarks/', save_plot=True)
     # plot umap of FULL encoded data
-    plot_full_dataset_umap(encodings, 'at epoch {}'.format(best_epoch + 1), parameters, save_to=save_to)
+    plot_full_data_umaps(data, encodings, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch + 1), save_to=save_to)
     pyplot.close('all')
 
     # TODO:
-    #  - plot umaps on the initial and normalized data (pca -> umaps), so that one can compare
     #  - mask predicted negative values with min_relevant_intensity
 
     # SAVE ENCODED AND NORMALIZED DATA
     encodings.to_csv(save_to + 'encodings_{}.csv'.format(parameters['id']))
-    reconstruction.to_csv(save_to + 'normalized_{}.csv'.format(parameters['id']))
+    reconstruction.T.to_csv(save_to + 'normalized_{}.csv'.format(parameters['id']))
 
     # SAVE PARAMETERS AND HISTORY
     pandas.DataFrame(parameters, index=['values'], columns=parameters.keys()).T.to_csv(save_to + 'parameters_{}.csv'.format(parameters['id']))
