@@ -1,5 +1,5 @@
 
-import seaborn, pandas, numpy
+import seaborn, pandas, numpy, os
 from matplotlib import pyplot
 from src.constants import grouping_threshold_percent as g_percent
 from src.constants import correlation_threshold_percent as c_percent
