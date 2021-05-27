@@ -120,12 +120,12 @@ def plot_full_data_umaps(data, encodings, reconstruction, batch_labels, paramete
     # plot initial data
     initial_data_reduced = get_pca_reduced_data(data, parameters)
     initial_data_reduced.insert(0, 'batch', batch_labels.values)
-    plot_encodings_umap(initial_data_reduced, 'initial ' + common_plot_label, parameters, save_to=save_to)
+    plot_encodings_umap(initial_data_reduced, 'initial data', parameters, save_to=save_to)
 
     # plot normalized data
     normalized_data_reduced = get_pca_reduced_data(reconstruction, parameters)
     normalized_data_reduced.insert(0, 'batch', batch_labels.values)
-    plot_encodings_umap(normalized_data_reduced, 'normalized ' + common_plot_label, parameters, save_to=save_to)
+    plot_encodings_umap(normalized_data_reduced, 'normalized data ' + common_plot_label, parameters, save_to=save_to)
 
     # plot encodings
     encodings.insert(0, 'batch', batch_labels.values)

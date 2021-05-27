@@ -117,11 +117,15 @@ def initialise_constant_parameters(config):
     for int_par_name in ['latent_dim', 'n_replicates', 'epochs', 'skip_epochs', 'callback_step', 'min_relevant_intensity']:
         try:
             parameters[int_par_name] = int(parameters[int_par_name])
+            if parameters[int_par_name] < 0:
+                parameters[int_par_name] = default_parameters_values[int_par_name]
         except Exception:
             parameters[int_par_name] = default_parameters_values[int_par_name]
 
     try:
         parameters['train_ratio'] = float(parameters['train_ratio'])
+        if parameters['train_ratio'] <= 0:
+            parameters['train_ratio'] = default_parameters_values['train_ratio']
     except Exception:
         parameters['train_ratio'] = default_parameters_values['train_ratio']
 
@@ -153,12 +157,8 @@ def generate_parameters_grid(config, data):
     parameters['n_features'] = data.shape[1]-1
     parameters['n_batches'] = data['batch'].unique().shape[0]
 
-    # TODO: check inputs and set correct values
     if parameters['latent_dim'] <= 0:
         parameters['latent_dim'] = define_latent_dim_with_pca(data)
-
-    if parameters['min_relevant_intensity'] < 0:
-        parameters['min_relevant_intensity'] = default_parameters_values['min_relevant_intensity']
 
     reg_types = set()
     benchmarks = set()
