@@ -259,15 +259,13 @@ def run_normalization(data, parameters):
     encodings = pandas.DataFrame(encodings.detach().numpy(), index=data_values.index)
     reconstruction = scaler.inverse_transform(reconstruction.detach().numpy())
     reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
+    reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
 
     # plot cross correlations of benchmarks in ALL reconstructed data
     batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch + 1), parameters['id'], benchmarks, save_to=save_to+'/benchmarks/', save_plot=True)
     # plot umap of FULL encoded data
     batch_analysis.plot_full_data_umaps(data_values, encodings, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch + 1), save_to=save_to)
     pyplot.close('all')
-
-    # TODO:
-    #  - mask predicted negative values with min_relevant_intensity
 
     # SAVE ENCODED AND NORMALIZED DATA
     encodings.to_csv(save_to + 'encodings_{}.csv'.format(parameters['id']))

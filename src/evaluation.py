@@ -5,6 +5,13 @@ from src.constants import grouping_threshold_percent as g_percent
 from src.constants import correlation_threshold_percent as c_percent
 
 
+def mask_non_relevant_intensities(reconstruction, min_relevant_intensity):
+    """ This method replaces intensities below threshold with zeros. """
+    values = reconstruction.values
+    values[values < min_relevant_intensity] = 0
+    return pandas.DataFrame(values, index=reconstruction.index, columns=reconstruction.columns)
+
+
 def evaluate_models(config):
     """ This method evaluates results of the grid search.
         If found, best models are printed. All models' metrics are logged to a file. """
