@@ -8,6 +8,4 @@ from src.batch_analysis import plot_encodings_umap
 from src.evaluation import find_best_epoch
 
 if __name__ == "__main__":
-
-    history = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/new_grid/8cad10e3/history_8cad10e3.csv')
-    b = find_best_epoch(history)
+    pass

@@ -14,9 +14,6 @@ from src.utils import combat
 # constants
 user = 'andreidm'
 path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
-batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
-
-# TODO: go through the code and refactor
 
 
 def plot_benchmarks_corrs_for_methods(scenario=1, save_plot=False):
@@ -105,18 +102,22 @@ def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
 
 
 def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
+    """ Plot statistics for cross-correlations within regularization sample types. """
 
     methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
-    corrs = []
-    data = get_data(shuffle=False)
+    data = harmae.get_data({'data_path': path + 'filtered_data_v4.csv',
+                            'info_path': path + 'batch_info_v4.csv',
+                            'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
+    regs, _ = harmae.extract_reg_types_and_benchmarks(data)
+
+    corrs = []
     for method in methods:
 
         if method == 'none':
             normalized = data.iloc[:, 1:]
         elif method == 'my_best':
-            # hardcode
             normalized = pandas.read_csv(path_to_my_best, index_col=0)
         elif method == 'normAE':
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
@@ -124,7 +125,7 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
         else:
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
 
-        res = get_sample_cross_correlation_estimate(normalized, regs)
+        res = get_sample_cross_correlation_estimate(normalized, regs, percent=25)
         corrs.append(res)
 
     res = pandas.DataFrame({'method': methods, 'corr': corrs})
@@ -177,6 +178,7 @@ def get_paths_and_methods(scenario):
 
 
 def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
+    """ Plot grouping coefs for benchmark samples after normalization. """
 
     methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
@@ -240,18 +242,20 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
 
 
 def plot_normalized_spectra_for_methods(scenario=1, file_ext='pdf', save_plot=False):
+    """ This methods plots spectra of normalized data. """
 
     methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
-    mz = pandas.read_csv('/Users/{}/ETH/projects/normalization/data/filtered_data.csv'.format(user))['mz'].values
-    color_dict = {'0108': 'k', '0110': 'g', '0124': 'r', '0219': 'c', '0221': 'm', '0304': 'y', '0306': 'b'}
-
-    data = get_data(shuffle=False)
+    data_with_mz = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data_with_mz.csv')
+    mz = data_with_mz['mz'].values
+    # hardcode colors for batches from our dataset
+    batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
+    color_dict = dict(zip(batches, 'kgrcmyb'))
 
     for method in methods:
 
         if method == 'none':
-            normalized = data.drop(columns=['batch'])
+            normalized = data_with_mz.iloc[:, 3:]
         elif method == 'my_best':
             normalized = pandas.read_csv(path_to_my_best, index_col=0)
         elif method == 'normAE':
@@ -293,18 +297,12 @@ def plot_normalized_spectra_for_methods(scenario=1, file_ext='pdf', save_plot=Fa
 def check_relevant_intensities_for_methods(scenario=1):
     """ Methods 'lev+eig', 'pqn+pow', 'normAE' are excluded by default, since they don't output intensities. """
 
-    if scenario == 1:
-        methods = ['none', 'combat', 'eigenMS', 'waveICA', 'my_best']
-        path_to_my_best = path_to_my_best_method_1
-        path_to_others = path_to_other_methods_1
-    elif scenario == 2:
-        methods = ['none', 'my_best']
-        path_to_my_best = path_to_my_best_method_2
-        path_to_others = path_to_other_methods_2
-    else:
-        raise ValueError("Please, indicate application scenario.")
+    methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
-    data = get_data(shuffle=False)
+    data = harmae.get_data({'data_path': path + 'filtered_data_v4.csv',
+                            'info_path': path + 'batch_info_v4.csv',
+                            'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+
     for method in methods:
         if method == 'none':
             normalized = data.iloc[:, 1:]
@@ -312,8 +310,11 @@ def check_relevant_intensities_for_methods(scenario=1):
             # hardcode
             normalized = pandas.read_csv(path_to_my_best, index_col=0)
         elif method == 'normAE':
+            # it doesn't output intensities, but I'm curious how much negative values they produce
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
             normalized = normalized.loc[data.index, :]
+        elif method in ['lev+eig', 'pqn+pow']:
+            continue
         else:
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
 
