@@ -4,28 +4,34 @@ from matplotlib import pyplot
 from sklearn.preprocessing import MinMaxScaler
 
 from src.models.ae import get_data
+from src import harmae
+from src.constants import default_parameters_values
 from src.batch_analysis import plot_batch_cross_correlations, compute_cv_for_samples_types
 from src.batch_analysis import compute_number_of_clusters_with_hdbscan
-from src.utils import combat
-from src.constants import benchmark_sample_types as benchmarks
-from src.constants import regularization_sample_types as regs
-from src.constants import data_path as path
-from src.constants import path_to_other_methods_1, path_to_my_best_method_1, path_to_my_best_method_2, path_to_other_methods_2, user
 from src.batch_analysis import get_sample_cross_correlation_estimate
+from src.utils import combat
 
-
+# constants
+user = 'andreidm'
+path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
 batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
 
 # TODO: go through the code and refactor
 
 
 def plot_benchmarks_corrs_for_methods(scenario=1, save_plot=False):
+    """ This method plots heatmaps of batch cross-correlations for benchmark samples. """
 
     methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
     for method in methods:
 
-        data = get_data(shuffle=False)
+        data = harmae.get_data({'data_path': path + 'filtered_data_v4.csv',
+                                'info_path': path + 'batch_info_v4.csv',
+                                'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+
+        _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
+
         if method == 'none':
             normalized = data.iloc[:, 1:]
         elif method == 'my_best':
@@ -44,11 +50,16 @@ def plot_benchmarks_corrs_for_methods(scenario=1, save_plot=False):
 
 
 def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
+    """ Plots variation coefs for benchmarks. """
 
     methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
     all_cvs = pandas.DataFrame()
-    data = get_data(shuffle=False)
+    data = harmae.get_data({'data_path': path + 'filtered_data_v4.csv',
+                            'info_path': path + 'batch_info_v4.csv',
+                            'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+
+    _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
 
     for method in methods:
 
@@ -151,16 +162,16 @@ def get_paths_and_methods(scenario):
 
     if scenario == 1:
         methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'my_best']
-        path_to_my_best = path_to_my_best_method_1
-        path_to_others = path_to_other_methods_1
-        save_to = '/Users/{}/ETH/projects/normalization/res/no_reference_samples/other_methods/plots/'.format(user)
+        path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/no_reference_samples/best_model/2d48bfb2_best/normalized_2d48bfb2.csv'
+        path_to_others = '/Users/andreidm/ETH/projects/normalization/res/no_reference_samples/other_methods/'
+        save_to = '/Users/andreidm/ETH/projects/normalization/res/no_reference_samples/other_methods/plots/'
     elif scenario == 2:
         methods = ['none', 'normAE', 'my_best']
         path_to_my_best = path_to_my_best_method_2
         path_to_others = path_to_other_methods_2
-        save_to = '/Users/{}/ETH/projects/normalization/res/fake_reference_samples/other_methods/plots/'.format(user)
+        save_to = '/Users/andreidm/ETH/projects/normalization/res/fake_reference_samples/other_methods/plots/'.format(user)
     else:
-        raise ValueError("Please, indicate application scenario.")
+        raise ValueError("Indicate application scenario: 1 or 2.")
 
     return methods, path_to_my_best, path_to_others, save_to
 
@@ -169,8 +180,15 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
 
     methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
-    data = get_data()
-    pars = {'latent_dim': data.shape[1], 'n_batches': 7, 'n_replicates': 3}
+    data = harmae.get_data({'data_path': path + 'filtered_data_v4.csv',
+                            'info_path': path + 'batch_info_v4.csv',
+                            'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+
+    _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
+
+    pars = {'latent_dim': data.shape[1]-1,
+            'n_batches': len(data['batch'].unique()),
+            'n_replicates': default_parameters_values['n_replicates']}
 
     all_grouping_coefs = pandas.DataFrame()
 
@@ -319,6 +337,6 @@ if __name__ == "__main__":
 
     # all samples
     plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
-    plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)  # not very informative
     check_relevant_intensities_for_methods(scenario=scenario)
+    plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)  # not very informative
 

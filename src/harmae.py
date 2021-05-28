@@ -151,6 +151,20 @@ def define_latent_dim_with_pca(data):
             return i
 
 
+def extract_reg_types_and_benchmarks(data):
+    """ This method extracts the names for regularization sample types and benchmark samples from the data. """
+    reg_types = set()
+    benchmarks = set()
+    # parse reg_types and benchmarks from data
+    for i in range(data.index.shape[0]):
+        if 'group_' in data.index[i]:
+            reg_types.add('group_{}'.format(data.index[i].split('group')[1].split('_')[1]))
+        if 'bench_' in data.index[i]:
+            benchmarks.add('bench_{}'.format(data.index[i].split('bench')[1].split('_')[1]))
+
+    return list(reg_types), list(benchmarks)
+
+
 def generate_parameters_grid(config, data):
 
     parameters = initialise_constant_parameters(config)
@@ -160,17 +174,10 @@ def generate_parameters_grid(config, data):
     if parameters['latent_dim'] <= 0:
         parameters['latent_dim'] = define_latent_dim_with_pca(data)
 
-    reg_types = set()
-    benchmarks = set()
-    # parse reg_types and benchmarks from data
-    for i in range(data.index.shape[0]):
-        if 'group_' in data.index[i]:
-            reg_types.add('group_{}'.format(data.index[i].split('group')[1].split('_')[1]))
-        if 'bench_' in data.index[i]:
-            benchmarks.add('bench_{}'.format(data.index[i].split('bench')[1].split('_')[1]))
-    # add to parameters
-    parameters['reg_types'] = ','.join(list(reg_types))
-    parameters['benchmarks'] = ','.join(list(benchmarks))
+    # add reg_types and benchmarks to parameters
+    reg_types, benchmarks = extract_reg_types_and_benchmarks(data)
+    parameters['reg_types'] = ','.join(reg_types)
+    parameters['benchmarks'] = ','.join(benchmarks)
 
     grid = []
     for _ in range(get_grid_size(config)):
