@@ -7,10 +7,9 @@ from sklearn.preprocessing import RobustScaler
 
 # constants
 user = 'andreidm'
-path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
 min_relevant_intensity = 1000
-batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
-sps = []  # set shared perturbations
+# batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
+# sps = []  # set shared perturbations
 
 
 def split_to_train_and_test(values, batches, scaler, proportion=0.7):
@@ -390,11 +389,7 @@ def edit_the_data_for_normae():
     batch_info.to_csv(path + 'batch_info_2.csv', index=False)
 
 
-if __name__ == '__main__':
-
-    path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
-
-    # refine batch info for NormAE input
+def refine_batch_info_for_normae():
 
     # SCENARIO 1: groups defined as sample types, SRMs as QCs
     batch_info = pandas.read_csv(path + 'batch_info.csv')
@@ -413,3 +408,97 @@ if __name__ == '__main__':
     batch_info = pandas.read_csv(path + 'batch_info_2.csv')
     batch_info['group'] = 1  # must be int
     batch_info.to_csv(path + 'batch_info_2.csv', index=False)
+
+
+def explore_data_of_sarah(samples_names):
+
+    unique_batches = list(set([name.split('_')[0][:6] for name in samples_names]))
+    print("unique_batches:\n", unique_batches)
+    unique_cell_lines = list(set([name.split('_')[1] for name in samples_names]))
+    print("unique_cell_lines:\n", unique_cell_lines)
+    unique_samples = list(set(["_".join(name.split('_')[1:]) for name in samples_names]))
+    print("unique_samples:\n", unique_samples)
+
+    n_replicates = numpy.median([samples_names.count(s) for s in list(set(samples_names))])
+    print('n replicates (median) = {}'.format(n_replicates))
+
+    occurencies_across_batches = {}
+    for sample in unique_samples:
+        for batch in unique_batches:
+            if '{}_{}'.format(batch, sample) in samples_names:
+                if sample in occurencies_across_batches:
+                    occurencies_across_batches[sample] += 1
+                else:
+                    occurencies_across_batches[sample] = 1
+
+    print("occurencies:\n")
+    for sample, count in occurencies_across_batches.items():
+        if count > 1:
+            # HCC38_Medium1_BREAST_JB: 2
+            # NCIH1993_Medium1_LUNG_JB: 2
+            # MCF7_Medium1_BREAST_JG: 4
+            # MDAMB231_Medium1_BREAST_JB: 5
+            print("{}: {}".format(sample, count))
+
+
+def preprocess_data_of_sarah(path='/Users/{}/ETH/projects/normalization/data/sarah/raw/AstraScreenPipe_DATA.h5'.format(user)):
+
+    data = get_all_data_from_h5(path)
+
+    samples_names = data['samples']['names']
+    # explore_data_of_sarah(samples_names)
+
+    all_metabolites_names = data['annotation']['names']
+    all_metabolites_mzs = data['annotation']['mzs']
+    metabolites = [all_metabolites_names[all_metabolites_mzs.index(round(x, 4))] for x in data['samples']['mzs']]
+
+    # make and dump data table
+    data_matrix = pandas.DataFrame(data['samples']['data'], index=metabolites, columns=samples_names)
+    data_matrix.to_csv(path.replace('raw/AstraScreenPipe_DATA.h5', 'data.csv'))
+
+    # make and dump meta info table
+    batch_labels = [int(name.split('_')[0][5]) for name in samples_names]
+    group_labels = [0 for x in samples_names]  # no grouping so far
+    benchmark_labels = ["" for x in samples_names]  # no benchmarks so far
+
+    # add two groups by name of sample that are present in most batches
+    for i in range(len(group_labels)):
+        if 'MCF7_Medium1_BREAST_JG' in samples_names[i]:
+            group_labels[i] += 1
+        elif 'MDAMB231_Medium1_BREAST_JB' in samples_names[i]:
+            group_labels[i] += 2
+        else:
+            pass
+    # add a few samples that are present in multiple batches as benchmarks
+    for i in range(len(benchmark_labels)):
+        if 'HCC38_Medium1_BREAST_JB' in samples_names[i]:
+            benchmark_labels[i] += "HCC38-2b"  # in 2 batches
+        elif 'NCIH1993_Medium1_LUNG_JB' in samples_names[i]:
+            benchmark_labels[i] += "NCIH1993-2b"  # in 2 batches
+        elif 'MCF7_Medium1_BREAST_JG' in samples_names[i]:
+            benchmark_labels[i] += "MCF7-4b"  # in 4 batches
+        elif 'MDAMB231_Medium1_BREAST_JB' in samples_names[i]:
+            benchmark_labels[i] += "MDAMB231-5b"  # in 5 batches
+        else:
+            pass
+
+    batch_info = pandas.DataFrame({
+        'batch': batch_labels,
+        'group': group_labels,
+        'benchmark': benchmark_labels},
+        index=samples_names)
+
+    batch_info.to_csv(path.replace('raw/AstraScreenPipe_DATA.h5', 'batch_info.csv'))
+
+
+if __name__ == '__main__':
+
+    path = '/Users/andreidm/ETH/projects/normalization/data/sarah/raw/AstraScreenPipe_DATA.h5'
+    preprocess_data_of_sarah(path)
+
+    # TODO:
+    #  - figure out 'nan' case for a benchmark
+    #  - single plots for benchmarks,
+    #  - option to save png (default),
+    #  - test smaller percent of variance (0.95, 0.9, 0.8)
+

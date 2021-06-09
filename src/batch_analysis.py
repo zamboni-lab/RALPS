@@ -5,7 +5,7 @@ from sklearn.preprocessing import RobustScaler, StandardScaler
 from sklearn.decomposition import PCA
 
 
-from src.models.ae import Autoencoder
+from models.ae import Autoencoder
 
 
 def get_samples_by_types_dict(samples_names, types_of_interest):

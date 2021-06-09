@@ -3,8 +3,8 @@ import numpy, pandas, seaborn, time
 from matplotlib import pyplot
 from sklearn.preprocessing import MinMaxScaler
 
-from src.models.ae import get_data
 from src import harmae
+from src.models.ae import get_data
 from src.constants import default_parameters_values
 from src.batch_analysis import plot_batch_cross_correlations, compute_cv_for_samples_types
 from src.batch_analysis import compute_number_of_clusters_with_hdbscan

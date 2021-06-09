@@ -4,12 +4,12 @@ from tqdm import tqdm
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 
-from src.models.adversarial import run_normalization
-from src.evaluation import evaluate_models, slice_by_grouping_and_correlation
-from src.constants import default_parameters_values
-from src.constants import latent_dim_explained_variance_ratio as min_variance_ratio
-from src.constants import grouping_threshold_percent as g_percent
-from src.constants import correlation_threshold_percent as c_percent
+from models.adversarial import run_normalization
+from evaluation import evaluate_models, slice_by_grouping_and_correlation
+from constants import default_parameters_values
+from constants import latent_dim_explained_variance_ratio as min_variance_ratio
+from constants import grouping_threshold_percent as g_percent
+from constants import correlation_threshold_percent as c_percent
 
 
 def parse_config(path=None):
@@ -207,6 +207,6 @@ def harmae(config):
 
 
 if __name__ == "__main__":
-    # config = parse_config(sys.argv[1])
-    config = parse_config('/Users/andreidm/ETH/projects/normalization/data/config_v4.csv')
+
+    config = parse_config(sys.argv[1])
     harmae(config)

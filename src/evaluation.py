@@ -1,8 +1,9 @@
 
 import seaborn, pandas, numpy, os
 from matplotlib import pyplot
-from src.constants import grouping_threshold_percent as g_percent
-from src.constants import correlation_threshold_percent as c_percent
+
+from constants import grouping_threshold_percent as g_percent
+from constants import correlation_threshold_percent as c_percent
 
 
 def mask_non_relevant_intensities(reconstruction, min_relevant_intensity):

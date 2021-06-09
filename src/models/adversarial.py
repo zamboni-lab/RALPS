@@ -6,10 +6,10 @@ from sklearn.decomposition import PCA
 from matplotlib import pyplot
 from tqdm import tqdm
 
-from src.models.cl import Classifier
-from src.models.ae import Autoencoder
-from src.constants import latent_dim_explained_variance_ratio as min_variance_ratio
-from src import evaluation, batch_analysis, preprocessing
+from models.cl import Classifier
+from models.ae import Autoencoder
+from constants import latent_dim_explained_variance_ratio as min_variance_ratio
+import evaluation, batch_analysis, preprocessing
 
 
 def run_normalization(data, parameters):
