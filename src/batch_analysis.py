@@ -32,44 +32,23 @@ def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interes
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
-    if len(samples_by_types) <= 6:
+    # plot one by one
+    for i, type in enumerate(samples_by_types):
+        pyplot.figure()
+        df = data.loc[numpy.array(samples_by_types[type]), :]
+        df = df.T  # transpose to call corr() on samples, not metabolites
+        df.columns = sorted([x[-6:] for x in df.columns])
+        df = df.corr()
 
-        pyplot.figure(figsize=(12,8))
-        for i, type in enumerate(samples_by_types):
-            df = data.loc[numpy.array(samples_by_types[type]), :]
-            df = df.T  # transpose to call corr() on samples, not metabolites
-            df.columns = sorted([x[-6:] for x in df.columns])
-            df = df.corr()
+        seaborn.heatmap(df, vmin=0, vmax=1)
+        pyplot.title(type)
+        pyplot.suptitle('Cross correlations: {}'.format(method_name))
+        pyplot.tight_layout()
 
-            ax = pyplot.subplot(2, 3, i+1)
-            seaborn.heatmap(df, vmin=0, vmax=1)
-            ax.set_title(type)
-
-            pyplot.suptitle('Cross correlations: {}'.format(method_name))
-            pyplot.tight_layout()
-
-            if save_plot:
-                pyplot.savefig(save_to + 'correlations_{}_{}.pdf'.format(method_name.replace(' ', '_'), id))
-            else:
-                pyplot.show()
-    else:
-        # plot one by one
-        for i, type in enumerate(samples_by_types):
-            pyplot.figure()
-            df = data.loc[numpy.array(samples_by_types[type]), :]
-            df = df.T  # transpose to call corr() on samples, not metabolites
-            df.columns = sorted([x[-6:] for x in df.columns])
-            df = df.corr()
-
-            seaborn.heatmap(df, vmin=0, vmax=1)
-            pyplot.title(type)
-            pyplot.suptitle('Cross correlations: {}'.format(method_name))
-            pyplot.tight_layout()
-
-            if save_plot:
-                pyplot.savefig(save_to + 'correlations_{}_{}_{}.pdf'.format(type, method_name.replace(' ', '_'), id))
-            else:
-                pyplot.show()
+        if save_plot:
+            pyplot.savefig(save_to + 'correlations_{}_{}_{}.pdf'.format(type, method_name.replace(' ', '_'), id))
+        else:
+            pyplot.show()
 
 
 def get_sample_cross_correlation_estimate(data, sample_types_of_interest, percent=50):

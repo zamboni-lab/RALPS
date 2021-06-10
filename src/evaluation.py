@@ -184,46 +184,23 @@ def plot_benchmarks_metrics(b_correlations, b_grouping, best_epoch, id, save_to=
 
 def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
-    if len(vc_dict) <= 6:
-        # save all on one figure
-        pyplot.figure(figsize=(12, 8))
-        for i, type in enumerate(vc_dict):
+    # save one by one for each sample in dict
+    for i, type in enumerate(vc_dict):
+        x = range(1, 1+len(vc_dict[type]))  # epochs
+        y = vc_dict[type]  # values
 
-            x = range(1, 1+len(vc_dict[type]))  # epochs
-            y = vc_dict[type]  # values
-
-            ax = pyplot.subplot(2, 3, i + 1)
-            ax.plot(x, y, label='Training process')
-            ax.hlines(y=vc_dict_original[type], xmin=x[0], xmax=x[-1], colors='r', label='Original data')
-            ax.hlines(y=y[best_epoch], xmin=x[0], xmax=x[-1], colors='k', label='Normalized data')
-            ax.vlines(x=best_epoch+1, ymin=min(y), ymax=y[best_epoch], colors='k')
-            ax.set_xlabel('Epochs')
-            ax.set_ylabel('VC')
-            ax.set_title(type)
-            ax.grid(True)
-            ax.legend()
-
-        pyplot.suptitle('Variation coefficients')
+        pyplot.figure()
+        pyplot.plot(x, y, label='Training process')
+        pyplot.hlines(y=vc_dict_original[type], xmin=x[0], xmax=x[-1], colors='r', label='Original data')
+        pyplot.hlines(y=y[best_epoch], xmin=x[0], xmax=x[-1], colors='k', label='Normalized data')
+        pyplot.vlines(x=best_epoch+1, ymin=min(y), ymax=y[best_epoch], colors='k')
+        pyplot.ylabel('VC')
+        pyplot.xlabel('Epochs')
+        pyplot.title('Variation coefficient for {}'.format(type))
+        pyplot.grid(True)
+        pyplot.legend()
         pyplot.tight_layout()
-        pyplot.savefig(save_to + 'vcs_{}.pdf'.format(id))
-    else:
-        # save one by one for each sample in dict
-        for i, type in enumerate(vc_dict):
-            x = range(1, 1+len(vc_dict[type]))  # epochs
-            y = vc_dict[type]  # values
-
-            pyplot.figure()
-            pyplot.plot(x, y, label='Training process')
-            pyplot.hlines(y=vc_dict_original[type], xmin=x[0], xmax=x[-1], colors='r', label='Original data')
-            pyplot.hlines(y=y[best_epoch], xmin=x[0], xmax=x[-1], colors='k', label='Normalized data')
-            pyplot.vlines(x=best_epoch+1, ymin=min(y), ymax=y[best_epoch], colors='k')
-            pyplot.ylabel('VC')
-            pyplot.xlabel('Epochs')
-            pyplot.title('Variation coefficient for {}'.format(type))
-            pyplot.grid(True)
-            pyplot.legend()
-            pyplot.tight_layout()
-            pyplot.savefig(save_to + 'vcs_{}_{}.pdf'.format(type, id))
+        pyplot.savefig(save_to + 'vcs_{}_{}.pdf'.format(type, id))
 
 
 def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):

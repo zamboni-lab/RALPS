@@ -1,5 +1,5 @@
 
-version = "v.0.4.9"
+version = "v.0.4.10"
 
 # CONFIG
 default_parameters_values = {
