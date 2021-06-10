@@ -8,7 +8,6 @@ from tqdm import tqdm
 
 from models.cl import Classifier
 from models.ae import Autoencoder
-from constants import latent_dim_explained_variance_ratio as min_variance_ratio
 import evaluation, batch_analysis, preprocessing
 
 
@@ -243,7 +242,7 @@ def run_normalization(data, parameters):
                  best_epoch, parameters, save_to=save_to)
 
     evaluation.plot_benchmarks_metrics(benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters, save_to=save_to+'/benchmarks/')
-    evaluation.plot_variation_coefs(benchmarks_variation_coefs, cv_dict_original, best_epoch, parameters['id'], save_to=save_to+'/benchmarks/')
+    evaluation.plot_variation_coefs(benchmarks_variation_coefs, cv_dict_original, best_epoch, parameters, save_to=save_to+'/benchmarks/')
 
     # LOAD BEST MODEL
     generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
@@ -262,8 +261,8 @@ def run_normalization(data, parameters):
     reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
 
     # plot cross correlations of benchmarks in initial and normalized data
-    batch_analysis.plot_batch_cross_correlations(data_values, 'initial data', parameters['id'], benchmarks, save_to=save_to + '/benchmarks/', save_plot=True)
-    batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch + 1), parameters['id'], benchmarks, save_to=save_to+'/benchmarks/', save_plot=True)
+    batch_analysis.plot_batch_cross_correlations(data_values, 'initial data', parameters, benchmarks, save_to=save_to + '/benchmarks/', save_plot=True)
+    batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch + 1), parameters, benchmarks, save_to=save_to+'/benchmarks/', save_plot=True)
     # plot umaps of initial, encoded and normalized data
     batch_analysis.plot_full_data_umaps(data_values, encodings, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch + 1), save_to=save_to)
     pyplot.close('all')

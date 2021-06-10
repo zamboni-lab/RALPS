@@ -1,5 +1,5 @@
 
-version = "v.0.4.12"
+version = "v.0.4.13"
 
 # CONFIG
 default_parameters_values = {
@@ -7,7 +7,7 @@ default_parameters_values = {
     'variance_ratio': 0.99,
     'n_replicates': 3,
     'grid_size': 1,
-    'epochs': 50,
+    'epochs': 30,
     'skip_epochs': 5,
     'callback_step': -1,
     'train_ratio': 0.9,

@@ -1,4 +1,4 @@
-import pandas, numpy, os, sys, umap
+import pandas, numpy, os, sys, umap, random
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 
