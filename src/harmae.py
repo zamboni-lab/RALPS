@@ -38,7 +38,7 @@ def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
     new_index[groups_indices] = 'group_' + batch_info['group'][groups_indices].astype('str') + '_' + new_index[groups_indices]
 
     # create prefixes for benchmarks
-    benchmarks_indices = numpy.where(numpy.isin(batch_info['group'].astype('str'), default_labels, invert=True))[0]
+    benchmarks_indices = numpy.where(numpy.isin(batch_info['benchmark'].astype('str'), default_labels, invert=True))[0]
     new_index[benchmarks_indices] = 'bench_' + batch_info['benchmark'][benchmarks_indices].astype('str') + '_' + new_index[benchmarks_indices]
     data.index = new_index
 
