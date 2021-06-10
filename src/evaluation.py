@@ -83,9 +83,19 @@ def find_best_epoch(history, skip_epochs=5):
                 if df is None:
                     df = slice_by_grouping_and_correlation(history, 50, 50)
                     if df is None:
-                        min_grouping_epoch = int(history.loc[history['reg_grouping'] == history['reg_grouping'].min(), 'epoch'].values[-1])
-                        print('WARNING: couldn\'t find the best epoch, returning the last one of min grouping coef: epoch {}'.format(min_grouping_epoch+1))
-                        return min_grouping_epoch
+                        min_grouping_epochs = history.loc[history['reg_grouping'] == history['reg_grouping'].min(), :]
+                        if min_grouping_epochs.shape[0] > 1:
+                            # min grouping + max correlation
+                            best_epoch = int(min_grouping_epochs.loc[min_grouping_epochs['reg_corr'] == min_grouping_epochs['reg_corr'].max(), 'epoch'].values[-1])
+                            print('WARNING: couldn\'t find the best epoch,'
+                                  'returning the one of min grouping with max cross-correlation: epoch {}'.format(best_epoch + 1))
+                        else:
+                            # min grouping
+                            best_epoch = int(history.loc[history['reg_grouping'] == history['reg_grouping'].min(), 'epoch'].values[-1])
+                            print('WARNING: couldn\'t find the best epoch,'
+                                  'returning the last one of min grouping coef: epoch {}'.format(best_epoch + 1))
+
+                        return best_epoch
     return int(df['epoch'].values[0])
 
 

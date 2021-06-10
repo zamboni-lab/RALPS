@@ -499,8 +499,8 @@ if __name__ == '__main__':
     # TODO:
     #  - figure out 'nan' case for a benchmark
     #  - single plots for benchmarks,
-
     #  - figure model selection when grouping = 0
+
     #  - option to save png (default),
     #  - test smaller percent of variance (0.95, 0.9, 0.8)
 
