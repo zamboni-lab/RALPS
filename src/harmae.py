@@ -214,7 +214,5 @@ def harmae(config):
 
 
 if __name__ == "__main__":
-
-    # config = parse_config(sys.argv[1])
-    config = parse_config('/Users/andreidm/ETH/projects/normalization/data/sarah/config.csv')
+    config = parse_config(sys.argv[1])
     harmae(config)
