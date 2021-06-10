@@ -1,5 +1,5 @@
 
-version = "v.0.4.8"
+version = "v.0.4.9"
 
 # CONFIG
 default_parameters_values = {
@@ -16,6 +16,7 @@ default_parameters_values = {
 
 # DATA
 latent_dim_explained_variance_ratio = 0.99
+default_labels = ('0', '')  # for batch info
 
 # MODEL SELECTION
 grouping_threshold_percent = 30

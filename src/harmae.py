@@ -6,7 +6,7 @@ from sklearn.decomposition import PCA
 
 from models.adversarial import run_normalization
 from evaluation import evaluate_models, slice_by_grouping_and_correlation
-from constants import default_parameters_values
+from constants import default_parameters_values, default_labels
 from constants import latent_dim_explained_variance_ratio as min_variance_ratio
 from constants import grouping_threshold_percent as g_percent
 from constants import correlation_threshold_percent as c_percent
@@ -22,9 +22,9 @@ def parse_config(path=None):
 
 
 def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
-    # collect merged dataset
+    # collect data and batch info
     data = pandas.read_csv(config['data_path'])
-    batch_info = pandas.read_csv(config['info_path'])
+    batch_info = pandas.read_csv(config['info_path'], keep_default_na=False)
 
     # transpose and remove annotation
     annotation = data.iloc[:, 0]
@@ -35,11 +35,11 @@ def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
 
     # create prefixes for grouping
     new_index = data.index.values
-    groups_indices = numpy.where(batch_info['group'].astype('str') != '0')[0]
+    groups_indices = numpy.where(numpy.isin(batch_info['group'].astype('str'), default_labels, invert=True))[0]
     new_index[groups_indices] = 'group_' + batch_info['group'][groups_indices].astype('str') + '_' + new_index[groups_indices]
 
     # create prefixes for benchmarks
-    benchmarks_indices = numpy.where(batch_info['benchmark'].astype('str') != '0')[0]
+    benchmarks_indices = numpy.where(numpy.isin(batch_info['group'].astype('str'), default_labels, invert=True))[0]
     new_index[benchmarks_indices] = 'bench_' + batch_info['benchmark'][benchmarks_indices].astype('str') + '_' + new_index[benchmarks_indices]
     data.index = new_index
 
@@ -208,5 +208,6 @@ def harmae(config):
 
 if __name__ == "__main__":
 
-    config = parse_config(sys.argv[1])
+    # config = parse_config(sys.argv[1])
+    config = parse_config('/Users/andreidm/ETH/projects/normalization/data/sarah/config.csv')
     harmae(config)
