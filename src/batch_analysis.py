@@ -27,7 +27,7 @@ def get_samples_by_types_dict(samples_names, types_of_interest):
     return samples_by_types
 
 
-def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interest, save_to='/Users/andreidm/ETH/projects/normalization/res/', save_plot=False):
+def plot_batch_cross_correlations(data, method_name, parameters, sample_types_of_interest, save_to='/Users/andreidm/ETH/projects/normalization/res/', save_plot=False):
     """ This method plots heatmaps of intra-batch correaltions of the same samples of interest. """
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
@@ -46,7 +46,7 @@ def plot_batch_cross_correlations(data, method_name, id, sample_types_of_interes
         pyplot.tight_layout()
 
         if save_plot:
-            pyplot.savefig(save_to + 'correlations_{}_{}_{}.pdf'.format(type, method_name.replace(' ', '_'), id))
+            pyplot.savefig(save_to + 'correlations_{}_{}_{}.{}'.format(type, method_name.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
         else:
             pyplot.show()
 
@@ -132,7 +132,7 @@ def plot_encodings_umap(encodings, plot_label, parameters, save_to='/Users/andre
     pyplot.legend(title='Batch', bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0., fontsize=10)
     pyplot.title('UMAP: {}: n={}, metric={}'.format(plot_label, neighbors, metric))
     pyplot.tight_layout()
-    pyplot.savefig(save_to + 'umap_{}_{}.pdf'.format(plot_label.replace(' ', '_'), parameters['id']))
+    pyplot.savefig(save_to + 'umap_{}_{}.{}'.format(plot_label.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
 
 
 def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
@@ -231,6 +231,7 @@ if __name__ == '__main__':
     data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv')
     data = data.iloc[:, 1:]
 
+    pars = {'id': '', 'plots_extension': 'pdf'}
     plot_batch_cross_correlations(data.T, 'original samples', '', ['P1_FA_0001', 'P2_SF_0001',
                                                                    'P2_SFA_0001', 'P2_SRM_0001',
                                                                    'P2_SFA_0002', 'P1_FA_0008'])
@@ -243,7 +244,7 @@ if __name__ == '__main__':
     # get encodings of the SEPARATELY TRAINED autoencoder
     encodings = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/autoencoder/encodings.csv', index_col=0)
 
-    pars = {'n_batches': 7, 'n_replicates': 3, 'id': ''}
+    pars = {'n_batches': 7, 'n_replicates': 3, 'id': '', 'plots_extension': 'pdf'}
     plot_encodings_umap(encodings, 'original samples', pars,
                         save_to='/Users/andreidm/ETH/projects/normalization/res/')
 
@@ -257,9 +258,9 @@ if __name__ == '__main__':
     encodings_raw = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/autoencoder/encodings.csv', index_col=0)
     encodings_normalized = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/no_reference_samples/best_model/2d48bfb2_best/encodings_2d48bfb2.csv', index_col=0)
 
-    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'ae'}
+    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'ae', 'plots_extension': 'pdf'}
     plot_encodings_umap(encodings_raw, 'original', pars)
-    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': '2d48bfb2'}
+    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': '2d48bfb2', 'plots_extension': 'pdf'}
     plot_encodings_umap(encodings_normalized, 'normalized', pars)
 
     samples = [sample for sample in all_samples if 'SRM_000' in sample]

@@ -1,9 +1,10 @@
 
-version = "v.0.4.11"
+version = "v.0.4.12"
 
 # CONFIG
 default_parameters_values = {
     'latent_dim': -1,
+    'variance_ratio': 0.99,
     'n_replicates': 3,
     'grid_size': 1,
     'epochs': 50,
@@ -11,11 +12,11 @@ default_parameters_values = {
     'callback_step': -1,
     'train_ratio': 0.9,
     'keep_checkpoints': False,
+    'plots_extension': 'png',
     'min_relevant_intensity': 1000
 }
 
 # DATA
-latent_dim_explained_variance_ratio = 0.99
 default_labels = ('0', '')  # for batch info
 
 # MODEL SELECTION

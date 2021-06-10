@@ -240,9 +240,9 @@ def run_normalization(data, parameters):
 
     evaluation.plot_losses(rec_loss_history, d_loss_history, g_loss_history, best_epoch, parameters, save_to=save_to)
     evaluation.plot_metrics(val_acc_history, reg_samples_corr_history, reg_samples_grouping_history, reg_samples_vc_history,
-                 best_epoch, parameters['id'], save_to=save_to)
+                 best_epoch, parameters, save_to=save_to)
 
-    evaluation.plot_benchmarks_metrics(benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters['id'], save_to=save_to+'/benchmarks/')
+    evaluation.plot_benchmarks_metrics(benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters, save_to=save_to+'/benchmarks/')
     evaluation.plot_variation_coefs(benchmarks_variation_coefs, cv_dict_original, best_epoch, parameters['id'], save_to=save_to+'/benchmarks/')
 
     # LOAD BEST MODEL

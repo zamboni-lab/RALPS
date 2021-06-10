@@ -127,10 +127,10 @@ def plot_losses(rec_loss, d_loss, g_loss, best_epoch, parameters, save_to='/User
     axs[2].grid(True)
 
     pyplot.tight_layout()
-    pyplot.savefig(save_to + 'losses_{}.pdf'.format(parameters['id']))
+    pyplot.savefig(save_to + 'losses_{}.{}'.format(parameters['id'], parameters['plots_extension']))
 
 
-def plot_metrics(d_accuracy, reg_correlation, reg_clustering, reg_vc, best_epoch, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_metrics(d_accuracy, reg_correlation, reg_clustering, reg_vc, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     fig, axs = pyplot.subplots(2, 2, figsize=(9,6))
 
@@ -165,10 +165,10 @@ def plot_metrics(d_accuracy, reg_correlation, reg_clustering, reg_vc, best_epoch
     axs[1,1].grid(True)
 
     pyplot.tight_layout()
-    pyplot.savefig(save_to + 'metrics_{}.pdf'.format(id))
+    pyplot.savefig(save_to + 'metrics_{}.{}'.format(parameters['id'], parameters['plots_extension']))
 
 
-def plot_benchmarks_metrics(b_correlations, b_grouping, best_epoch, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_benchmarks_metrics(b_correlations, b_grouping, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     fig, axs = pyplot.subplots(2, figsize=(6,6))
 
@@ -189,10 +189,10 @@ def plot_benchmarks_metrics(b_correlations, b_grouping, best_epoch, id, save_to=
     axs[1].grid(True)
 
     pyplot.tight_layout()
-    pyplot.savefig(save_to + 'benchmarks_metrics_{}.pdf'.format(id))
+    pyplot.savefig(save_to + 'benchmarks_metrics_{}.{}'.format(parameters['id'], parameters['plots_extension']))
 
 
-def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     # save one by one for each sample in dict
     for i, type in enumerate(vc_dict):
@@ -210,7 +210,7 @@ def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, id, save_to='/Us
         pyplot.grid(True)
         pyplot.legend()
         pyplot.tight_layout()
-        pyplot.savefig(save_to + 'vcs_{}_{}.pdf'.format(type, id))
+        pyplot.savefig(save_to + 'vcs_{}_{}.{}'.format(type, parameters['id'], parameters['plots_extension']))
 
 
 def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):

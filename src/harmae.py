@@ -7,7 +7,6 @@ from sklearn.decomposition import PCA
 from models.adversarial import run_normalization
 from evaluation import evaluate_models, slice_by_grouping_and_correlation
 from constants import default_parameters_values, default_labels
-from constants import latent_dim_explained_variance_ratio as min_variance_ratio
 from constants import grouping_threshold_percent as g_percent
 from constants import correlation_threshold_percent as c_percent
 
@@ -89,6 +88,8 @@ def sample_from_default_ranges(par_name):
         return round(random.uniform(0., 10.), 1)
     elif par_name == 'batch_size':
         return random.sample([32, 64, 128], 1)[0]
+    elif par_name == 'variance_ratio':
+        return random.sample([0.8, 0.9, 0.99], 1)[0]
 
 
 def set_parameter(name, string_value):
@@ -134,10 +135,15 @@ def initialise_constant_parameters(config):
     else:
         parameters['keep_checkpoints'] = True
 
+    if parameters['plots_extension'].lower() not in ['png', 'pdf', 'svg']:
+        parameters['plots_extension'] = default_parameters_values['plots_extension']
+    else:
+        parameters['plots_extension'] = parameters['plots_extension'].lower()
+
     return parameters
 
 
-def define_latent_dim_with_pca(data):
+def define_latent_dim_with_pca(data, min_variance_ratio):
     """ Latent_dim is defined by PCA and desired level of variance explained (defaults to 0.99). """
 
     transformer = PCA()
@@ -171,9 +177,6 @@ def generate_parameters_grid(config, data):
     parameters['n_features'] = data.shape[1]-1
     parameters['n_batches'] = data['batch'].unique().shape[0]
 
-    if parameters['latent_dim'] <= 0:
-        parameters['latent_dim'] = define_latent_dim_with_pca(data)
-
     # add reg_types and benchmarks to parameters
     reg_types, benchmarks = extract_reg_types_and_benchmarks(data)
     parameters['reg_types'] = ','.join(reg_types)
@@ -189,6 +192,10 @@ def generate_parameters_grid(config, data):
         new_pars['d_lambda'] = set_parameter('d_lambda', new_pars['d_lambda'])
         new_pars['g_lambda'] = set_parameter('g_lambda', new_pars['g_lambda'])
         new_pars['batch_size'] = int(set_parameter('batch_size', new_pars['batch_size']))
+        new_pars['variance_ratio'] = set_parameter('variance_ratio', new_pars['variance_ratio'])
+
+        if new_pars['latent_dim'] <= 0:
+            new_pars['latent_dim'] = define_latent_dim_with_pca(data, new_pars['variance_ratio'])
 
         grid.append(new_pars)
 
