@@ -22,29 +22,33 @@ def evaluate_models(config):
         if id.startswith('.'):
             pass
         else:
-            id_results = pandas.read_csv(config['out_path'] + id + '/history_{}.csv'.format(id))
-            id_results = id_results.loc[id_results['best'] == True, :]
-            id_results['id'] = id
-            best_models = pandas.concat([best_models, id_results])
-            del id_results
+            results_path = config['out_path'] + id + '/history_{}.csv'.format(id)
+            if os.path.exists(results_path):
+                id_results = pandas.read_csv(results_path)
+                id_results = id_results.loc[id_results['best'] == True, :]
+                id_results['id'] = id
+                best_models = pandas.concat([best_models, id_results])
+                del id_results
     best_models['best'] = False
 
     # pick best models
     print('GRID SEARCH BEST MODELS:', '\n')
-    top = slice_by_grouping_and_correlation(best_models, g_percent, c_percent)
-    if top is None:
-        print('WARNING: could not find the best model, returning the list sorted by reg_grouping\n')
-        best_models = best_models.sort_values('reg_grouping')
-        print(best_models.to_string(), '\n')
-
+    if best_models.shape[0] == 0:
+        print('WARNING: no best model found\n')
     else:
-        for top_id in top['id'].values:
-            # mark the best models
-            best_models.loc[best_models['id'] == top_id, 'best'] = True
-        print(top.to_string(), '\n')
+        top = slice_by_grouping_and_correlation(best_models, g_percent, c_percent)
+        if top is None:
+                print('WARNING: could not find the best model, returning the list sorted by reg_grouping\n')
+                best_models = best_models.sort_values('reg_grouping')
+                print(best_models.to_string(), '\n')
+        else:
+            for top_id in top['id'].values:
+                # mark the best models
+                best_models.loc[best_models['id'] == top_id, 'best'] = True
+            print(top.to_string(), '\n')
 
-    best_models.to_csv(config['out_path'] + 'best_models.csv', index=False)
-    print('full grid saved to {}best_models.csv'.format(config['out_path']))
+        best_models.to_csv(config['out_path'] + 'best_models.csv', index=False)
+        print('full grid saved to {}best_models.csv'.format(config['out_path']))
 
 
 def slice_by_grouping_and_correlation(history, g_percent, c_percent):

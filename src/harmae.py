@@ -1,5 +1,5 @@
 
-import pandas, sys, uuid, random, os, numpy
+import pandas, sys, uuid, random, os, numpy, traceback
 from tqdm import tqdm
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -208,7 +208,14 @@ def harmae(config):
     grid = generate_parameters_grid(config, data)
 
     for parameters in tqdm(grid):
-        run_normalization(data, parameters)
+        try:
+            run_normalization(data, parameters)
+        except Exception as e:
+            print("failed with", e)
+            log_path = parameters['out_path'] + '{}/'.format(parameters['id'])
+            with open(log_path + 'traceback.txt', 'w') as f:
+                f.write(traceback.format_exc())
+            print("full traceback saved to", log_path, '\n')
 
     evaluate_models(config)
 

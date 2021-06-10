@@ -13,6 +13,15 @@ import evaluation, batch_analysis, preprocessing
 
 def run_normalization(data, parameters):
 
+    # create folders to save results
+    save_to = parameters['out_path'] + '{}/'.format(parameters['id'])
+    if not os.path.exists(save_to):
+        os.makedirs(save_to)
+        os.makedirs(save_to + '/callbacks')
+        os.makedirs(save_to + '/checkpoints')
+        os.makedirs(save_to + '/benchmarks')
+
+    # parse samples of interest
     reg_types = parameters['reg_types'].split(',')
     benchmarks = parameters['benchmarks'].split(',')
     all_samples_types = [*benchmarks, *reg_types]
@@ -53,14 +62,6 @@ def run_normalization(data, parameters):
 
     train_loader = DataLoader(train_dataset, batch_size=parameters['batch_size'], shuffle=True)
     test_loader = DataLoader(test_dataset, batch_size=parameters['batch_size'], shuffle=False)
-
-    # create folders to save results
-    save_to = parameters['out_path'] + '{}/'.format(parameters['id'])
-    if not os.path.exists(save_to):
-        os.makedirs(save_to)
-        os.makedirs(save_to + '/callbacks')
-        os.makedirs(save_to + '/checkpoints')
-        os.makedirs(save_to + '/benchmarks')
 
     # Lists to keep track of progress
     g_loss_history = []
