@@ -3,8 +3,6 @@ import patsy
 import sys
 import numpy.linalg as la
 import numpy as np
-from src.models.ae import get_data
-from src.constants import user
 
 
 def adjust_nums(numerical_covariates, drop_idxs):

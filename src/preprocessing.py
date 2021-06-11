@@ -451,10 +451,16 @@ def preprocess_data_of_sarah(path='/Users/{}/ETH/projects/normalization/data/sar
     all_metabolites_names = data['annotation']['names']
     all_metabolites_mzs = data['annotation']['mzs']
     metabolites = [all_metabolites_names[all_metabolites_mzs.index(round(x, 4))] for x in data['samples']['mzs']]
+    mzs = [all_metabolites_mzs[all_metabolites_mzs.index(round(x, 4))] for x in data['samples']['mzs']]
 
     # make and dump data table
     data_matrix = pandas.DataFrame(data['samples']['data'], index=metabolites, columns=samples_names)
     data_matrix.to_csv(path.replace('raw/AstraScreenPipe_DATA.h5', 'data.csv'))
+
+    # dump another table with mzs (for plotting spectra while comparing to other methods)
+    data_with_mzs = data_matrix.copy()
+    data_with_mzs.insert(0, 'mz', mzs)
+    data_with_mzs.to_csv(path.replace('raw/AstraScreenPipe_DATA.h5', 'data_with_mzs.csv'))
 
     # make and dump meta info table
     batch_labels = [int(name.split('_')[0][5]) for name in samples_names]

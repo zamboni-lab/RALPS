@@ -3,13 +3,12 @@ import numpy, pandas, seaborn, time
 from matplotlib import pyplot
 from sklearn.preprocessing import MinMaxScaler
 
-from src import harmae
-from src.models.ae import get_data
-from src.constants import default_parameters_values
-from src.batch_analysis import plot_batch_cross_correlations, compute_cv_for_samples_types
-from src.batch_analysis import compute_number_of_clusters_with_hdbscan
-from src.batch_analysis import get_sample_cross_correlation_estimate
-from src.utils import combat
+import harmae
+from constants import default_parameters_values
+from batch_analysis import plot_batch_cross_correlations, compute_cv_for_samples_types
+from batch_analysis import compute_number_of_clusters_with_hdbscan
+from batch_analysis import get_sample_cross_correlation_estimate
+from utils import combat
 
 # constants
 user = 'andreidm'
@@ -21,19 +20,28 @@ def plot_benchmarks_corrs_for_methods(scenario=1, save_plot=False):
 
     methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
+    if scenario < 3:
+        data_path = path + 'filtered_data_v4.csv'
+        info_path = path + 'batch_info_v4.csv'
+    elif scenario == 3:
+        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/data.csv'
+        info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
+    else:
+        raise ValueError('Indicate scenario.')
+
+    data = harmae.get_data({'data_path': data_path,
+                            'info_path': info_path,
+                            'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+
+    _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
+
     for method in methods:
-
-        data = harmae.get_data({'data_path': path + 'filtered_data_v4.csv',
-                                'info_path': path + 'batch_info_v4.csv',
-                                'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
-
-        _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
 
         if method == 'none':
             normalized = data.iloc[:, 1:]
-        elif method == 'my_best':
+        elif method == 'harmAE':
             # hardcode
-            normalized = pandas.read_csv(path_to_my_best, index_col=0)
+            normalized = pandas.read_csv(path_to_my_best, index_col=0).T
         elif method == 'normAE':
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
             normalized = normalized.loc[data.index, :]  # keep the ordering
@@ -52,8 +60,18 @@ def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
     methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
     all_cvs = pandas.DataFrame()
-    data = harmae.get_data({'data_path': path + 'filtered_data_v4.csv',
-                            'info_path': path + 'batch_info_v4.csv',
+
+    if scenario < 3:
+        data_path = path + 'filtered_data_v4.csv'
+        info_path = path + 'batch_info_v4.csv'
+    elif scenario == 3:
+        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/data.csv'
+        info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
+    else:
+        raise ValueError('Indicate scenario.')
+
+    data = harmae.get_data({'data_path': data_path,
+                            'info_path': info_path,
                             'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
@@ -62,9 +80,9 @@ def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
 
         if method == 'none':
             normalized = data.iloc[:, 1:]
-        elif method == 'my_best':
+        elif method == 'harmAE':
             # hardcode
-            normalized = pandas.read_csv(path_to_my_best, index_col=0)
+            normalized = pandas.read_csv(path_to_my_best, index_col=0).T
         elif method == 'normAE':
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
             normalized = normalized.loc[data.index, :]  # keep the ordering
@@ -106,8 +124,17 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
 
     methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
-    data = harmae.get_data({'data_path': path + 'filtered_data_v4.csv',
-                            'info_path': path + 'batch_info_v4.csv',
+    if scenario < 3:
+        data_path = path + 'filtered_data_v4.csv'
+        info_path = path + 'batch_info_v4.csv'
+    elif scenario == 3:
+        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/data.csv'
+        info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
+    else:
+        raise ValueError('Indicate scenario.')
+
+    data = harmae.get_data({'data_path': data_path,
+                            'info_path': info_path,
                             'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     regs, _ = harmae.extract_reg_types_and_benchmarks(data)
@@ -117,8 +144,8 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
 
         if method == 'none':
             normalized = data.iloc[:, 1:]
-        elif method == 'my_best':
-            normalized = pandas.read_csv(path_to_my_best, index_col=0)
+        elif method == 'harmAE':
+            normalized = pandas.read_csv(path_to_my_best, index_col=0).T
         elif method == 'normAE':
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
             normalized = normalized.loc[data.index, :]
@@ -144,7 +171,7 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
         pyplot.show()
 
 
-def get_grouping_coefs_for_samples(method, clustering, total_clusters):
+def get_grouping_coefs_for_samples(method, clustering, total_clusters, benchmarks):
 
     grouping_coefs = {}
     coefs_sum = 0
@@ -162,17 +189,24 @@ def get_grouping_coefs_for_samples(method, clustering, total_clusters):
 def get_paths_and_methods(scenario):
 
     if scenario == 1:
-        methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'my_best']
+        methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'harmAE']
         path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/no_reference_samples/best_model/2d48bfb2_best/normalized_2d48bfb2.csv'
         path_to_others = '/Users/andreidm/ETH/projects/normalization/res/no_reference_samples/other_methods/'
         save_to = '/Users/andreidm/ETH/projects/normalization/res/no_reference_samples/other_methods/plots/'
     elif scenario == 2:
-        methods = ['none', 'normAE', 'my_best']
+        methods = ['none', 'normAE', 'harmAE']
         path_to_my_best = path_to_my_best_method_2
         path_to_others = path_to_other_methods_2
         save_to = '/Users/andreidm/ETH/projects/normalization/res/fake_reference_samples/other_methods/plots/'.format(user)
+    elif scenario == 3:
+        # it's actually scenario 2, but on another dataset
+        methods = ['none', 'harmAE']
+        # path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/sarahs/grid1/81e72dae/normalized_81e72dae.csv'  # ok
+        path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/sarahs/grid4/023efb29/normalized_023efb29.csv'
+        path_to_others = ''
+        save_to = '/Users/andreidm/ETH/projects/normalization/res/sarahs/'.format(user)
     else:
-        raise ValueError("Indicate application scenario: 1 or 2.")
+        raise ValueError("Indicate application scenario.")
 
     return methods, path_to_my_best, path_to_others, save_to
 
@@ -182,8 +216,17 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
 
     methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
-    data = harmae.get_data({'data_path': path + 'filtered_data_v4.csv',
-                            'info_path': path + 'batch_info_v4.csv',
+    if scenario < 3:
+        data_path = path + 'filtered_data_v4.csv'
+        info_path = path + 'batch_info_v4.csv'
+    elif scenario == 3:
+        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/data.csv'
+        info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
+    else:
+        raise ValueError('Indicate scenario.')
+
+    data = harmae.get_data({'data_path': data_path,
+                            'info_path': info_path,
                             'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
@@ -198,9 +241,8 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
 
         if method == 'none':
             normalized = data
-        elif method == 'my_best':
-            # hardcode
-            normalized = pandas.read_csv(path_to_my_best, index_col=0)
+        elif method == 'harmAE':
+            normalized = pandas.read_csv(path_to_my_best, index_col=0).T
             normalized['batch'] = data['batch']
         elif method == 'normAE':
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
@@ -211,7 +253,7 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
             normalized['batch'] = data['batch']
 
         clustering, total_clusters = compute_number_of_clusters_with_hdbscan(normalized, pars, benchmarks, print_info=False)
-        grouping_dict = get_grouping_coefs_for_samples(method, clustering, total_clusters)
+        grouping_dict = get_grouping_coefs_for_samples(method, clustering, total_clusters, benchmarks)
 
         res = pandas.DataFrame({'method': [method for x in range(len(grouping_dict))],
                                 'sample': list(grouping_dict.keys()),
@@ -246,21 +288,31 @@ def plot_normalized_spectra_for_methods(scenario=1, file_ext='pdf', save_plot=Fa
 
     methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
-    data_with_mz = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data_with_mz.csv')
+    if scenario < 3:
+        data_path = '/Users/andreidm/ETH/projects/normalization/data/filtered_data_with_mz.csv'
+        # hardcode colors for batches from our dataset
+        batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
+        color_dict = dict(zip(batches, 'kgrcmyb'))
+    elif scenario == 3:
+        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/data_with_mzs.csv'
+        # hardcode colors for batches from Sarah's dataset
+        batches = ['Batch1', 'Batch2', 'Batch3', 'Batch4', 'Batch5', 'Batch6', 'Batch7']
+        color_dict = dict(zip(batches, 'kgrcmyb'))
+    else:
+        raise ValueError('Indicate scenario.')
+
+    data_with_mz = pandas.read_csv(data_path)
     mz = data_with_mz['mz'].values
-    # hardcode colors for batches from our dataset
-    batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
-    color_dict = dict(zip(batches, 'kgrcmyb'))
 
     for method in methods:
 
         if method == 'none':
-            normalized = data_with_mz.iloc[:, 3:]
-        elif method == 'my_best':
-            normalized = pandas.read_csv(path_to_my_best, index_col=0)
+            normalized = data_with_mz.iloc[:, 2:].T
+        elif method == 'harmAE':
+            normalized = pandas.read_csv(path_to_my_best, index_col=0).T
         elif method == 'normAE':
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
-            normalized = normalized.loc[data.index, :]  # keep the ordering as inn other datasets
+            normalized = normalized.loc[data_with_mz.index, :]  # keep the ordering as in other datasets
         else:
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
 
@@ -299,16 +351,24 @@ def check_relevant_intensities_for_methods(scenario=1):
 
     methods, path_to_my_best, path_to_others, save_to = get_paths_and_methods(scenario)
 
-    data = harmae.get_data({'data_path': path + 'filtered_data_v4.csv',
-                            'info_path': path + 'batch_info_v4.csv',
+    if scenario < 3:
+        data_path = path + 'filtered_data_v4.csv'
+        info_path = path + 'batch_info_v4.csv'
+    elif scenario == 3:
+        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/data.csv'
+        info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
+    else:
+        raise ValueError('Indicate scenario.')
+
+    data = harmae.get_data({'data_path': data_path,
+                            'info_path': info_path,
                             'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     for method in methods:
         if method == 'none':
             normalized = data.iloc[:, 1:]
-        elif method == 'my_best':
-            # hardcode
-            normalized = pandas.read_csv(path_to_my_best, index_col=0)
+        elif method == 'harmAE':
+            normalized = pandas.read_csv(path_to_my_best, index_col=0).T
         elif method == 'normAE':
             # it doesn't output intensities, but I'm curious how much negative values they produce
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
@@ -328,8 +388,8 @@ def check_relevant_intensities_for_methods(scenario=1):
 
 if __name__ == "__main__":
 
-    save_plots = True
-    scenario = 2
+    save_plots = False
+    scenario = 3
 
     # benchmarks
     plot_benchmarks_cvs_for_methods(scenario=scenario, save_plot=save_plots)
