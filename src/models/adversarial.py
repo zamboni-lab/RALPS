@@ -79,6 +79,7 @@ def run_normalization(data, parameters):
 
     g_regularizer = 0
     total_epochs = parameters['epochs']
+    stopped_early = False
     for epoch in range(total_epochs):
 
         start = time.time()
@@ -229,6 +230,13 @@ def run_normalization(data, parameters):
               "g_loss = {:.4f}, rec_loss = {:.4f}, d_loss = {:.4f}, "
               "val_acc = {:.4f}, reg_grouping = {:.4f}, reg_corr = {:.4f}, reg_vc = {:.4f}\n".format(epoch + 1, total_epochs, timing, g_loss, rec_loss, d_loss, accuracy, reg_grouping, reg_corr, reg_vc))
 
+        # check early stopping condition
+        if d_loss > d_loss_history[epoch - 1] > d_loss_history[epoch - 2] or d_loss > d_loss_history[0]:
+            # classifier loss starts diverging -> stop training
+            print('early stopping criterion is met\n')
+            stopped_early = True
+            break
+
     # PLOT TRAINING HISTORY
     history = pandas.DataFrame({'epoch': [x for x in range(len(d_loss_history))], 'best': [False for x in range(len(d_loss_history))],
                                 'rec_loss': rec_loss_history, 'd_loss': d_loss_history, 'g_loss': g_loss_history,
@@ -273,6 +281,7 @@ def run_normalization(data, parameters):
     reconstruction.T.to_csv(save_to + 'normalized_{}.csv'.format(parameters['id']))
 
     # SAVE PARAMETERS AND HISTORY
+    parameters['stopped_early'] = stopped_early  # indicate whether stopped early
     pandas.DataFrame(parameters, index=['values'], columns=parameters.keys()).T.to_csv(save_to + 'parameters_{}.csv'.format(parameters['id']))
     history.to_csv(save_to + 'history_{}.csv'.format(parameters['id']), index=False)
 
