@@ -23,14 +23,19 @@ def evaluate_models(config):
             pass
         else:
             results_path = config['out_path'] + id + '/history_{}.csv'.format(id)
-            if os.path.exists(results_path):
+            pars_path = config['out_path'] + id + '/parameters_{}.csv'.format(id)
+
+            if os.path.exists(results_path) and os.path.exists(pars_path):
                 id_results = pandas.read_csv(results_path)
                 id_results = id_results.loc[id_results['best'] == True, :]
+                stopped_early = pandas.read_csv(pars_path, index_col=0).T
+                stopped_early = str(stopped_early['stopped_early'].values[0])
                 id_results['id'] = id
+                id_results['stopped_early'] = stopped_early
                 best_models = pandas.concat([best_models, id_results])
                 del id_results
-    best_models['best'] = False
 
+    best_models['best'] = False
     # pick best models
     print('GRID SEARCH BEST MODELS:', '\n')
     if best_models.shape[0] == 0:
