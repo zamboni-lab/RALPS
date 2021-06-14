@@ -49,6 +49,7 @@ def plot_batch_cross_correlations(data, method_name, parameters, sample_types_of
             pyplot.savefig(save_to + 'correlations_{}_{}_{}.{}'.format(type, method_name.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
         else:
             pyplot.show()
+        pyplot.close()
 
 
 def get_sample_cross_correlation_estimate(data, sample_types_of_interest, percent=50):
@@ -133,6 +134,7 @@ def plot_encodings_umap(encodings, plot_label, parameters, save_to='/Users/andre
     pyplot.title('UMAP: {}: n={}, metric={}'.format(plot_label, neighbors, metric))
     pyplot.tight_layout()
     pyplot.savefig(save_to + 'umap_{}_{}.{}'.format(plot_label.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
+    pyplot.close()
 
 
 def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, sample_types_of_interest=None, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
@@ -176,7 +178,7 @@ def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, samp
     pyplot.tight_layout()
     # pyplot.show()
     pyplot.savefig(save_to + 'umap_benchmarks_{}_{}.pdf'.format(method_name.replace(' ', '_'), parameters['id']))
-
+    pyplot.close()
 
 def compute_number_of_clusters_with_hdbscan(encodings, parameters, sample_types_of_interest, print_info=True):
     """ This method applied HDBSCAN clustering on the encodings,

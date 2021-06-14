@@ -501,7 +501,3 @@ if __name__ == '__main__':
 
     path = '/Users/andreidm/ETH/projects/normalization/data/sarah/raw/AstraScreenPipe_DATA.h5'
     preprocess_data_of_sarah(path)
-
-    # TODO:
-    #  - test smaller percent of variance (0.95, 0.9, 0.8)
-

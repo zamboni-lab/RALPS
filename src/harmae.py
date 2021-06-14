@@ -143,7 +143,7 @@ def initialise_constant_parameters(config):
     return parameters
 
 
-def define_latent_dim_with_pca(data, min_variance_ratio):
+def define_latent_dim_with_pca(data, min_variance_ratio, n_batches):
     """ Latent_dim is defined by PCA and desired level of variance explained (defaults to 0.99). """
 
     transformer = PCA()
@@ -154,7 +154,10 @@ def define_latent_dim_with_pca(data, min_variance_ratio):
 
     for i in range(0, len(transformer.explained_variance_ratio_), 5):
         if sum(transformer.explained_variance_ratio_[:i]) > min_variance_ratio:
-            return i
+            if i < n_batches:
+                return n_batches
+            else:
+                return i
 
 
 def extract_reg_types_and_benchmarks(data):
@@ -195,7 +198,7 @@ def generate_parameters_grid(config, data):
         new_pars['variance_ratio'] = set_parameter('variance_ratio', new_pars['variance_ratio'])
 
         if new_pars['latent_dim'] <= 0:
-            new_pars['latent_dim'] = define_latent_dim_with_pca(data, new_pars['variance_ratio'])
+            new_pars['latent_dim'] = define_latent_dim_with_pca(data, new_pars['variance_ratio'], new_pars['n_batches'])
 
         grid.append(new_pars)
 
@@ -221,5 +224,6 @@ def harmae(config):
 
 
 if __name__ == "__main__":
-    config = parse_config(sys.argv[1])
+    # config = parse_config(sys.argv[1])
+    config = parse_config('/Users/andreidm/ETH/projects/normalization/data/config07.csv')
     harmae(config)

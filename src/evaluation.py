@@ -91,12 +91,12 @@ def find_best_epoch(history, skip_epochs=5):
                         if min_grouping_epochs.shape[0] > 1:
                             # min grouping + max correlation
                             best_epoch = int(min_grouping_epochs.loc[min_grouping_epochs['reg_corr'] == min_grouping_epochs['reg_corr'].max(), 'epoch'].values[-1])
-                            print('WARNING: couldn\'t find the best epoch,'
+                            print('WARNING: couldn\'t find the best epoch, '
                                   'returning the one of min grouping with max cross-correlation: epoch {}'.format(best_epoch + 1))
                         else:
                             # min grouping
                             best_epoch = int(history.loc[history['reg_grouping'] == history['reg_grouping'].min(), 'epoch'].values[-1])
-                            print('WARNING: couldn\'t find the best epoch,'
+                            print('WARNING: couldn\'t find the best epoch, '
                                   'returning the last one of min grouping coef: epoch {}'.format(best_epoch + 1))
 
                         return best_epoch
@@ -132,6 +132,7 @@ def plot_losses(rec_loss, d_loss, g_loss, best_epoch, parameters, save_to='/User
 
     pyplot.tight_layout()
     pyplot.savefig(save_to + 'losses_{}.{}'.format(parameters['id'], parameters['plots_extension']))
+    pyplot.close()
 
 
 def plot_metrics(d_accuracy, reg_correlation, reg_clustering, reg_vc, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
@@ -170,6 +171,7 @@ def plot_metrics(d_accuracy, reg_correlation, reg_clustering, reg_vc, best_epoch
 
     pyplot.tight_layout()
     pyplot.savefig(save_to + 'metrics_{}.{}'.format(parameters['id'], parameters['plots_extension']))
+    pyplot.close()
 
 
 def plot_benchmarks_metrics(b_correlations, b_grouping, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
@@ -194,6 +196,7 @@ def plot_benchmarks_metrics(b_correlations, b_grouping, best_epoch, parameters, 
 
     pyplot.tight_layout()
     pyplot.savefig(save_to + 'benchmarks_metrics_{}.{}'.format(parameters['id'], parameters['plots_extension']))
+    pyplot.close()
 
 
 def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
@@ -215,6 +218,7 @@ def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, parameters, save
         pyplot.legend()
         pyplot.tight_layout()
         pyplot.savefig(save_to + 'vcs_{}_{}.{}'.format(type, parameters['id'], parameters['plots_extension']))
+        pyplot.close()
 
 
 def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
@@ -239,6 +243,7 @@ def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/a
         pyplot.suptitle('HDBSCAN clustering')
         pyplot.tight_layout()
         pyplot.savefig(save_to + 'clustering_{}.pdf'.format(id))
+        pyplot.close()
     else:
         # save one by one for each sample in dict
         for i, type in enumerate(clusters_dict):
@@ -255,3 +260,4 @@ def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/a
             pyplot.tight_layout()
             pyplot.legend()
             pyplot.savefig(save_to + 'clustering_{}_{}.pdf'.format(type, id))
+            pyplot.close()

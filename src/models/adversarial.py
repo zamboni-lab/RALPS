@@ -222,7 +222,6 @@ def run_normalization(data, parameters):
             batch_analysis.plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], benchmarks, save_to=save_to+'/callbacks/', save_plot=True)
             # plot umap of FULL encoded data
             batch_analysis.plot_encodings_umap(encodings, 'epoch {}'.format(epoch + 1), parameters, save_to=save_to + '/callbacks/')
-            pyplot.close('all')
 
         # display the epoch training loss
         timing = int(time.time() - start)
@@ -231,11 +230,12 @@ def run_normalization(data, parameters):
               "val_acc = {:.4f}, reg_grouping = {:.4f}, reg_corr = {:.4f}, reg_vc = {:.4f}\n".format(epoch + 1, total_epochs, timing, g_loss, rec_loss, d_loss, accuracy, reg_grouping, reg_corr, reg_vc))
 
         # check early stopping condition
-        if d_loss > d_loss_history[epoch - 1] > d_loss_history[epoch - 2] or d_loss > d_loss_history[0]:
-            # classifier loss starts diverging -> stop training
-            print('early stopping criterion is met\n')
-            stopped_early = True
-            break
+        if epoch >= 2:
+            if d_loss > d_loss_history[epoch - 1] > d_loss_history[epoch - 2] or d_loss > d_loss_history[0]:
+                # classifier loss starts diverging -> stop training
+                print('early stopping criterion is met\n')
+                stopped_early = True
+                break
 
     # PLOT TRAINING HISTORY
     history = pandas.DataFrame({'epoch': [x for x in range(len(d_loss_history))], 'best': [False for x in range(len(d_loss_history))],
@@ -274,7 +274,6 @@ def run_normalization(data, parameters):
     batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch + 1), parameters, benchmarks, save_to=save_to+'/benchmarks/', save_plot=True)
     # plot umaps of initial, encoded and normalized data
     batch_analysis.plot_full_data_umaps(data_values, encodings, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch + 1), save_to=save_to)
-    pyplot.close('all')
 
     # SAVE ENCODED AND NORMALIZED DATA
     encodings.to_csv(save_to + 'encodings_{}.csv'.format(parameters['id']))
@@ -294,3 +293,4 @@ def run_normalization(data, parameters):
             if not parameters['keep_checkpoints']:
                 # remove the rest
                 os.remove(save_to + '/checkpoints/' + file)
+    print('results saved to {}\n'.format(save_to))
