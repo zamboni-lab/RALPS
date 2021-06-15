@@ -7,7 +7,13 @@ from src.preprocessing import run_pca
 from src.batch_analysis import plot_encodings_umap
 from src.evaluation import find_best_epoch
 
+import h5py
+
 if __name__ == "__main__":
 
-    pars = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/sarahs/grid5/b85117f6/parameters_b85117f6.csv', index_col=0).T
-    print(str(pars['stopped_early'].values[0]))
+    path = '/Users/andreidm/ETH/projects/normalization/res/sarahs/grid5_with_early stopping/b2a75470/normalized_b2a75470.csv'
+    normalized = pandas.read_csv(path, index_col=0)
+
+    hf = h5py.File(path.replace('.csv', '.h5'), 'w')
+    hf.create_dataset('normalized', data=normalized)
+    hf.close()

@@ -202,7 +202,8 @@ def get_paths_and_methods(scenario):
         # it's actually scenario 2, but on another dataset
         methods = ['none', 'harmAE']
         # path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/sarahs/grid1/81e72dae/normalized_81e72dae.csv'  # ok
-        path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/sarahs/grid4/023efb29/normalized_023efb29.csv'
+        path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/sarahs/grid4/023efb29/normalized_023efb29.csv'  # maybe ok
+        path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/sarahs/grid5_with_early stopping/b2a75470/normalized_b2a75470.csv'
         path_to_others = ''
         save_to = '/Users/andreidm/ETH/projects/normalization/res/sarahs/'.format(user)
     else:
