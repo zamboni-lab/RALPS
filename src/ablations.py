@@ -124,7 +124,7 @@ def plot_removed_batches():
 
 def plot_variance_ratio():
 
-    common_path = '/Users/andreidm/ETH/projects/normalization/res/variance_ratio/{}/best_models.csv'
+    common_path = '/Users/andreidm/ETH/projects/normalization/res/variance_ratio_P2_SRM_0001_0002_0004/{}/best_models.csv'
 
     all_models = pandas.DataFrame()
     for ratio in [0.7, 0.8, 0.9, 0.95, 0.99]:
@@ -159,4 +159,8 @@ def plot_variance_ratio():
 
 
 if __name__ == "__main__":
-    pass
+
+    # plot_removed_batches()
+    # plot_removed_metabolites()
+    # plot_missing_values()
+    plot_variance_ratio()
