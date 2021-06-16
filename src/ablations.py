@@ -40,7 +40,7 @@ def choose_best_for_2_batches(best_models, g_percent, c_percent):
     return df
 
 
-def plot_missing_values():
+def plot_missing_values(save_path=None):
 
     common_path = '/Users/andreidm/ETH/projects/normalization/res/fractions_P2_SRM_0001+P2_SPP_0001/7_batches_1.0_metabolites_{}_NAs/best_models.csv'
 
@@ -56,10 +56,26 @@ def plot_missing_values():
     pyplot.figure()
     seaborn.boxplot(x='NAs', y='reg_corr', data=all_models)
     pyplot.xlabel('Percent of missing values')
-    pyplot.show()
+    if save_path is not None:
+        pyplot.savefig(save_path + 'NAs_vs_reg_corr.pdf')
+
+    pyplot.figure()
+    seaborn.boxplot(x='NAs', y='reg_vc', data=all_models)
+    pyplot.xlabel('Percent of missing values')
+    if save_path is not None:
+        pyplot.savefig(save_path + 'NAs_vs_reg_vc.pdf')
+
+    pyplot.figure()
+    seaborn.boxplot(x='NAs', y='reg_grouping', data=all_models)
+    pyplot.xlabel('Percent of missing values')
+    if save_path is not None:
+        pyplot.savefig(save_path + 'NAs_vs_reg_grouping.pdf')
+
+    if save_path is None:
+        pyplot.show()
 
 
-def plot_removed_metabolites():
+def plot_removed_metabolites(save_path=None):
 
     common_path = '/Users/andreidm/ETH/projects/normalization/res/fractions_P2_SRM_0001+P2_SPP_0001/7_batches_{}_metabolites/best_models.csv'
 
@@ -75,19 +91,26 @@ def plot_removed_metabolites():
     pyplot.figure()
     seaborn.boxplot(x='percent', y='reg_corr', data=all_models)
     pyplot.xlabel('Percent of metabolites in the data')
+    if save_path is not None:
+        pyplot.savefig(save_path + 'm_percent_vs_reg_corr.pdf')
 
     pyplot.figure()
     seaborn.boxplot(x='percent', y='reg_vc', data=all_models)
     pyplot.xlabel('Percent of metabolites in the data')
+    if save_path is not None:
+        pyplot.savefig(save_path + 'm_percent_vs_reg_vc.pdf')
 
     pyplot.figure()
     seaborn.boxplot(x='percent', y='b_corr', data=all_models)
     pyplot.xlabel('Percent of metabolites in the data')
+    if save_path is not None:
+        pyplot.savefig(save_path + 'm_percent_vs_b_corr.pdf')
 
-    pyplot.show()
+    if save_path is None:
+        pyplot.show()
 
 
-def plot_removed_batches():
+def plot_removed_batches(save_path=None):
 
     common_path = '/Users/andreidm/ETH/projects/normalization/res/fractions_P2_SRM_0001+P2_SPP_0001/{}_batches_1.0_metabolites/best_models.csv'
 
@@ -106,23 +129,32 @@ def plot_removed_batches():
     pyplot.figure()
     seaborn.boxplot(x='n', y='reg_corr', data=all_models)
     pyplot.xlabel('Number of batches in the data')
+    if save_path is not None:
+        pyplot.savefig(save_path + 'batches_vs_reg_corr.pdf')
 
     pyplot.figure()
     seaborn.boxplot(x='n', y='reg_vc', data=all_models)
     pyplot.xlabel('Number of batches in the data')
+    if save_path is not None:
+        pyplot.savefig(save_path + 'batches_vs_reg_vc.pdf')
 
     pyplot.figure()
     seaborn.boxplot(x='n', y='b_corr', data=all_models)
     pyplot.xlabel('Number of batches in the data')
+    if save_path is not None:
+        pyplot.savefig(save_path + 'batches_vs_b_corr.pdf')
 
     pyplot.figure()
     seaborn.boxplot(x='n', y='b_grouping', data=all_models)
     pyplot.xlabel('Number of batches in the data')
+    if save_path is not None:
+        pyplot.savefig(save_path + 'batches_vs_b_grouping.pdf')
 
-    pyplot.show()
+    if save_path is None:
+        pyplot.show()
 
 
-def plot_variance_ratio():
+def plot_variance_ratio(save_path=None):
 
     common_path = '/Users/andreidm/ETH/projects/normalization/res/variance_ratio_P2_SRM_0001_0002_0004/{}/best_models.csv'
 
@@ -138,29 +170,42 @@ def plot_variance_ratio():
     pyplot.figure()
     seaborn.boxplot(x='variance_ratio', y='reg_corr', data=all_models)
     pyplot.xlabel('Percent of explained variance in PCA')
+    if save_path is not None:
+        pyplot.savefig(save_path + 'variance_ratio_vs_reg_corr.pdf')
 
     pyplot.figure()
     seaborn.boxplot(x='variance_ratio', y='reg_vc', data=all_models)
     pyplot.xlabel('Percent of explained variance in PCA')
+    if save_path is not None:
+        pyplot.savefig(save_path + 'variance_ratio_vs_reg_vc.pdf')
 
     pyplot.figure()
     seaborn.boxplot(x='variance_ratio', y='reg_grouping', data=all_models)
     pyplot.xlabel('Percent of explained variance in PCA')
+    if save_path is not None:
+        pyplot.savefig(save_path + 'variance_ratio_vs_reg_grouping.pdf')
 
     pyplot.figure()
     seaborn.boxplot(x='variance_ratio', y='b_corr', data=all_models)
     pyplot.xlabel('Percent of explained variance in PCA')
+    if save_path is not None:
+        pyplot.savefig(save_path + 'variance_ratio_vs_b_corr.pdf')
 
     pyplot.figure()
     seaborn.boxplot(x='variance_ratio', y='b_grouping', data=all_models)
     pyplot.xlabel('Percent of explained variance in PCA')
+    if save_path is not None:
+        pyplot.savefig(save_path + 'variance_ratio_vs_b_grouping.pdf')
 
-    pyplot.show()
+    if save_path is None:
+        pyplot.show()
 
 
 if __name__ == "__main__":
 
-    # plot_removed_batches()
-    # plot_removed_metabolites()
-    # plot_missing_values()
-    plot_variance_ratio()
+    save_path = None
+
+    plot_removed_batches(save_path=save_path)
+    plot_removed_metabolites(save_path=save_path)
+    plot_variance_ratio(save_path=save_path)
+    plot_missing_values(save_path=save_path)

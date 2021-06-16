@@ -197,15 +197,13 @@ def get_paths_and_methods(scenario):
         methods = ['none', 'normAE', 'harmAE']
         path_to_my_best = path_to_my_best_method_2
         path_to_others = path_to_other_methods_2
-        save_to = '/Users/andreidm/ETH/projects/normalization/res/fake_reference_samples/other_methods/plots/'.format(user)
+        save_to = '/Users/andreidm/ETH/projects/normalization/res/fake_reference_samples/other_methods/plots/'
     elif scenario == 3:
         # it's actually scenario 2, but on another dataset
         methods = ['none', 'harmAE']
-        # path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/sarahs/grid1/81e72dae/normalized_81e72dae.csv'  # ok
-        path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/sarahs/grid4/023efb29/normalized_023efb29.csv'  # maybe ok
-        path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/sarahs/grid5_with_early stopping/b2a75470/normalized_b2a75470.csv'
-        path_to_others = ''
-        save_to = '/Users/andreidm/ETH/projects/normalization/res/sarahs/'.format(user)
+        path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/sarahs/b2a75470/'
+        path_to_others = '/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/'
+        save_to = '/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/plots/'
     else:
         raise ValueError("Indicate application scenario.")
 
@@ -310,7 +308,10 @@ def plot_normalized_spectra_for_methods(scenario=1, file_ext='pdf', save_plot=Fa
         if method == 'none':
             normalized = data_with_mz.iloc[:, 2:].T
         elif method == 'harmAE':
-            normalized = pandas.read_csv(path_to_my_best, index_col=0).T
+            normalized = pandas.read_csv(path_to_my_best, index_col=0)
+            if scenario == 3:
+                # previously the output was transposed
+                normalized = normalized.T
         elif method == 'normAE':
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
             normalized = normalized.loc[data_with_mz.index, :]  # keep the ordering as in other datasets
@@ -389,7 +390,7 @@ def check_relevant_intensities_for_methods(scenario=1):
 
 if __name__ == "__main__":
 
-    save_plots = False
+    save_plots = True
     scenario = 3
 
     # benchmarks
@@ -398,7 +399,7 @@ if __name__ == "__main__":
     plot_benchmarks_corrs_for_methods(scenario=scenario, save_plot=save_plots)
 
     # all samples
-    plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
     check_relevant_intensities_for_methods(scenario=scenario)
     plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)  # not very informative
+    plot_normalized_spectra_for_methods(scenario=scenario, file_ext='pdf', save_plot=save_plots)
 

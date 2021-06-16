@@ -187,9 +187,42 @@ def postvar(sum2, n, a, b):
     return (0.5 * sum2 + b) / (n / 2.0 + a - 1.0)
 
 
+def get_data(data_path, info_path):
+
+    data = pd.read_csv(data_path)
+    batch_info = pd.read_csv(info_path, keep_default_na=False)
+
+    # transpose and remove annotation
+    annotation = data.iloc[:, 0]
+    data = data.iloc[:, 1:].T
+    data.columns = annotation
+    # fill in missing values
+    data = data.fillna(1000)
+
+    # create prefixes for grouping
+    new_index = data.index.values
+    groups_indices = np.where(np.isin(batch_info['group'].astype('str'), ('0', ''), invert=True))[0]
+    new_index[groups_indices] = 'group_' + batch_info['group'][groups_indices].astype('str') + '_' + new_index[groups_indices]
+
+    # create prefixes for benchmarks
+    benchmarks_indices = np.where(np.isin(batch_info['benchmark'].astype('str'), ('0', ''), invert=True))[0]
+    new_index[benchmarks_indices] = 'bench_' + batch_info['benchmark'][benchmarks_indices].astype('str') + '_' + new_index[benchmarks_indices]
+    data.index = new_index
+
+    data.insert(0, 'batch', batch_info['batch'].values)
+
+    return data
+
+
 if __name__ == "__main__":
 
-    data = get_data(shuffle=False)
+    data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/filtered_data.csv'
+    info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
+
+    save_to = '/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/'
+
+    data = get_data(data_path, info_path)
+
     # run combat method and save normalized data
-    normalized = combat(data.iloc[:, 1:].T, data['batch']).T
-    normalized.to_csv('/Users/{}/ETH/projects/normalization/res/other_methods/combat.csv'.format(user))
+    normalized = combat(data.iloc[:, 1:].T, data['batch']).T  # runs < 1 minute
+    normalized.to_csv(save_to + 'combat.csv')
