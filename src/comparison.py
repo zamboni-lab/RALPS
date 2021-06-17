@@ -24,7 +24,7 @@ def plot_benchmarks_corrs_for_methods(scenario=1, save_plot=False):
         data_path = path + 'filtered_data_v4.csv'
         info_path = path + 'batch_info_v4.csv'
     elif scenario == 3:
-        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/data.csv'
+        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/filtered_data.csv'
         info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
     else:
         raise ValueError('Indicate scenario.')
@@ -47,8 +47,20 @@ def plot_benchmarks_corrs_for_methods(scenario=1, save_plot=False):
             normalized = normalized.loc[data.index, :]  # keep the ordering
         else:
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+            # make sure the same sample names are used
+            renaming = {}
+            for i in range(normalized.shape[0]):
+                if normalized.index[i] in data.index:
+                    continue
+                else:
+                    for j in range(data.shape[0]):
+                        if normalized.index[i] in data.index[j]:
+                            renaming[normalized.index[i]] = data.index[j]
+                            break
+            # rename using the same prefixes
+            normalized = normalized.rename(index=renaming)
 
-        plot_batch_cross_correlations(normalized, method, '', sample_types_of_interest=benchmarks, save_to=save_to, save_plot=save_plot)
+        plot_batch_cross_correlations(normalized, method, {'id': '', 'plots_extension': '.pdf'}, sample_types_of_interest=benchmarks, save_to=save_to, save_plot=save_plot)
 
     if save_plot:
         print('benchmark correlations saved')
@@ -65,7 +77,7 @@ def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
         data_path = path + 'filtered_data_v4.csv'
         info_path = path + 'batch_info_v4.csv'
     elif scenario == 3:
-        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/data.csv'
+        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/filtered_data.csv'
         info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
     else:
         raise ValueError('Indicate scenario.')
@@ -88,6 +100,18 @@ def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
             normalized = normalized.loc[data.index, :]  # keep the ordering
         else:
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+            # make sure the same sample names are used
+            renaming = {}
+            for i in range(normalized.shape[0]):
+                if normalized.index[i] in data.index:
+                    continue
+                else:
+                    for j in range(data.shape[0]):
+                        if normalized.index[i] in data.index[j]:
+                            renaming[normalized.index[i]] = data.index[j]
+                            break
+            # rename using the same prefixes
+            normalized = normalized.rename(index=renaming)
 
         res = compute_cv_for_samples_types(normalized, benchmarks)
         res = pandas.DataFrame({'method': [method for x in range(len(res))],
@@ -128,7 +152,7 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
         data_path = path + 'filtered_data_v4.csv'
         info_path = path + 'batch_info_v4.csv'
     elif scenario == 3:
-        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/data.csv'
+        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/filtered_data.csv'
         info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
     else:
         raise ValueError('Indicate scenario.')
@@ -151,6 +175,18 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
             normalized = normalized.loc[data.index, :]
         else:
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+            # make sure the same sample names are used
+            renaming = {}
+            for i in range(normalized.shape[0]):
+                if normalized.index[i] in data.index:
+                    continue
+                else:
+                    for j in range(data.shape[0]):
+                        if normalized.index[i] in data.index[j]:
+                            renaming[normalized.index[i]] = data.index[j]
+                            break
+            # rename using the same prefixes
+            normalized = normalized.rename(index=renaming)
 
         res = get_sample_cross_correlation_estimate(normalized, regs, percent=25)
         corrs.append(res)
@@ -200,8 +236,8 @@ def get_paths_and_methods(scenario):
         save_to = '/Users/andreidm/ETH/projects/normalization/res/fake_reference_samples/other_methods/plots/'
     elif scenario == 3:
         # it's actually scenario 2, but on another dataset
-        methods = ['none', 'harmAE']
-        path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/sarahs/b2a75470/'
+        methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'waveICA\'', 'harmAE']
+        path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/sarahs/b2a75470/normalized_b2a75470.csv'
         path_to_others = '/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/'
         save_to = '/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/plots/'
     else:
@@ -219,7 +255,7 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
         data_path = path + 'filtered_data_v4.csv'
         info_path = path + 'batch_info_v4.csv'
     elif scenario == 3:
-        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/data.csv'
+        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/filtered_data.csv'
         info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
     else:
         raise ValueError('Indicate scenario.')
@@ -250,6 +286,19 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
         else:
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
             normalized['batch'] = data['batch']
+
+            # make sure the same sample names are used
+            renaming = {}
+            for i in range(normalized.shape[0]):
+                if normalized.index[i] in data.index:
+                    continue
+                else:
+                    for j in range(data.shape[0]):
+                        if normalized.index[i] in data.index[j]:
+                            renaming[normalized.index[i]] = data.index[j]
+                            break
+            # rename using the same prefixes
+            normalized = normalized.rename(index=renaming)
 
         clustering, total_clusters = compute_number_of_clusters_with_hdbscan(normalized, pars, benchmarks, print_info=False)
         grouping_dict = get_grouping_coefs_for_samples(method, clustering, total_clusters, benchmarks)
@@ -357,7 +406,7 @@ def check_relevant_intensities_for_methods(scenario=1):
         data_path = path + 'filtered_data_v4.csv'
         info_path = path + 'batch_info_v4.csv'
     elif scenario == 3:
-        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/data.csv'
+        data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/filtered_data.csv'
         info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
     else:
         raise ValueError('Indicate scenario.')
@@ -381,16 +430,16 @@ def check_relevant_intensities_for_methods(scenario=1):
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
 
         print("method: {}".format(method))
-        print('negative: {}%'.format(
-            round(100 * (normalized < 0).sum().sum() / normalized.shape[0] / normalized.shape[1], 1)))
-        print('< 1000: {}%'.format(
-            round(100 * (normalized < 1000).sum().sum() / normalized.shape[0] / normalized.shape[1], 1)))
+        print('min: {}'.format(int(normalized.min().min())))
+        print('max: {}'.format(int(normalized.max().max())))
+        print('negative: {}%'.format(round(100 * (normalized < 0).sum().sum() / normalized.shape[0] / normalized.shape[1], 1)))
+        print('< 1000: {}%'.format(round(100 * (normalized < 1000).sum().sum() / normalized.shape[0] / normalized.shape[1], 1)))
         print()
 
 
 if __name__ == "__main__":
 
-    save_plots = True
+    save_plots = False
     scenario = 3
 
     # benchmarks

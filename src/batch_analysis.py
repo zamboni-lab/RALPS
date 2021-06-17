@@ -180,6 +180,7 @@ def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, samp
     pyplot.savefig(save_to + 'umap_benchmarks_{}_{}.pdf'.format(method_name.replace(' ', '_'), parameters['id']))
     pyplot.close()
 
+
 def compute_number_of_clusters_with_hdbscan(encodings, parameters, sample_types_of_interest, print_info=True):
     """ This method applied HDBSCAN clustering on the encodings,
         and returns assigned clusters to the samples of interest.  """
@@ -196,10 +197,8 @@ def compute_number_of_clusters_with_hdbscan(encodings, parameters, sample_types_
     reducer = umap.UMAP(n_components=n_comp, n_neighbors=neighbors, metric=metric, min_dist=0.1, random_state=77)
     embeddings = reducer.fit_transform(values)
 
-    numpy.random.seed(77)  # set seed to make hdbscan results comparable across training epochs
     clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=neighbors, allow_single_cluster=False)
     clusterer.fit(embeddings)
-    numpy.random.seed(int(1000 * time.time()) % 2**32)  # cancel seed, as it might affect later randomization
 
     total = clusterer.labels_.max() + 1
     if print_info:
