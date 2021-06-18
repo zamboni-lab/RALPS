@@ -89,7 +89,7 @@ def sample_from_default_ranges(par_name):
     elif par_name == 'batch_size':
         return random.sample([32, 64, 128], 1)[0]
     elif par_name == 'variance_ratio':
-        return random.sample([0.8, 0.9, 0.99], 1)[0]
+        return random.sample([0.7, 0.8, 0.9, 0.95, 0.99], 1)[0]
 
 
 def set_parameter(name, string_value):
