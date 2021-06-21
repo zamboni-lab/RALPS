@@ -29,9 +29,10 @@ def plot_benchmarks_corrs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = harmae.get_data({'data_path': data_path,
-                            'info_path': info_path,
+    data = harmae.get_data({'data_path': data_path, 'info_path': info_path,
                             'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+
+    batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
     _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
 
@@ -42,11 +43,10 @@ def plot_benchmarks_corrs_for_methods(scenario=1, save_plot=False):
         elif method == 'harmAE':
             # hardcode
             normalized = pandas.read_csv(path_to_my_best, index_col=0).T
+
         elif method == 'normAE':
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
-            normalized = normalized.loc[data.index, :]  # keep the ordering
-        else:
-            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+
             # make sure the same sample names are used
             renaming = {}
             for i in range(normalized.shape[0]):
@@ -54,11 +54,18 @@ def plot_benchmarks_corrs_for_methods(scenario=1, save_plot=False):
                     continue
                 else:
                     for j in range(data.shape[0]):
-                        if normalized.index[i] in data.index[j]:
+                        if normalized.index[i] in data.index[j] and normalized.index[i][-2:] == data.index[j][-2:]:
                             renaming[normalized.index[i]] = data.index[j]
                             break
             # rename using the same prefixes
             normalized = normalized.rename(index=renaming)
+
+        elif method == 'combat':
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+
+        else:
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+            normalized = add_prefixes_to_samples_names(normalized, batch_info)
 
         plot_batch_cross_correlations(normalized, method, {'id': '', 'plots_extension': '.pdf'}, sample_types_of_interest=benchmarks, save_to=save_to, save_plot=save_plot)
 
@@ -82,9 +89,10 @@ def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = harmae.get_data({'data_path': data_path,
-                            'info_path': info_path,
+    data = harmae.get_data({'data_path': data_path, 'info_path': info_path,
                             'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+
+    batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
     _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
 
@@ -92,14 +100,14 @@ def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
 
         if method == 'none':
             normalized = data.iloc[:, 1:]
+
         elif method == 'harmAE':
             # hardcode
             normalized = pandas.read_csv(path_to_my_best, index_col=0).T
+
         elif method == 'normAE':
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
-            normalized = normalized.loc[data.index, :]  # keep the ordering
-        else:
-            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+
             # make sure the same sample names are used
             renaming = {}
             for i in range(normalized.shape[0]):
@@ -107,11 +115,14 @@ def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
                     continue
                 else:
                     for j in range(data.shape[0]):
-                        if normalized.index[i] in data.index[j]:
+                        if normalized.index[i] in data.index[j] and normalized.index[i][-2:] == data.index[j][-2:]:
                             renaming[normalized.index[i]] = data.index[j]
                             break
             # rename using the same prefixes
             normalized = normalized.rename(index=renaming)
+        else:
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+            normalized = add_prefixes_to_samples_names(normalized, batch_info)
 
         res = compute_cv_for_samples_types(normalized, benchmarks)
         res = pandas.DataFrame({'method': [method for x in range(len(res))],
@@ -157,9 +168,10 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = harmae.get_data({'data_path': data_path,
-                            'info_path': info_path,
+    data = harmae.get_data({'data_path': data_path, 'info_path': info_path,
                             'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+
+    batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
     regs, _ = harmae.extract_reg_types_and_benchmarks(data)
 
@@ -168,13 +180,13 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
 
         if method == 'none':
             normalized = data.iloc[:, 1:]
+
         elif method == 'harmAE':
             normalized = pandas.read_csv(path_to_my_best, index_col=0).T
+
         elif method == 'normAE':
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
-            normalized = normalized.loc[data.index, :]
-        else:
-            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+
             # make sure the same sample names are used
             renaming = {}
             for i in range(normalized.shape[0]):
@@ -182,17 +194,25 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
                     continue
                 else:
                     for j in range(data.shape[0]):
-                        if normalized.index[i] in data.index[j]:
+                        if normalized.index[i] in data.index[j] and normalized.index[i][-2:] == data.index[j][-2:]:
                             renaming[normalized.index[i]] = data.index[j]
                             break
             # rename using the same prefixes
             normalized = normalized.rename(index=renaming)
+
+        elif method == 'combat':
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+
+        else:
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+            add_prefixes_to_samples_names(normalized, batch_info)
 
         res = get_sample_cross_correlation_estimate(normalized, regs, percent=25)
         corrs.append(res)
 
     res = pandas.DataFrame({'method': methods, 'corr': corrs})
 
+    pyplot.figure()
     seaborn.barplot(x='method', y='corr', data=res)
     pyplot.xlabel('Normalization')
     pyplot.ylabel('Correlation sum')
@@ -201,7 +221,7 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
     pyplot.tight_layout()
 
     if save_plot:
-        pyplot.savefig(save_to + 'corrs.png')
+        pyplot.savefig(save_to + 'corrs.pdf')
         print('overall correlations saved')
     else:
         pyplot.show()
@@ -236,7 +256,7 @@ def get_paths_and_methods(scenario):
         save_to = '/Users/andreidm/ETH/projects/normalization/res/fake_reference_samples/other_methods/plots/'
     elif scenario == 3:
         # it's actually scenario 2, but on another dataset
-        methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'waveICA\'', 'harmAE']
+        methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'harmAE']
         path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/sarahs/b2a75470/normalized_b2a75470.csv'
         path_to_others = '/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/'
         save_to = '/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/plots/'
@@ -260,9 +280,10 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = harmae.get_data({'data_path': data_path,
-                            'info_path': info_path,
+    data = harmae.get_data({'data_path': data_path, 'info_path': info_path,
                             'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+
+    batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
     _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
 
@@ -278,14 +299,12 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
             normalized = data
         elif method == 'harmAE':
             normalized = pandas.read_csv(path_to_my_best, index_col=0).T
+            # keep the ordering as in initial data to insert batches
+            normalized = normalized.loc[data.index, :]
             normalized['batch'] = data['batch']
+
         elif method == 'normAE':
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
-            normalized = normalized.loc[data.index, :]  # keep the ordering as inn other datasets
-            normalized['batch'] = data['batch']
-        else:
-            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
-            normalized['batch'] = data['batch']
 
             # make sure the same sample names are used
             renaming = {}
@@ -294,11 +313,28 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
                     continue
                 else:
                     for j in range(data.shape[0]):
-                        if normalized.index[i] in data.index[j]:
+                        if normalized.index[i] in data.index[j] and normalized.index[i][-2:] == data.index[j][-2:]:
                             renaming[normalized.index[i]] = data.index[j]
                             break
             # rename using the same prefixes
             normalized = normalized.rename(index=renaming)
+
+            # keep the ordering as in initial data to insert batches
+            normalized = normalized.loc[data.index, :]
+            normalized['batch'] = data['batch']
+
+        elif method == 'combat':
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+            # keep the ordering as in initial data to insert batches
+            normalized = normalized.loc[data.index, :]
+            normalized['batch'] = data['batch']
+
+        else:
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+            normalized = add_prefixes_to_samples_names(normalized, batch_info)
+            # keep the ordering as in initial data to insert batches
+            normalized = normalized.loc[data.index, :]
+            normalized['batch'] = data['batch']
 
         clustering, total_clusters = compute_number_of_clusters_with_hdbscan(normalized, pars, benchmarks, print_info=False)
         grouping_dict = get_grouping_coefs_for_samples(method, clustering, total_clusters, benchmarks)
@@ -349,23 +385,45 @@ def plot_normalized_spectra_for_methods(scenario=1, file_ext='pdf', save_plot=Fa
     else:
         raise ValueError('Indicate scenario.')
 
-    data_with_mz = pandas.read_csv(data_path)
+    data_with_mz = pandas.read_csv(data_path, index_col=0)
     mz = data_with_mz['mz'].values
+    data_with_mz = data_with_mz.iloc[:, 1:].T
 
     for method in methods:
 
         if method == 'none':
-            normalized = data_with_mz.iloc[:, 2:].T
+            normalized = data_with_mz
+
         elif method == 'harmAE':
             normalized = pandas.read_csv(path_to_my_best, index_col=0)
             if scenario == 3:
                 # previously the output was transposed
                 normalized = normalized.T
+
         elif method == 'normAE':
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
-            normalized = normalized.loc[data_with_mz.index, :]  # keep the ordering as in other datasets
+
+            # make sure the same sample names are used
+            renaming = {}
+            for i in range(normalized.shape[0]):
+                if normalized.index[i] in data_with_mz.index:
+                    continue
+                else:
+                    for j in range(data.shape[0]):
+                        if normalized.index[i] in data_with_mz.index[j] and normalized.index[i][-2:] == data_with_mz.index[j][-2:]:
+                            renaming[normalized.index[i]] = data_with_mz.index[j]
+                            break
+            # rename using the same prefixes
+            normalized = normalized.rename(index=renaming)
+
+            normalized = normalized.loc[data_with_mz.index, :]  # keep the ordering
+
+        elif method == 'combat':
+            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+
         else:
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
+            normalized = normalized.loc[data_with_mz.index, :]  # keep the ordering
 
         samples = normalized.index
         normalized = normalized.values
@@ -397,6 +455,21 @@ def plot_normalized_spectra_for_methods(scenario=1, file_ext='pdf', save_plot=Fa
         print('spectral patterns saved')
 
 
+def add_prefixes_to_samples_names(data, batch_info):
+
+    # create prefixes for grouping
+    new_index = data.index.values
+    groups_indices = numpy.where(numpy.isin(batch_info['group'].astype('str'), ('0', ''), invert=True))[0]
+    new_index[groups_indices] = 'group_' + batch_info['group'][groups_indices].astype('str') + '_' + new_index[groups_indices]
+
+    # create prefixes for benchmarks
+    benchmarks_indices = numpy.where(numpy.isin(batch_info['benchmark'].astype('str'), ('0', ''), invert=True))[0]
+    new_index[benchmarks_indices] = 'bench_' + batch_info['benchmark'][benchmarks_indices].astype('str') + '_' + new_index[benchmarks_indices]
+    data.index = new_index
+
+    return data
+
+
 def check_relevant_intensities_for_methods(scenario=1):
     """ Methods 'lev+eig', 'pqn+pow', 'normAE' are excluded by default, since they don't output intensities. """
 
@@ -411,8 +484,7 @@ def check_relevant_intensities_for_methods(scenario=1):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = harmae.get_data({'data_path': data_path,
-                            'info_path': info_path,
+    data = harmae.get_data({'data_path': data_path, 'info_path': info_path,
                             'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     for method in methods:
@@ -420,11 +492,10 @@ def check_relevant_intensities_for_methods(scenario=1):
             normalized = data.iloc[:, 1:]
         elif method == 'harmAE':
             normalized = pandas.read_csv(path_to_my_best, index_col=0).T
-        elif method == 'normAE':
-            # it doesn't output intensities, but I'm curious how much negative values they produce
-            normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
-            normalized = normalized.loc[data.index, :]
-        elif method in ['lev+eig', 'pqn+pow']:
+        # elif method == 'normAE':
+        #     # it doesn't output intensities, but I'm curious how much negative values they produce
+        #     normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0).T
+        elif method in ['lev+eig', 'pqn+pow', 'normAE']:
             continue
         else:
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
@@ -439,16 +510,16 @@ def check_relevant_intensities_for_methods(scenario=1):
 
 if __name__ == "__main__":
 
-    save_plots = False
+    save_plots = True
     scenario = 3
 
-    # benchmarks
-    plot_benchmarks_cvs_for_methods(scenario=scenario, save_plot=save_plots)
-    plot_benchmarks_grouping_coefs_for_methods(scenario=scenario, save_plot=save_plots)
-    plot_benchmarks_corrs_for_methods(scenario=scenario, save_plot=save_plots)
-
-    # all samples
-    check_relevant_intensities_for_methods(scenario=scenario)
-    plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)  # not very informative
-    plot_normalized_spectra_for_methods(scenario=scenario, file_ext='pdf', save_plot=save_plots)
+    # # benchmarks
+    # plot_benchmarks_cvs_for_methods(scenario=scenario, save_plot=save_plots)
+    # plot_benchmarks_grouping_coefs_for_methods(scenario=scenario, save_plot=save_plots)
+    # plot_benchmarks_corrs_for_methods(scenario=scenario, save_plot=save_plots)
+    #
+    # # all samples
+    # check_relevant_intensities_for_methods(scenario=scenario)
+    # plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)
+    plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
 
