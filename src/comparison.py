@@ -508,7 +508,8 @@ def check_relevant_intensities_for_methods(scenario=1):
         print()
 
 
-def plot_distributions_of_reg_samples(save_to='/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/plots/'):
+def plot_percent_of_unique_values(save_to='/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/plots/'):
+    """ This is only to compare with NormAE and show that their solution is actually collapsed. """
 
     data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/filtered_data.csv'
     info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
@@ -559,5 +560,5 @@ if __name__ == "__main__":
     # plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)
     # plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
 
-    plot_distributions_of_reg_samples()
+    plot_percent_of_unique_values()
 
