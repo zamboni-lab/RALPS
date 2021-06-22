@@ -508,9 +508,45 @@ def check_relevant_intensities_for_methods(scenario=1):
         print()
 
 
+def plot_distributions_of_reg_samples(save_to='/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/plots/'):
+
+    data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/filtered_data.csv'
+    info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
+
+    original_data = harmae.get_data({'data_path': data_path, 'info_path': info_path, 'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+    original_data = original_data.iloc[:, 1:].T
+    reg_samples_cols = [x for x in original_data.columns if 'MDAMB231_Medium1_BREAST_JB' in x]
+    original_values = original_data.loc[:, reg_samples_cols].values.flatten()
+    print('original:', len(set(original_values)) / len(original_values) * 100)
+
+    normae_path = '/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/normAE.csv'
+    normae_normalized = pandas.read_csv(normae_path, index_col=0)
+    reg_samples_cols = [x for x in normae_normalized.columns if 'MDAMB231_Medium1_BREAST_JB' in x]
+    normae_values = normae_normalized.loc[:, reg_samples_cols].values.flatten()
+    print('normae:', len(set(normae_values)) / len(normae_values) * 100)
+
+    harmae_path = '/Users/andreidm/ETH/projects/normalization/res/sarahs/b2a75470/normalized_b2a75470.csv'
+    harmae_normalized = pandas.read_csv(harmae_path, index_col=0)
+    reg_samples_cols = [x for x in harmae_normalized.columns if 'MDAMB231_Medium1_BREAST_JB' in x]
+    harmae_values = harmae_normalized.loc[:, reg_samples_cols].values.flatten()
+    print('harmae:', len(set(harmae_values)) / len(harmae_values) * 100)
+
+    data = pandas.DataFrame({
+        'method': ['None', 'HarmAE', 'NormAE'],
+        'percent': [len(set(original_values)) / len(original_values) * 100,
+                    len(set(harmae_values)) / len(harmae_values) * 100,
+                    len(set(normae_values)) / len(normae_values) * 100]
+    })
+
+    seaborn.set_theme(style="whitegrid")
+    seaborn.barplot(x="method", y="percent", data=data)
+    pyplot.title('MDAMB231_Medium1_BREAST_JB: percent of unique values')
+    pyplot.savefig(save_to + 'unique_values.pdf')
+
+
 if __name__ == "__main__":
 
-    save_plots = True
+    save_plots = False
     scenario = 3
 
     # # benchmarks
@@ -521,5 +557,7 @@ if __name__ == "__main__":
     # # all samples
     # check_relevant_intensities_for_methods(scenario=scenario)
     # plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)
-    plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
+    # plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
+
+    plot_distributions_of_reg_samples()
 
