@@ -205,7 +205,7 @@ def generate_parameters_grid(config, data):
     return grid
 
 
-def harmae(config):
+def ralps(config):
 
     data = get_data(config)
     grid = generate_parameters_grid(config, data)
@@ -225,4 +225,4 @@ def harmae(config):
 
 if __name__ == "__main__":
     config = parse_config(sys.argv[1])
-    harmae(config)
+    ralps(config)
