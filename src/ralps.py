@@ -224,6 +224,5 @@ def ralps(config):
 
 
 if __name__ == "__main__":
-    # config = parse_config(sys.argv[1])
-    config = parse_config('/Users/andreidm/ETH/projects/normalization/data/config_v5_test.csv')
+    config = parse_config(sys.argv[1])
     ralps(config)
