@@ -103,7 +103,11 @@ def set_parameter(name, string_value):
         value = round(random.uniform(float(lower), float(upper)), 5)
     else:
         # set provided value
-        value = float(string_value)
+        try:
+            value = float(string_value)
+        except Exception:
+            value = -1
+
         if value <= 0:
             # -1 supplied, so set defaults
             value = sample_from_default_ranges(name)
