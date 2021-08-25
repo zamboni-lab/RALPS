@@ -149,7 +149,7 @@ def define_latent_dim_with_pca(data, min_variance_ratio, n_batches):
     transformer = PCA()
     scaler = StandardScaler()
 
-    scaled_data = scaler.fit_transform(data)
+    scaled_data = scaler.fit_transform(data.iloc[:, 1:])
     transformer.fit(scaled_data)
 
     for i in range(0, len(transformer.explained_variance_ratio_), 5):
@@ -224,5 +224,6 @@ def ralps(config):
 
 
 if __name__ == "__main__":
-    config = parse_config(sys.argv[1])
+    # config = parse_config(sys.argv[1])
+    config = parse_config('/Users/andreidm/ETH/projects/normalization/data/config_v5_test.csv')
     ralps(config)
