@@ -1,6 +1,7 @@
 
 import seaborn, pandas, numpy, os
 from matplotlib import pyplot
+from pathlib import Path
 
 from constants import grouping_threshold_percent as g_percent
 from constants import correlation_threshold_percent as c_percent
@@ -17,13 +18,15 @@ def evaluate_models(config):
     """ This method evaluates results of the grid search.
         If found, best models are printed. All models' metrics are logged to a file. """
 
+    out_path = Path(config['out_path'])
+
     best_models = pandas.DataFrame()
-    for id in os.listdir(config['out_path']):
+    for id in os.listdir(out_path):
         if id.startswith('.'):
             pass
         else:
-            results_path = config['out_path'] + id + '/history_{}.csv'.format(id)
-            pars_path = config['out_path'] + id + '/parameters_{}.csv'.format(id)
+            results_path = out_path / id / 'history_{}.csv'.format(id)
+            pars_path = out_path / id / 'parameters_{}.csv'.format(id)
 
             if os.path.exists(results_path) and os.path.exists(pars_path):
                 id_results = pandas.read_csv(results_path)
@@ -52,8 +55,8 @@ def evaluate_models(config):
                 best_models.loc[best_models['id'] == top_id, 'best'] = True
             print(top.to_string(), '\n')
 
-        best_models.to_csv(config['out_path'] + 'best_models.csv', index=False)
-        print('full grid saved to {}best_models.csv'.format(config['out_path']))
+        best_models.to_csv(out_path / 'best_models.csv', index=False)
+        print('full grid saved to {}'.format(out_path / 'best_models.csv'))
 
 
 def slice_by_grouping_and_correlation(history, g_percent, c_percent):
@@ -136,7 +139,7 @@ def plot_losses(rec_loss, d_loss, g_loss, best_epoch, parameters, save_to='/User
     axs[2].grid(True)
 
     pyplot.tight_layout()
-    pyplot.savefig(save_to + 'losses_{}.{}'.format(parameters['id'], parameters['plots_extension']))
+    pyplot.savefig(save_to / 'losses_{}.{}'.format(parameters['id'], parameters['plots_extension']))
     pyplot.close()
 
 
@@ -175,7 +178,7 @@ def plot_metrics(d_accuracy, reg_correlation, reg_clustering, reg_vc, best_epoch
     axs[1,1].grid(True)
 
     pyplot.tight_layout()
-    pyplot.savefig(save_to + 'metrics_{}.{}'.format(parameters['id'], parameters['plots_extension']))
+    pyplot.savefig(save_to / 'metrics_{}.{}'.format(parameters['id'], parameters['plots_extension']))
     pyplot.close()
 
 
@@ -200,7 +203,7 @@ def plot_benchmarks_metrics(b_correlations, b_grouping, best_epoch, parameters, 
     axs[1].grid(True)
 
     pyplot.tight_layout()
-    pyplot.savefig(save_to + 'benchmarks_metrics_{}.{}'.format(parameters['id'], parameters['plots_extension']))
+    pyplot.savefig(save_to / 'benchmarks_metrics_{}.{}'.format(parameters['id'], parameters['plots_extension']))
     pyplot.close()
 
 
@@ -222,7 +225,7 @@ def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, parameters, save
         pyplot.grid(True)
         pyplot.legend()
         pyplot.tight_layout()
-        pyplot.savefig(save_to + 'vcs_{}_{}.{}'.format(type, parameters['id'], parameters['plots_extension']))
+        pyplot.savefig(save_to / 'vcs_{}_{}.{}'.format(type, parameters['id'], parameters['plots_extension']))
         pyplot.close()
 
 

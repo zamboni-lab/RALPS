@@ -3,6 +3,7 @@ import pandas, sys, uuid, random, os, numpy, traceback
 from tqdm import tqdm
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from pathlib import Path
 
 from models.adversarial import run_normalization
 from evaluation import evaluate_models, slice_by_grouping_and_correlation
@@ -13,24 +14,24 @@ from constants import correlation_threshold_percent as c_percent
 
 def parse_config(path=None):
     if path is not None:
-        config = dict(pandas.read_csv(path, index_col=0).iloc[:,0])
+        config = dict(pandas.read_csv(Path(path), index_col=0).iloc[:,0])
     else:
-        config = dict(pandas.read_csv(sys.argv[1], index_col=0).iloc[:,0])
+        config = dict(pandas.read_csv(Path(sys.argv[1]), index_col=0).iloc[:,0])
 
     return config
 
 
 def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
     # collect data and batch info
-    data = pandas.read_csv(config['data_path'])
-    batch_info = pandas.read_csv(config['info_path'], keep_default_na=False)
+    data = pandas.read_csv(Path(config['data_path']))
+    batch_info = pandas.read_csv(Path(config['info_path']), keep_default_na=False)
 
     # transpose and remove annotation
     annotation = data.iloc[:, 0]
     data = data.iloc[:, 1:].T
     data.columns = annotation
     # fill in missing values
-    data = data.fillna(config['min_relevant_intensity'])
+    data = data.fillna(value=int(config['min_relevant_intensity']))
 
     # create prefixes for grouping
     new_index = data.index.values
@@ -89,7 +90,7 @@ def sample_from_default_ranges(par_name):
     elif par_name == 'batch_size':
         return random.sample([32, 64, 128], 1)[0]
     elif par_name == 'variance_ratio':
-        return random.sample([0.7, 0.8, 0.9, 0.95, 0.99], 1)[0]
+        return random.sample([0.9, 0.95, 0.99], 1)[0]
 
 
 def set_parameter(name, string_value):
@@ -147,16 +148,22 @@ def initialise_constant_parameters(config):
     return parameters
 
 
-def define_latent_dim_with_pca(data, min_variance_ratio, n_batches):
-    """ Latent_dim is defined by PCA and desired level of variance explained (defaults to 0.99). """
-
+def get_pca_results(data):
+    """ Run PCA on the dataset once and use fitted transformer later to set latent dims. """
     transformer = PCA()
     scaler = StandardScaler()
 
     scaled_data = scaler.fit_transform(data.iloc[:, 1:])
     transformer.fit(scaled_data)
 
+    return transformer
+
+
+def define_latent_dim_with_pca(transformer, min_variance_ratio, n_batches):
+    """ Latent_dim is defined by PCA and desired level of variance explained. """
+
     for i in range(0, len(transformer.explained_variance_ratio_), 5):
+        # inefficient, but still fast in practice
         if sum(transformer.explained_variance_ratio_[:i]) > min_variance_ratio:
             if i < n_batches:
                 return n_batches
@@ -189,6 +196,9 @@ def generate_parameters_grid(config, data):
     parameters['reg_types'] = ','.join(reg_types)
     parameters['benchmarks'] = ','.join(benchmarks)
 
+    if parameters['latent_dim'] <= 0:
+        pca = get_pca_results(data)
+
     grid = []
     for _ in range(get_grid_size(config)):
         new_pars = parameters.copy()
@@ -202,7 +212,8 @@ def generate_parameters_grid(config, data):
         new_pars['variance_ratio'] = set_parameter('variance_ratio', new_pars['variance_ratio'])
 
         if new_pars['latent_dim'] <= 0:
-            new_pars['latent_dim'] = define_latent_dim_with_pca(data, new_pars['variance_ratio'], new_pars['n_batches'])
+            # PCA itself is precomputed and reused
+            new_pars['latent_dim'] = define_latent_dim_with_pca(pca, new_pars['variance_ratio'], new_pars['n_batches'])
 
         grid.append(new_pars)
 
@@ -219,8 +230,8 @@ def ralps(config):
             run_normalization(data, parameters)
         except Exception as e:
             print("failed with", e)
-            log_path = parameters['out_path'] + '{}/'.format(parameters['id'])
-            with open(log_path + 'traceback.txt', 'w') as f:
+            log_path = Path(parameters['out_path']) / parameters['id'] / 'traceback.txt'
+            with open(log_path, 'w') as f:
                 f.write(traceback.format_exc())
             print("full traceback saved to", log_path, '\n')
 
@@ -228,5 +239,5 @@ def ralps(config):
 
 
 if __name__ == "__main__":
-    config = parse_config(sys.argv[1])
+    config = parse_config()
     ralps(config)

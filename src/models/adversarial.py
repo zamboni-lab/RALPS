@@ -5,6 +5,7 @@ from sklearn.preprocessing import StandardScaler, RobustScaler
 from sklearn.decomposition import PCA
 from matplotlib import pyplot
 from tqdm import tqdm
+from pathlib import Path
 
 from models.cl import Classifier
 from models.ae import Autoencoder
@@ -14,12 +15,13 @@ import evaluation, batch_analysis, preprocessing
 def run_normalization(data, parameters):
 
     # create folders to save results
-    save_to = parameters['out_path'] + '{}/'.format(parameters['id'])
-    if not os.path.exists(save_to):
+    save_to = Path(parameters['out_path']) / parameters['id']
+    if not save_to.exists():
         os.makedirs(save_to)
-        os.makedirs(save_to + '/callbacks')
-        os.makedirs(save_to + '/checkpoints')
-        os.makedirs(save_to + '/benchmarks')
+        os.makedirs(save_to / 'callbacks')
+        os.makedirs(save_to / 'checkpoints')
+        os.makedirs(save_to / 'benchmarks')
+    print('save folder created')
 
     # parse samples of interest
     reg_types = parameters['reg_types'].split(',')
@@ -213,15 +215,15 @@ def run_normalization(data, parameters):
         g_regularizer = parameters['g_lambda'] * reg_grouping
 
         # SAVE MODEL
-        torch.save(generator.state_dict(), save_to + '/checkpoints/ae_at_{}_{}.torch'.format(epoch, parameters['id']))
+        torch.save(generator.state_dict(), save_to / 'checkpoints' / 'ae_at_{}_{}.torch'.format(epoch, parameters['id']))
 
         # PRINT AND PLOT EPOCH INFO
         # plot every N epochs what happens with data
         if parameters['callback_step'] > 0 and epoch % parameters['callback_step'] == 0:
             # plot cross correlations of benchmarks in ALL reconstructed data
-            batch_analysis.plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], benchmarks, save_to=save_to+'/callbacks/', save_plot=True)
+            batch_analysis.plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], benchmarks, save_to=save_to / 'callbacks', save_plot=True)
             # plot umap of FULL encoded data
-            batch_analysis.plot_encodings_umap(encodings, 'epoch {}'.format(epoch + 1), parameters, save_to=save_to + '/callbacks/')
+            batch_analysis.plot_encodings_umap(encodings, 'epoch {}'.format(epoch + 1), parameters, save_to=save_to / 'callbacks')
 
         # display the epoch training loss
         timing = int(time.time() - start)
@@ -250,12 +252,12 @@ def run_normalization(data, parameters):
     evaluation.plot_metrics(val_acc_history, reg_samples_corr_history, reg_samples_grouping_history, reg_samples_vc_history,
                  best_epoch, parameters, save_to=save_to)
 
-    evaluation.plot_benchmarks_metrics(benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters, save_to=save_to+'/benchmarks/')
-    evaluation.plot_variation_coefs(benchmarks_variation_coefs, cv_dict_original, best_epoch, parameters, save_to=save_to+'/benchmarks/')
+    evaluation.plot_benchmarks_metrics(benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters, save_to=save_to / 'benchmarks')
+    evaluation.plot_variation_coefs(benchmarks_variation_coefs, cv_dict_original, best_epoch, parameters, save_to=save_to / 'benchmarks')
 
     # LOAD BEST MODEL
     generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
-    generator.load_state_dict(torch.load(save_to + 'checkpoints/ae_at_{}_{}.torch'.format(best_epoch, parameters['id']), map_location=device))
+    generator.load_state_dict(torch.load(save_to / 'checkpoints' / 'ae_at_{}_{}.torch'.format(best_epoch, parameters['id']), map_location=device))
     generator.eval()
 
     # PLOT BEST EPOCH CALLBACKS
@@ -270,27 +272,27 @@ def run_normalization(data, parameters):
     reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
 
     # plot cross correlations of benchmarks in initial and normalized data
-    batch_analysis.plot_batch_cross_correlations(data_values, 'initial data', parameters, benchmarks, save_to=save_to + '/benchmarks/', save_plot=True)
-    batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch + 1), parameters, benchmarks, save_to=save_to+'/benchmarks/', save_plot=True)
+    batch_analysis.plot_batch_cross_correlations(data_values, 'initial data', parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
+    batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch + 1), parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
     # plot umaps of initial, encoded and normalized data
     batch_analysis.plot_full_data_umaps(data_values, encodings, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch + 1), save_to=save_to)
 
     # SAVE ENCODED AND NORMALIZED DATA
-    encodings.to_csv(save_to + 'encodings_{}.csv'.format(parameters['id']))
-    reconstruction.T.to_csv(save_to + 'normalized_{}.csv'.format(parameters['id']))
+    encodings.to_csv(save_to / 'encodings_{}.csv'.format(parameters['id']))
+    reconstruction.T.to_csv(save_to / 'normalized_{}.csv'.format(parameters['id']))
 
     # SAVE PARAMETERS AND HISTORY
     parameters['stopped_early'] = stopped_early  # indicate whether stopped early
-    pandas.DataFrame(parameters, index=['values'], columns=parameters.keys()).T.to_csv(save_to + 'parameters_{}.csv'.format(parameters['id']))
-    history.to_csv(save_to + 'history_{}.csv'.format(parameters['id']), index=False)
+    pandas.DataFrame(parameters, index=['values'], columns=parameters.keys()).T.to_csv(save_to / 'parameters_{}.csv'.format(parameters['id']))
+    history.to_csv(save_to / 'history_{}.csv'.format(parameters['id']), index=False)
 
     # REFACTOR CHECKPOINTS
-    for file in os.listdir(save_to + '/checkpoints/'):
+    for file in os.listdir(save_to / 'checkpoints'):
         if file.startswith('ae_at_{}_'.format(best_epoch)):
             # rename to best
-            os.rename(save_to + '/checkpoints/' + file, save_to + '/checkpoints/best_' + file)
+            os.rename(save_to / 'checkpoints' / file, save_to / 'checkpoints' / 'best_{}'.format(file))
         else:
             if not parameters['keep_checkpoints']:
                 # remove the rest
-                os.remove(save_to + '/checkpoints/' + file)
+                os.remove(save_to / 'checkpoints' / file)
     print('results saved to {}\n'.format(save_to))

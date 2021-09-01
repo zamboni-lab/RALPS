@@ -6,7 +6,6 @@ from sklearn.decomposition import PCA
 
 
 from models.ae import Autoencoder
-import ralps
 
 
 def get_samples_by_types_dict(samples_names, types_of_interest):
@@ -47,7 +46,7 @@ def plot_batch_cross_correlations(data, method_name, parameters, sample_types_of
         pyplot.tight_layout()
 
         if save_plot:
-            pyplot.savefig(save_to + 'correlations_{}_{}_{}.{}'.format(type, method_name.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
+            pyplot.savefig(save_to / 'correlations_{}_{}_{}.{}'.format(type, method_name.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
         else:
             pyplot.show()
         pyplot.close()
@@ -134,7 +133,7 @@ def plot_encodings_umap(encodings, plot_label, parameters, save_to='/Users/andre
     pyplot.legend(title='Batch', loc=1, borderaxespad=0., fontsize=10)
     pyplot.title('UMAP: {}: n={}, metric={}'.format(plot_label, neighbors, metric))
     pyplot.tight_layout()
-    pyplot.savefig(save_to + 'umap_{}_{}.{}'.format(plot_label.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
+    pyplot.savefig(save_to / 'umap_{}_{}.{}'.format(plot_label.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
     pyplot.close()
 
 
@@ -264,7 +263,8 @@ if __name__ == '__main__':
     # encodings_normalized = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/P2_SRM_0001+P2_SPP_0001/da9e81db/encodings_da9e81db.csv', index_col=0)
     # all_samples = encodings_raw.index
 
-    raw_data = ralps.get_data({'data_path': '/Users/andreidm/ETH/projects/normalization/data/filtered_data_v5.csv',
+    from ralps import get_data
+    raw_data = get_data({'data_path': '/Users/andreidm/ETH/projects/normalization/data/filtered_data_v5.csv',
                                'info_path': '/Users/andreidm/ETH/projects/normalization/data/batch_info_v5_SRM+SPP.csv',
                                'min_relevant_intensity': 1000})
 
