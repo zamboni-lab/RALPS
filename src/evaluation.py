@@ -68,7 +68,7 @@ def slice_by_grouping_and_correlation(history, g_percent, c_percent):
         df = history[history['reg_grouping'] <= numpy.percentile(history['reg_grouping'].values, g_percent)].sort_values('reg_grouping')
         # correlation slice + sorting by variation coefs
         df = df[df['reg_corr'] >= numpy.percentile(df['reg_corr'].values, c_percent)].sort_values('reg_vc')
-        # negative loss slice (desired by model construction)
+        # negative loss slice (desired by model design)
         df = df[df['g_loss'] < 0]
         df['best'] = True
         assert df.shape[0] > 0
