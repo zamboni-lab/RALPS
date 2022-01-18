@@ -101,7 +101,7 @@ def run_normalization(data, parameters):
             predictions = discriminator(encodings)
 
             # compute training reconstruction loss
-            d_loss = d_criterion(predictions, labels)
+            d_loss = d_criterion(predictions, labels.to(device))
             # compute accumulated gradients
             d_loss.backward()
             d_loss_per_epoch += d_loss.item()
@@ -142,13 +142,13 @@ def run_normalization(data, parameters):
         # GENERATE DATA FOR OTHER METRICS
         scaled_data_values = scaler.transform(data_values.values)
 
-        encodings = generator.encode(torch.Tensor(scaled_data_values))
+        encodings = generator.encode(torch.Tensor(scaled_data_values).to(device))
         reconstruction = generator.decode(encodings)
 
-        encodings = pandas.DataFrame(encodings.detach().numpy(), index=data_values.index)
+        encodings = pandas.DataFrame(encodings.detach().cpu().numpy(), index=data_values.index)
         encodings.insert(0, 'batch', data_batch_labels)
 
-        reconstruction = scaler.inverse_transform(reconstruction.detach().numpy())
+        reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
         reconstruction = pandas.DataFrame(reconstruction, index=data_values.index)
 
         # COMPUTE METRICS
@@ -162,7 +162,7 @@ def run_normalization(data, parameters):
             batch_predictions = discriminator(batch_encodings)
 
             # calculate accuracy per batch
-            true_positives = (batch_predictions.argmax(-1) == batch_labels).float().detach().numpy()
+            true_positives = (batch_predictions.argmax(-1).cpu() == batch_labels).float().detach().numpy()
             batch_accuracy = true_positives.sum() / len(true_positives)
             accuracy.append(batch_accuracy)
 
@@ -263,11 +263,11 @@ def run_normalization(data, parameters):
     # PLOT BEST EPOCH CALLBACKS
     scaled_data_values = scaler.transform(data_values.values)
 
-    encodings = generator.encode(torch.Tensor(scaled_data_values))
+    encodings = generator.encode(torch.Tensor(scaled_data_values).to(device))
     reconstruction = generator.decode(encodings)
 
-    encodings = pandas.DataFrame(encodings.detach().numpy(), index=data_values.index)
-    reconstruction = scaler.inverse_transform(reconstruction.detach().numpy())
+    encodings = pandas.DataFrame(encodings.detach().cpu().numpy(), index=data_values.index)
+    reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
     reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
     reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
 

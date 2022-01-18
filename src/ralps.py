@@ -244,5 +244,6 @@ def ralps(config):
 
 
 if __name__ == "__main__":
-    config = parse_config()
+    # config = parse_config()
+    config = parse_config(path='D:\ETH\projects\\normalization\data\\config_v6.csv')
     ralps(config)
