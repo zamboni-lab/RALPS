@@ -1,5 +1,5 @@
 
-version = "v.0.5.4"
+version = "v.0.6.0"
 
 # CONFIG
 default_parameters_values = {
@@ -13,6 +13,7 @@ default_parameters_values = {
     'train_ratio': 0.9,
     'keep_checkpoints': False,
     'plots_extension': 'png',
+    'device': 'cpu',
     'min_relevant_intensity': 1000
 }
 

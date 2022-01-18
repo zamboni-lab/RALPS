@@ -29,7 +29,7 @@ def run_normalization(data, parameters):
     all_samples_types = [*benchmarks, *reg_types]
 
     # create models
-    device = torch.device("cpu")
+    device = torch.device(parameters['device'])
     discriminator = Classifier(input_shape=parameters['latent_dim'], n_batches=parameters['n_batches']).to(device)
     generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
 

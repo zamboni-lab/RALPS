@@ -1,5 +1,5 @@
 
-import pandas, sys, uuid, random, os, numpy, traceback
+import pandas, sys, uuid, random, os, numpy, traceback, torch
 from tqdm import tqdm
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -139,6 +139,11 @@ def initialise_constant_parameters(config):
         parameters['keep_checkpoints'] = default_parameters_values['keep_checkpoints']
     else:
         parameters['keep_checkpoints'] = True
+
+    if parameters['device'].lower().startswith('cuda'):
+        parameters['device'] = 'cuda' if torch.cuda.is_available() else 'cpu'
+    else:
+        parameters['device'] = 'cpu'
 
     if parameters['plots_extension'].lower() not in ['png', 'pdf', 'svg']:
         parameters['plots_extension'] = default_parameters_values['plots_extension']
