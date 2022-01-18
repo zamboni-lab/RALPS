@@ -178,7 +178,7 @@ def run_normalization(data, parameters):
             if sample in benchmarks:
                 benchmarks_variation_coefs[sample].append(vcs[sample])
 
-        reg_vc = reg_vcs_sum / len(vcs)  # compute mean overall variation coef
+        reg_vc = reg_vcs_sum / len(reg_types)  # compute mean overall variation coef
         reg_samples_vc_history.append(reg_vc)
 
         # assess cross correlations of regularization samples
