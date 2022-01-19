@@ -68,6 +68,17 @@ def get_sample_cross_correlation_estimate(data, sample_types_of_interest, percen
     return numpy.sum(corrs)
 
 
+def compute_cv_for_batches(data, batch_labels):
+    """ This method computes variation coefs for entire batches. """
+
+    batch_cvs = {}
+    for label in batch_labels:
+        batch_values = data.loc[batch_labels == label, :].values.flatten()
+        batch_cvs[label] = numpy.std(batch_values) / numpy.mean(batch_values)
+
+    return batch_cvs
+
+
 def compute_cv_for_samples_types(data, sample_types_of_interest):
     """ This method computes variation coefs for samples of interest. """
 
@@ -92,6 +103,39 @@ def get_pca_reduced_data(data, parameters):
     pca_reduced = pandas.DataFrame(transformer.fit_transform(scaled_data))
 
     return pca_reduced
+
+
+def plot_batch_cvs(data_values, reconstruction, data_batch_labels, parameters, save_to=None):
+    """ This methos plots variation coefs of batches before and after normalization. """
+
+    # compute CVs
+    cv_batch_original = compute_cv_for_batches(data_values, data_batch_labels)
+    cv_batch_normalized = compute_cv_for_batches(reconstruction, data_batch_labels)
+
+    data = {'batch': [], 'cv': [], 'label': []}
+    # merge into a single container
+    for key, value in cv_batch_original:
+        data['batch'].append(key)
+        data['cv'].append(value)
+        data['label'].append('Original')
+    for key, value in cv_batch_normalized:
+        data['batch'].append(key)
+        data['cv'].append(value)
+        data['label'].append('Normalized')
+
+    data = pandas.DataFrame(data)
+    data = data.sort_values('batch')
+
+    pyplot.figure()
+    seaborn.set_theme(style="whitegrid")
+    seaborn.barplot(x='batch', y='CV', hue='label', data=data)
+    pyplot.title('Batch CVs')
+    pyplot.tight_layout()
+    if save_to:
+        pyplot.savefig(save_to / 'batch_cv_{}.{}'.format(parameters['id'], parameters['plots_extension']))
+        pyplot.close()
+    else:
+        pyplot.show()
 
 
 def plot_full_data_umaps(data, encodings, reconstruction, batch_labels, parameters, common_plot_label, save_to='/Users/andreidm/ETH/projects/normalization/res/'):

@@ -21,6 +21,7 @@ def run_normalization(data, parameters):
         os.makedirs(save_to / 'callbacks')
         os.makedirs(save_to / 'checkpoints')
         os.makedirs(save_to / 'benchmarks')
+        os.makedirs(save_to / 'vcs')
     print('save folder created')
 
     # parse samples of interest
@@ -50,9 +51,6 @@ def run_normalization(data, parameters):
     data_batch_labels = data.iloc[:, 0]
     data_values = data.iloc[:, 1:]
 
-    # get CV of benchmarks in original data
-    cv_dict_original = batch_analysis.compute_cv_for_samples_types(data_values, benchmarks)
-
     # create and fit the scaler
     scaler = RobustScaler().fit(data_values)
     # apply scaling and do train test split
@@ -74,6 +72,7 @@ def run_normalization(data, parameters):
     reg_samples_grouping_history = []
     reg_samples_corr_history = []
     reg_samples_vc_history = []
+    reg_samples_variation_coefs = dict([(sample, []) for sample in reg_types])
 
     benchmarks_corr_history = []
     benchmarks_grouping_history = []
@@ -175,6 +174,7 @@ def run_normalization(data, parameters):
         for sample in all_samples_types:
             if sample in reg_types:
                 reg_vcs_sum += vcs[sample]  # calculate sum of (reg) variation coefs
+                reg_samples_variation_coefs[sample].append(vcs[sample])
             if sample in benchmarks:
                 benchmarks_variation_coefs[sample].append(vcs[sample])
 
@@ -249,11 +249,13 @@ def run_normalization(data, parameters):
     history.loc[best_epoch, 'best'] = True  # mark the best epoch
 
     evaluation.plot_losses(rec_loss_history, d_loss_history, g_loss_history, best_epoch, parameters, save_to=save_to)
-    evaluation.plot_metrics(val_acc_history, reg_samples_corr_history, reg_samples_grouping_history, reg_samples_vc_history,
-                 best_epoch, parameters, save_to=save_to)
-
+    evaluation.plot_metrics(val_acc_history, reg_samples_corr_history, reg_samples_grouping_history, reg_samples_vc_history, best_epoch, parameters, save_to=save_to)
     evaluation.plot_benchmarks_metrics(benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters, save_to=save_to / 'benchmarks')
-    evaluation.plot_variation_coefs(benchmarks_variation_coefs, cv_dict_original, best_epoch, parameters, save_to=save_to / 'benchmarks')
+
+    cv_bench_original = batch_analysis.compute_cv_for_samples_types(data_values, benchmarks)
+    evaluation.plot_variation_coefs(benchmarks_variation_coefs, cv_bench_original, best_epoch, parameters, save_to=save_to / 'benchmarks')
+    cv_reg_original = batch_analysis.compute_cv_for_samples_types(data_values, reg_types)
+    evaluation.plot_variation_coefs(reg_samples_variation_coefs, cv_reg_original, best_epoch, parameters, save_to=save_to / 'cvs')
 
     # LOAD BEST MODEL
     generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
@@ -276,6 +278,8 @@ def run_normalization(data, parameters):
     batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch + 1), parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
     # plot umaps of initial, encoded and normalized data
     batch_analysis.plot_full_data_umaps(data_values, encodings, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch + 1), save_to=save_to)
+    # plot batch variation coefs in initial and normalized data
+    batch_analysis.plot_batch_cvs(data_values, reconstruction, data_batch_labels)
 
     # SAVE ENCODED AND NORMALIZED DATA
     encodings.to_csv(save_to / 'encodings_{}.csv'.format(parameters['id']))
