@@ -114,11 +114,11 @@ def plot_batch_cvs(data_values, reconstruction, data_batch_labels, parameters, s
 
     data = {'batch': [], 'cv': [], 'label': []}
     # merge into a single container
-    for key, value in cv_batch_original:
+    for key, value in cv_batch_original.items():
         data['batch'].append(key)
         data['cv'].append(value)
         data['label'].append('Original')
-    for key, value in cv_batch_normalized:
+    for key, value in cv_batch_normalized.items():
         data['batch'].append(key)
         data['cv'].append(value)
         data['label'].append('Normalized')
@@ -128,8 +128,9 @@ def plot_batch_cvs(data_values, reconstruction, data_batch_labels, parameters, s
 
     pyplot.figure()
     seaborn.set_theme(style="whitegrid")
-    seaborn.barplot(x='batch', y='CV', hue='label', data=data)
-    pyplot.title('Batch CVs')
+    seaborn.barplot(x='batch', y='cv', hue='label', data=data)
+    pyplot.title('Batch variation coefs')
+    pyplot.legend(bbox_to_anchor=(1.01, 1))
     pyplot.tight_layout()
     if save_to:
         pyplot.savefig(save_to / 'batch_cv_{}.{}'.format(parameters['id'], parameters['plots_extension']))

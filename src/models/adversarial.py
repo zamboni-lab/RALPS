@@ -255,7 +255,7 @@ def run_normalization(data, parameters):
     cv_bench_original = batch_analysis.compute_cv_for_samples_types(data_values, benchmarks)
     evaluation.plot_variation_coefs(benchmarks_variation_coefs, cv_bench_original, best_epoch, parameters, save_to=save_to / 'benchmarks')
     cv_reg_original = batch_analysis.compute_cv_for_samples_types(data_values, reg_types)
-    evaluation.plot_variation_coefs(reg_samples_variation_coefs, cv_reg_original, best_epoch, parameters, save_to=save_to / 'cvs')
+    evaluation.plot_variation_coefs(reg_samples_variation_coefs, cv_reg_original, best_epoch, parameters, save_to=save_to / 'vcs')
 
     # LOAD BEST MODEL
     generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
@@ -279,7 +279,7 @@ def run_normalization(data, parameters):
     # plot umaps of initial, encoded and normalized data
     batch_analysis.plot_full_data_umaps(data_values, encodings, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch + 1), save_to=save_to)
     # plot batch variation coefs in initial and normalized data
-    batch_analysis.plot_batch_cvs(data_values, reconstruction, data_batch_labels)
+    batch_analysis.plot_batch_cvs(data_values, reconstruction, data_batch_labels, parameters, save_to=save_to / 'vcs')
 
     # SAVE ENCODED AND NORMALIZED DATA
     encodings.to_csv(save_to / 'encodings_{}.csv'.format(parameters['id']))
