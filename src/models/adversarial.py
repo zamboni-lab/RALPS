@@ -272,8 +272,9 @@ def run_normalization(data, parameters):
     reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
     reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
 
-    # debug: plot unmasked cross-corr maps
+    # debug: plot unmasked cross-corr maps and cvs
     batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {} unmasked'.format(best_epoch + 1), parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
+    batch_analysis.plot_batch_cvs(data_values, reconstruction, data_batch_labels, parameters, 'at epoch {} unmasked'.format(best_epoch + 1), save_to=save_to / 'vcs')
 
     reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
 
@@ -283,7 +284,7 @@ def run_normalization(data, parameters):
     # plot umaps of initial, encoded and normalized data
     batch_analysis.plot_full_data_umaps(data_values, encodings, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch + 1), save_to=save_to)
     # plot batch variation coefs in initial and normalized data
-    batch_analysis.plot_batch_cvs(data_values, reconstruction, data_batch_labels, parameters, save_to=save_to / 'vcs')
+    batch_analysis.plot_batch_cvs(data_values, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch + 1), save_to=save_to / 'vcs')
 
     # SAVE ENCODED AND NORMALIZED DATA
     encodings.to_csv(save_to / 'encodings_{}.csv'.format(parameters['id']))

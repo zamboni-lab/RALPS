@@ -105,7 +105,7 @@ def get_pca_reduced_data(data, parameters):
     return pca_reduced
 
 
-def plot_batch_cvs(data_values, reconstruction, data_batch_labels, parameters, save_to=None):
+def plot_batch_cvs(data_values, reconstruction, data_batch_labels, parameters, plot_label, save_to=None):
     """ This methos plots variation coefs of batches before and after normalization. """
 
     # compute CVs
@@ -133,7 +133,7 @@ def plot_batch_cvs(data_values, reconstruction, data_batch_labels, parameters, s
     pyplot.legend(bbox_to_anchor=(1.01, 1))
     pyplot.tight_layout()
     if save_to:
-        pyplot.savefig(save_to / 'batch_cv_{}.{}'.format(parameters['id'], parameters['plots_extension']))
+        pyplot.savefig(save_to / 'batch_cv_{}_{}.{}'.format(plot_label.replace(' ','_'), parameters['id'], parameters['plots_extension']))
         pyplot.close()
     else:
         pyplot.show()
