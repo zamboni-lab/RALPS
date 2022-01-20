@@ -183,11 +183,11 @@ def run_normalization(data, parameters):
 
         # assess cross correlations of regularization samples
         reg_corr = batch_analysis.get_sample_cross_correlation_estimate(reconstruction, reg_types, percent=25)
-        reg_samples_corr_history.append(reg_corr)
+        reg_samples_corr_history.append(reg_corr)  # append mean
 
         # assess cross correlations of benchmarks
         b_corr = batch_analysis.get_sample_cross_correlation_estimate(reconstruction, benchmarks)
-        benchmarks_corr_history.append(b_corr)
+        benchmarks_corr_history.append(b_corr)  # append mean
 
         # collect clustering results for reg_types and benchmarks
         clustering, total_clusters = batch_analysis.compute_number_of_clusters_with_hdbscan(encodings, parameters, all_samples_types, print_info=False)

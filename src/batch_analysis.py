@@ -53,7 +53,7 @@ def plot_batch_cross_correlations(data, method_name, parameters, sample_types_of
 
 
 def get_sample_cross_correlation_estimate(data, sample_types_of_interest, percent=50):
-    """ This method computes intra-batch correlations for the samples of interest.
+    """ This method computes mean intra-batch correlations for the samples of interest.
         A simple statistic is computed then to give an estimate (ex., median, or 25th percentile). """
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
@@ -65,7 +65,7 @@ def get_sample_cross_correlation_estimate(data, sample_types_of_interest, percen
         values = df.values.flatten()
         corrs.append(numpy.percentile(values, percent))
 
-    return numpy.sum(corrs)
+    return numpy.mean(corrs)
 
 
 def compute_cv_for_batches(data, batch_labels):

@@ -80,9 +80,9 @@ def get_grid_size(config):
 def sample_from_default_ranges(par_name):
 
     if par_name == 'd_lr':
-        return round(random.uniform(0.00005, 0.005), 5)
+        return round(random.uniform(0.00005, 0.005), 4)
     elif par_name == 'g_lr':
-        return round(random.uniform(0.00005, 0.005), 5)
+        return round(random.uniform(0.00005, 0.005), 4)
     elif par_name == 'd_lambda':
         return round(random.uniform(0., 10.), 1)
     elif par_name == 'g_lambda':
@@ -244,6 +244,6 @@ def ralps(config):
 
 
 if __name__ == "__main__":
-    # config = parse_config()
-    config = parse_config(path='D:\ETH\projects\\normalization\data\\config_v6.csv')
+    config = parse_config()
+    # config = parse_config(path='D:\ETH\projects\\normalization\data\\config_v6.csv')
     ralps(config)
