@@ -158,7 +158,7 @@ def plot_metrics(d_accuracy, reg_correlation, reg_clustering, reg_vc, best_epoch
 
     axs[1,0].plot(range(1, 1 + len(reg_correlation)), reg_correlation)
     axs[1,0].axvline(best_epoch + 1, c='black', label='Best')
-    axs[1,0].set_title('Sum of samples\' cross-correlation estimates')
+    axs[1,0].set_title('Mean samples\' cross-correlation estimates')
     axs[1,0].set_xlabel('Epochs')
     axs[1,0].set_ylabel('Pearson coef')
     axs[1,0].grid(True)
@@ -190,7 +190,7 @@ def plot_benchmarks_metrics(b_correlations, b_grouping, best_epoch, parameters, 
 
     axs[0].plot(range(1, 1+len(b_correlations)), b_correlations)
     axs[0].axvline(best_epoch+1, c='black', label='Best')
-    axs[0].set_title('Sum of benchmarks cross-correlation')
+    axs[0].set_title('Mean benchmark cross-correlation')
     axs[0].set_xlabel('Epochs')
     axs[0].set_ylabel('Pearson coef')
     axs[0].grid(True)
