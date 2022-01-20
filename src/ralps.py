@@ -33,6 +33,10 @@ def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
     # fill in missing values
     data = data.fillna(value=int(config['min_relevant_intensity']))
 
+    # unify ordering of samples between data and batch_info
+    batch_info = batch_info.set_index(batch_info.columns[0])
+    batch_info = batch_info.loc[data.index, :]
+
     # create prefixes for grouping
     new_index = data.index.values
     groups_indices = numpy.where(numpy.isin(batch_info['group'].astype('str'), default_labels, invert=True))[0]
@@ -54,9 +58,9 @@ def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
         data = data.mask(numpy.random.random(data.shape) < na_fraction)
         data = data.fillna(config['min_relevant_intensity'])
 
-    # add batch and shuffle
+    # just insert batch (correct ordering)
     data.insert(0, 'batch', batch_info['batch'].values)
-    data = data.sample(frac=1)
+    data = data.sample(frac=1)  # shuffle
 
     if n_batches is not None:
         # select first n batches
@@ -244,6 +248,6 @@ def ralps(config):
 
 
 if __name__ == "__main__":
-    config = parse_config()
-    # config = parse_config(path='D:\ETH\projects\\normalization\data\\config_v6.csv')
+    # config = parse_config()
+    config = parse_config(path='/Users/andreidm/ETH/projects/normalization/data/config_all_refs.csv')
     ralps(config)

@@ -37,7 +37,8 @@ def plot_batch_cross_correlations(data, method_name, parameters, sample_types_of
         pyplot.figure()
         df = data.loc[numpy.array(samples_by_types[type]), :]
         df = df.T  # transpose to call corr() on samples, not metabolites
-        df.columns = sorted([x[-6:] for x in df.columns])
+        df.columns = ['_'.join(x.split('_')[-2:]) for x in df.columns]  # shorten sample names
+        df = df.reindex(sorted(df.columns), axis=1)  # sort column names
         df = df.corr()
 
         seaborn.heatmap(df, vmin=0, vmax=1)
