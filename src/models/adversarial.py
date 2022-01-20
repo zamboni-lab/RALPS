@@ -240,7 +240,7 @@ def run_normalization(data, parameters):
                 break
 
     # PLOT TRAINING HISTORY
-    history = pandas.DataFrame({'epoch': [x for x in range(len(d_loss_history))], 'best': [False for x in range(len(d_loss_history))],
+    history = pandas.DataFrame({'epoch': [x+1 for x in range(len(d_loss_history))], 'best': [False for x in range(len(d_loss_history))],
                                 'rec_loss': rec_loss_history, 'd_loss': d_loss_history, 'g_loss': g_loss_history,
                                 'reg_grouping': reg_samples_grouping_history, 'reg_corr': reg_samples_corr_history, 'reg_vc': reg_samples_vc_history,
                                 'val_acc': val_acc_history, 'b_corr': benchmarks_corr_history, 'b_grouping': benchmarks_grouping_history})
@@ -271,11 +271,6 @@ def run_normalization(data, parameters):
     encodings = pandas.DataFrame(encodings.detach().cpu().numpy(), index=data_values.index)
     reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
     reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
-
-    # debug: plot unmasked cross-corr maps and cvs
-    batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {} unmasked'.format(best_epoch + 1), parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
-    batch_analysis.plot_batch_cvs(data_values, reconstruction, data_batch_labels, parameters, 'at epoch {} unmasked'.format(best_epoch + 1), save_to=save_to / 'vcs')
-
     reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
 
     # plot cross correlations of benchmarks in initial and normalized data
