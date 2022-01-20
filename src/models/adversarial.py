@@ -271,6 +271,10 @@ def run_normalization(data, parameters):
     encodings = pandas.DataFrame(encodings.detach().cpu().numpy(), index=data_values.index)
     reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
     reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
+
+    # debug: plot unmasked cross-corr maps
+    batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {} unmasked'.format(best_epoch + 1), parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
+
     reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
 
     # plot cross correlations of benchmarks in initial and normalized data
