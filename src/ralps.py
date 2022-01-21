@@ -248,6 +248,6 @@ def ralps(config):
 
 
 if __name__ == "__main__":
-    # config = parse_config()
-    config = parse_config(path='/Users/andreidm/ETH/projects/normalization/data/config_all_refs.csv')
+    config = parse_config()
+    # config = parse_config(path='/Users/andreidm/ETH/projects/normalization/data/config_all_refs.csv')
     ralps(config)

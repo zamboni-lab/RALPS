@@ -215,7 +215,7 @@ def run_normalization(data, parameters):
         g_regularizer = parameters['g_lambda'] * reg_grouping
 
         # SAVE MODEL
-        torch.save(generator.state_dict(), save_to / 'checkpoints' / 'ae_at_{}_{}.torch'.format(epoch, parameters['id']))
+        torch.save(generator.state_dict(), save_to / 'checkpoints' / 'ae_at_{}_{}.torch'.format(epoch+1, parameters['id']))
 
         # PRINT AND PLOT EPOCH INFO
         # plot every N epochs what happens with data
@@ -275,11 +275,11 @@ def run_normalization(data, parameters):
 
     # plot cross correlations of benchmarks in initial and normalized data
     batch_analysis.plot_batch_cross_correlations(data_values, 'initial data', parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
-    batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch + 1), parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
+    batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch), parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
     # plot umaps of initial, encoded and normalized data
-    batch_analysis.plot_full_data_umaps(data_values, encodings, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch + 1), save_to=save_to)
+    batch_analysis.plot_full_data_umaps(data_values, encodings, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch), save_to=save_to)
     # plot batch variation coefs in initial and normalized data
-    batch_analysis.plot_batch_cvs(data_values, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch + 1), save_to=save_to / 'cvs')
+    batch_analysis.plot_batch_cvs(data_values, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch), save_to=save_to / 'cvs')
 
     # SAVE ENCODED AND NORMALIZED DATA
     encodings.to_csv(save_to / 'encodings_{}.csv'.format(parameters['id']))
