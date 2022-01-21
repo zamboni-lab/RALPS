@@ -11,4 +11,9 @@ import h5py
 from pathlib import Path
 
 if __name__ == "__main__":
-    pass
+    d = pandas.DataFrame({'a': [1,2,3], 'b': [3,2,1] if False else [-1, -1, -1]})
+
+    d.to_csv('D:\ETH\projects\\normalization\\res\\d.csv')
+    d = pandas.read_csv('D:\ETH\projects\\normalization\\res\\d.csv')
+
+    print(d['b'] > 0)

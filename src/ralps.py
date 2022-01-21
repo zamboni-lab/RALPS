@@ -6,10 +6,8 @@ from sklearn.decomposition import PCA
 from pathlib import Path
 
 from models.adversarial import run_normalization
-from evaluation import evaluate_models, slice_by_grouping_and_correlation
+from evaluation import evaluate_models
 from constants import default_parameters_values, default_labels
-from constants import grouping_threshold_percent as g_percent
-from constants import correlation_threshold_percent as c_percent
 
 
 def parse_config(path=None):
@@ -25,6 +23,11 @@ def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
     # collect data and batch info
     data = pandas.read_csv(Path(config['data_path']))
     batch_info = pandas.read_csv(Path(config['info_path']), keep_default_na=False)
+
+    # TODO:
+    #  - check input data for reg_types, benchmarks, batch labels,
+    #  - warn and stop if there are obvious problems
+    #  - test with no benchmarks
 
     # transpose and remove annotation
     annotation = data.iloc[:, 0]
@@ -248,6 +251,6 @@ def ralps(config):
 
 
 if __name__ == "__main__":
+    # config = parse_config(path='D:\ETH\projects\\normalization\data\configs\\config_all_refs.csv')
     config = parse_config()
-    # config = parse_config(path='/Users/andreidm/ETH/projects/normalization/data/config_all_refs.csv')
     ralps(config)

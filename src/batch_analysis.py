@@ -65,34 +65,36 @@ def get_sample_cross_correlation_estimate(data, sample_types_of_interest, percen
         df = df.T.corr()  # transpose to call corr() on samples, not metabolites
         values = df.values.flatten()
         corrs.append(numpy.percentile(values, percent))
+    if len(corrs) > 0:
+        return numpy.mean(corrs)
+    else:
+        return None
 
-    return numpy.mean(corrs)
 
-
-def compute_cv_for_batches(data, batch_labels):
+def compute_vc_for_batches(data, batch_labels):
     """ This method computes variation coefs for entire batches. """
 
-    batch_cvs = {}
+    batch_vcs = {}
     for label in batch_labels:
         batch_values = data.loc[batch_labels == label, :].values.flatten()
-        batch_cvs[label] = numpy.std(batch_values) / numpy.mean(batch_values)
+        batch_vcs[label] = numpy.std(batch_values) / numpy.mean(batch_values)
 
-    return batch_cvs
+    return batch_vcs
 
 
-def compute_cv_for_samples_types(data, sample_types_of_interest):
+def compute_vc_for_samples_types(data, sample_types_of_interest):
     """ This method computes variation coefs for samples of interest. """
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
-    cv_dict = {}
+    vc_dict = {}
     for i, type in enumerate(samples_by_types):
         values = data.loc[numpy.array(samples_by_types[type]), :].values
         values = values[values > 0]  # exclude negative values, that the model might predict
         values = values.flatten()
-        cv_dict[type] = numpy.std(values) / numpy.mean(values)
+        vc_dict[type] = numpy.std(values) / numpy.mean(values)
 
-    return cv_dict
+    return vc_dict
 
 
 def get_pca_reduced_data(data, parameters):
@@ -106,20 +108,16 @@ def get_pca_reduced_data(data, parameters):
     return pca_reduced
 
 
-def plot_batch_cvs(data_values, reconstruction, data_batch_labels, parameters, plot_label, save_to=None):
+def plot_batch_vcs(vc_batch_original, vc_batch_normalized, parameters, plot_label, save_to=None):
     """ This methos plots variation coefs of batches before and after normalization. """
-
-    # compute CVs
-    cv_batch_original = compute_cv_for_batches(data_values, data_batch_labels)
-    cv_batch_normalized = compute_cv_for_batches(reconstruction, data_batch_labels)
 
     data = {'batch': [], 'cv': [], 'label': []}
     # merge into a single container
-    for key, value in cv_batch_original.items():
+    for key, value in vc_batch_original.items():
         data['batch'].append(key)
         data['cv'].append(value)
         data['label'].append('Original')
-    for key, value in cv_batch_normalized.items():
+    for key, value in vc_batch_normalized.items():
         data['batch'].append(key)
         data['cv'].append(value)
         data['label'].append('Normalized')

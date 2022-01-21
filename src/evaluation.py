@@ -30,23 +30,29 @@ def evaluate_models(config):
 
             if os.path.exists(results_path) and os.path.exists(pars_path):
                 id_results = pandas.read_csv(results_path)
-                id_results = id_results.loc[id_results['best'] == True, :]
-                stopped_early = pandas.read_csv(pars_path, index_col=0).T
-                stopped_early = str(stopped_early['stopped_early'].values[0])
-                id_results['id'] = id
-                id_results['stopped_early'] = stopped_early
-                best_models = pandas.concat([best_models, id_results])
+                id_results = id_results.loc[id_results['solution'] == True, :]
+                if id_results.shape[0] > 0:
+                    stopped_early = pandas.read_csv(pars_path, index_col=0).T
+                    stopped_early = str(stopped_early['stopped_early'].values[0])
+                    id_results['id'] = id
+                    id_results['stopped_early'] = stopped_early
+                    best_models = pandas.concat([best_models, id_results])
+                else:
+                    pass
                 del id_results
 
-    best_models['best'] = False
+    ids = best_models['id']
+    best_models = best_models.drop(columns=['solution', 'id'])
+    best_models.insert(1, 'best', False)
+    best_models.insert(2, 'id', ids)
     # pick best models
     print('GRID SEARCH BEST MODELS:', '\n')
     if best_models.shape[0] == 0:
-        print('WARNING: no best model found\n')
+        print('WARNING: no solutions found! Check input data, try other parameters, or report an issue.\n')
     else:
-        top = slice_by_grouping_and_correlation(best_models, g_percent, c_percent)
+        top = select_top_solutions(best_models, g_percent, c_percent)
         if top is None:
-                print('WARNING: could not find the best model, returning the list sorted by reg_grouping\n')
+                print('WARNING: could not find the best solution, returning the full list sorted by reg_grouping\n')
                 best_models = best_models.sort_values('reg_grouping')
                 print(best_models.to_string(), '\n')
         else:
@@ -60,55 +66,82 @@ def evaluate_models(config):
 
 
 def slice_by_grouping_and_correlation(history, g_percent, c_percent):
-    """ This method is used to select the best epoch or the best model.
-        It applies two thresholds and sorting for the three key quality metrics. """
+    """ This method is used to select the best epoch of a single solution.
+        It applies thresholds and sorting for the three key quality metrics. """
 
     try:
         # grouping slice
         df = history[history['reg_grouping'] <= numpy.percentile(history['reg_grouping'].values, g_percent)]
-        # correlation slice + sorting by variation coefs
-        df = df[df['reg_corr'] >= numpy.percentile(df['reg_corr'].values, c_percent)].sort_values('reg_vc')
-        # negative loss slice (desired by model design)
-        df = df[df['g_loss'] < 0]
-        df['best'] = True
+        # correlation slice + sorting by reconstruction loss
+        df = df[df['reg_corr'] >= numpy.percentile(df['reg_corr'].values, c_percent)].sort_values('rec_loss')
         assert df.shape[0] > 0
-
     except Exception:
         df = None
     return df
 
 
-def find_best_epoch(history, skip_epochs=5):
+def select_top_solutions(history, g_percent, c_percent):
+    """ This method is used to select the best solutions in the grid.
+        It follows similar logic as in epoch selection, but accounts for benchmarks as well. """
+
+    if (history['b_corr'] >= 0).sum() > 0 and (history['b_grouping'] >= 0).sum() > 0:
+        # there are benchmarks to account for
+        history['all_corr'] = history['reg_corr'] + history['b_corr']
+        history['all_grouping'] = history['reg_grouping'] + history['b_grouping']
+
+        try:
+            # grouping slice
+            df = history[history['all_grouping'] <= numpy.percentile(history['all_grouping'].values, g_percent)]
+            # correlation slice + sorting by variation coefs
+            df = df[df['all_corr'] >= numpy.percentile(df['all_corr'].values, c_percent)].sort_values('rec_loss')
+            assert df.shape[0] > 0
+            df['best'] = True
+        except Exception:
+            df = None
+        return df
+
+    else:
+        return slice_by_grouping_and_correlation(history, g_percent, c_percent)
+
+
+def find_best_epoch(history, skip_epochs, mean_batch_vc_original, mean_reg_vc_original):
     """ This method seeks for the best epoch using logged history of quality metrics. """
 
     # skip first n epochs
     if 0 < skip_epochs < history.shape[0]:
         history = history.iloc[skip_epochs:, :]
 
-    df = slice_by_grouping_and_correlation(history, 10, 90)
-    if df is None:
-        df = slice_by_grouping_and_correlation(history, 20, 80)
+    # filter out epochs of increased variation coefs
+    history = history.loc[(history['batch_vc'] < mean_batch_vc_original) & (history['reg_vc'] < mean_reg_vc_original), :]
+    if history.shape[0] < 1:
+        print('WARNING: increased VCs -> no solution for current parameter set')
+        return None
+    else:
+        df = slice_by_grouping_and_correlation(history, 10, 90)
         if df is None:
-            df = slice_by_grouping_and_correlation(history, 30, 70)
+            df = slice_by_grouping_and_correlation(history, 20, 80)
             if df is None:
-                df = slice_by_grouping_and_correlation(history, 40, 60)
+                df = slice_by_grouping_and_correlation(history, 30, 70)
                 if df is None:
-                    df = slice_by_grouping_and_correlation(history, 50, 50)
+                    df = slice_by_grouping_and_correlation(history, 40, 60)
                     if df is None:
-                        min_grouping_epochs = history.loc[history['reg_grouping'] == history['reg_grouping'].min(), :]
-                        if min_grouping_epochs.shape[0] > 1:
-                            # min grouping + max correlation
-                            best_epoch = int(min_grouping_epochs.loc[min_grouping_epochs['reg_corr'] == min_grouping_epochs['reg_corr'].max(), 'epoch'].values[-1])
-                            print('WARNING: couldn\'t find the best epoch, '
-                                  'returning the one of min grouping with max cross-correlation: epoch {}'.format(best_epoch + 1))
-                        else:
-                            # min grouping
-                            best_epoch = int(history.loc[history['reg_grouping'] == history['reg_grouping'].min(), 'epoch'].values[-1])
-                            print('WARNING: couldn\'t find the best epoch, '
-                                  'returning the last one of min grouping coef: epoch {}'.format(best_epoch + 1))
+                        df = slice_by_grouping_and_correlation(history, 50, 50)
+                        if df is None:
+                            min_grouping_epochs = history.loc[history['reg_grouping'] == history['reg_grouping'].min(), :]
+                            if min_grouping_epochs.shape[0] > 1:
+                                # min grouping + max correlation
+                                best_epoch = int(min_grouping_epochs.loc[min_grouping_epochs['reg_corr'] == min_grouping_epochs['reg_corr'].max(), 'epoch'].values[-1])
+                                print('WARNING: couldn\'t find the best epoch, '
+                                      'returning the one of min grouping with max cross-correlation: epoch {}'.format(best_epoch))
+                            else:
+                                # min grouping
+                                best_epoch = int(history.loc[history['reg_grouping'] == history['reg_grouping'].min(), 'epoch'].values[-1])
+                                print('WARNING: couldn\'t find the best epoch, '
+                                      'returning the last one of min grouping coef: epoch {}'.format(best_epoch))
 
-                        return best_epoch
-    return int(df['epoch'].values[0])
+                            return best_epoch
+
+        return int(df['epoch'].values[0])
 
 
 def plot_losses(rec_loss, d_loss, g_loss, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
@@ -118,21 +151,21 @@ def plot_losses(rec_loss, d_loss, g_loss, best_epoch, parameters, save_to='/User
     fig.suptitle('Adversarial training loop losses')
 
     axs[0].plot(range(1, 1+len(d_loss)), d_loss)
-    axs[0].axvline(best_epoch+1, c='black', label='Best')
+    axs[0].axvline(best_epoch, c='black', label='Best')
     axs[0].set_title('Classifier loss')
     axs[0].set_xlabel('Epochs')
     axs[0].set_ylabel('Cross-entropy')
     axs[0].grid(True)
 
     axs[1].plot(range(1, 1+len(g_loss)), g_loss)
-    axs[1].axvline(best_epoch + 1, c='black', label='Best')
+    axs[1].axvline(best_epoch, c='black', label='Best')
     axs[1].set_title('Autoencoder loss')
     axs[1].set_xlabel('Epochs')
     axs[1].set_ylabel('Regularized MSE - Cross-entropy')
     axs[1].grid(True)
 
     axs[2].plot(range(1, 1 + len(rec_loss)), rec_loss)
-    axs[2].axvline(best_epoch + 1, c='black', label='Best')
+    axs[2].axvline(best_epoch, c='black', label='Best')
     axs[2].set_title('Reconstruction loss')
     axs[2].set_xlabel('Epochs')
     axs[2].set_ylabel('MSE')
@@ -150,28 +183,28 @@ def plot_metrics(d_accuracy, reg_correlation, reg_clustering, reg_vc, best_epoch
     fig.suptitle('Adversarial training loop metrics')
 
     axs[0,0].plot(range(1, 1+len(d_accuracy)), d_accuracy)
-    axs[0,0].axvline(best_epoch + 1, c='black', label='Best')
+    axs[0,0].axvline(best_epoch, c='black', label='Best')
     axs[0,0].set_title('Validation classifier accuracy')
     axs[0,0].set_xlabel('Epochs')
     axs[0,0].set_ylabel('Accuracy')
     axs[0,0].grid(True)
 
     axs[1,0].plot(range(1, 1 + len(reg_correlation)), reg_correlation)
-    axs[1,0].axvline(best_epoch + 1, c='black', label='Best')
+    axs[1,0].axvline(best_epoch, c='black', label='Best')
     axs[1,0].set_title('Mean samples\' cross-correlation estimates')
     axs[1,0].set_xlabel('Epochs')
     axs[1,0].set_ylabel('Pearson coef')
     axs[1,0].grid(True)
 
     axs[0,1].plot(range(1, 1 + len(reg_clustering)), reg_clustering)
-    axs[0,1].axvline(best_epoch + 1, c='black', label='Best')
+    axs[0,1].axvline(best_epoch, c='black', label='Best')
     axs[0,1].set_title('Mean estimate of samples\' grouping')
     axs[0,1].set_xlabel('Epochs')
     axs[0,1].set_ylabel('HBDSCAN distance')
     axs[0,1].grid(True)
 
     axs[1,1].plot(range(1, 1+len(reg_vc)), reg_vc)
-    axs[1,1].axvline(best_epoch + 1, c='black', label='Best')
+    axs[1,1].axvline(best_epoch, c='black', label='Best')
     axs[1,1].set_title('Mean samples\' variation coef')
     axs[1,1].set_xlabel('Epochs')
     axs[1,1].set_ylabel('VC')
@@ -189,14 +222,14 @@ def plot_benchmarks_metrics(b_correlations, b_grouping, best_epoch, parameters, 
     fig.suptitle('Benchmarks metrics')
 
     axs[0].plot(range(1, 1+len(b_correlations)), b_correlations)
-    axs[0].axvline(best_epoch+1, c='black', label='Best')
+    axs[0].axvline(best_epoch, c='black', label='Best')
     axs[0].set_title('Mean benchmark cross-correlation')
     axs[0].set_xlabel('Epochs')
     axs[0].set_ylabel('Pearson coef')
     axs[0].grid(True)
 
     axs[1].plot(range(1, 1+len(b_grouping)), b_grouping)
-    axs[1].axvline(best_epoch + 1, c='black', label='Best')
+    axs[1].axvline(best_epoch, c='black', label='Best')
     axs[1].set_title('Mean estimate of benchmarks\' grouping')
     axs[1].set_xlabel('Epochs')
     axs[1].set_ylabel('HDBSCAN distance')
@@ -217,8 +250,8 @@ def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, parameters, save
         pyplot.figure()
         pyplot.plot(x, y, label='Training process')
         pyplot.hlines(y=vc_dict_original[type], xmin=x[0], xmax=x[-1], colors='r', label='Original data')
-        pyplot.hlines(y=y[best_epoch], xmin=x[0], xmax=x[-1], colors='k', label='Normalized data')
-        pyplot.vlines(x=best_epoch+1, ymin=min(y), ymax=y[best_epoch], colors='k')
+        pyplot.hlines(y=y[best_epoch-1], xmin=x[0], xmax=x[-1], colors='k', label='Normalized data')
+        pyplot.vlines(x=best_epoch, ymin=min(y), ymax=y[best_epoch-1], colors='k')
         pyplot.ylabel('VC')
         pyplot.xlabel('Epochs')
         pyplot.title('Variation coefficient for {}'.format(type))

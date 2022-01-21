@@ -18,10 +18,9 @@ def run_normalization(data, parameters):
     save_to = Path(parameters['out_path']) / parameters['id']
     if not save_to.exists():
         os.makedirs(save_to)
-        os.makedirs(save_to / 'benchmarks')
-        os.makedirs(save_to / 'callbacks')
+        if parameters['callback_step'] > 0:
+            os.makedirs(save_to / 'callbacks')
         os.makedirs(save_to / 'checkpoints')
-        os.makedirs(save_to / 'cvs')
     print('save folder created')
 
     # parse samples of interest
@@ -67,8 +66,9 @@ def run_normalization(data, parameters):
     g_loss_history = []
     d_loss_history = []
     rec_loss_history = []
-
     val_acc_history = []
+    batch_vc_history = []
+
     reg_samples_grouping_history = []
     reg_samples_corr_history = []
     reg_samples_vc_history = []
@@ -149,6 +149,7 @@ def run_normalization(data, parameters):
 
         reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
         reconstruction = pandas.DataFrame(reconstruction, index=data_values.index)
+        reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
 
         # COMPUTE METRICS
         # classification accuracy of TEST data
@@ -169,7 +170,7 @@ def run_normalization(data, parameters):
         val_acc_history.append(accuracy)  # for plotting
 
         # collect variation coefficients for reg_types and benchmarks
-        vcs = batch_analysis.compute_cv_for_samples_types(reconstruction, all_samples_types)
+        vcs = batch_analysis.compute_vc_for_samples_types(reconstruction, all_samples_types)
         reg_vcs_sum = 0.
         for sample in all_samples_types:
             if sample in reg_types:
@@ -181,13 +182,20 @@ def run_normalization(data, parameters):
         reg_vc = reg_vcs_sum / len(reg_types)  # compute mean overall variation coef
         reg_samples_vc_history.append(reg_vc)
 
+        # calculate variation coefs for batches
+        batch_vcs = batch_analysis.compute_vc_for_batches(reconstruction, data_batch_labels)
+        mean_batch_vc = sum([vc for batch, vc in batch_vcs.items()]) / len(batch_vcs)
+        batch_vc_history.append(mean_batch_vc)
+
         # assess cross correlations of regularization samples
         reg_corr = batch_analysis.get_sample_cross_correlation_estimate(reconstruction, reg_types, percent=25)
         reg_samples_corr_history.append(reg_corr)  # append mean
 
         # assess cross correlations of benchmarks
         b_corr = batch_analysis.get_sample_cross_correlation_estimate(reconstruction, benchmarks)
-        benchmarks_corr_history.append(b_corr)  # append mean
+        if b_corr:
+            # if benchmark are there, append mean correlation coef
+            benchmarks_corr_history.append(b_corr)
 
         # collect clustering results for reg_types and benchmarks
         clustering, total_clusters = batch_analysis.compute_number_of_clusters_with_hdbscan(encodings, parameters, all_samples_types, print_info=False)
@@ -220,9 +228,9 @@ def run_normalization(data, parameters):
         # PRINT AND PLOT EPOCH INFO
         # plot every N epochs what happens with data
         if parameters['callback_step'] > 0 and epoch % parameters['callback_step'] == 0:
-            # plot cross correlations of benchmarks in ALL reconstructed data
+            # plot cross correlations of benchmarks in reconstructed data
             batch_analysis.plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], benchmarks, save_to=save_to / 'callbacks', save_plot=True)
-            # plot umap of FULL encoded data
+            # plot umap of encoded data
             batch_analysis.plot_encodings_umap(encodings, 'epoch {}'.format(epoch + 1), parameters, save_to=save_to / 'callbacks')
 
         # display the epoch training loss
@@ -239,51 +247,73 @@ def run_normalization(data, parameters):
                 stopped_early = True
                 break
 
-    # PLOT TRAINING HISTORY
-    history = pandas.DataFrame({'epoch': [x+1 for x in range(len(d_loss_history))], 'best': [False for x in range(len(d_loss_history))],
+    # CHOOSE BEST EPOCH AND PLOT TRAINING HISTORY
+    history = pandas.DataFrame({'epoch': [x+1 for x in range(len(g_loss_history))], 'solution': [False for x in range(len(g_loss_history))],
                                 'rec_loss': rec_loss_history, 'd_loss': d_loss_history, 'g_loss': g_loss_history,
                                 'reg_grouping': reg_samples_grouping_history, 'reg_corr': reg_samples_corr_history, 'reg_vc': reg_samples_vc_history,
-                                'val_acc': val_acc_history, 'b_corr': benchmarks_corr_history, 'b_grouping': benchmarks_grouping_history})
+                                'val_acc': val_acc_history, 'batch_vc': batch_vc_history,
+                                'b_corr': benchmarks_corr_history if len(benchmarks_corr_history) == len(g_loss_history) else [-1 for x in g_loss_history],
+                                'b_grouping': benchmarks_grouping_history if len(benchmarks_grouping_history) == len(g_loss_history) else [-1 for x in g_loss_history]
+                                })
 
-    best_epoch = evaluation.find_best_epoch(history, skip_epochs=parameters['skip_epochs'])
-    history.loc[best_epoch, 'best'] = True  # mark the best epoch
+    # compute mean batch variation coef
+    vc_batch_original = batch_analysis.compute_vc_for_batches(data_values, data_batch_labels)
+    mean_vc_batch_original = sum([vc for batch, vc in vc_batch_original.items()]) / len(vc_batch_original)
+    # compute mean variation coef for reg_types
+    vc_reg_original = batch_analysis.compute_vc_for_samples_types(data_values, reg_types)
+    mean_vc_reg_original = sum([vc for batch, vc in vc_reg_original.items()]) / len(vc_reg_original)
 
-    evaluation.plot_losses(rec_loss_history, d_loss_history, g_loss_history, best_epoch, parameters, save_to=save_to)
-    evaluation.plot_metrics(val_acc_history, reg_samples_corr_history, reg_samples_grouping_history, reg_samples_vc_history, best_epoch, parameters, save_to=save_to)
-    evaluation.plot_benchmarks_metrics(benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters, save_to=save_to / 'benchmarks')
+    # now find the best epoch
+    best_epoch = evaluation.find_best_epoch(history, parameters['skip_epochs'], mean_vc_batch_original, mean_vc_reg_original)
+    if best_epoch:
+        os.makedirs(save_to / 'benchmarks')
+        os.makedirs(save_to / 'cvs')
 
-    cv_bench_original = batch_analysis.compute_cv_for_samples_types(data_values, benchmarks)
-    evaluation.plot_variation_coefs(benchmarks_variation_coefs, cv_bench_original, best_epoch, parameters, save_to=save_to / 'benchmarks')
-    cv_reg_original = batch_analysis.compute_cv_for_samples_types(data_values, reg_types)
-    evaluation.plot_variation_coefs(reg_samples_variation_coefs, cv_reg_original, best_epoch, parameters, save_to=save_to / 'cvs')
+        # mark the best epoch as existing solution
+        history.loc[best_epoch-1, 'solution'] = True
 
-    # LOAD BEST MODEL
-    generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
-    generator.load_state_dict(torch.load(save_to / 'checkpoints' / 'ae_at_{}_{}.torch'.format(best_epoch, parameters['id']), map_location=device))
-    generator.eval()
+        evaluation.plot_losses(rec_loss_history, d_loss_history, g_loss_history, best_epoch, parameters, save_to=save_to)
+        evaluation.plot_metrics(val_acc_history, reg_samples_corr_history, reg_samples_grouping_history, reg_samples_vc_history, best_epoch, parameters, save_to=save_to)
+        evaluation.plot_benchmarks_metrics(benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters, save_to=save_to / 'benchmarks')
 
-    # PLOT BEST EPOCH CALLBACKS
-    scaled_data_values = scaler.transform(data_values.values)
+        cv_bench_original = batch_analysis.compute_vc_for_samples_types(data_values, benchmarks)
+        evaluation.plot_variation_coefs(benchmarks_variation_coefs, cv_bench_original, best_epoch, parameters, save_to=save_to / 'benchmarks')
+        evaluation.plot_variation_coefs(reg_samples_variation_coefs, vc_reg_original, best_epoch, parameters, save_to=save_to / 'cvs')
 
-    encodings = generator.encode(torch.Tensor(scaled_data_values).to(device))
-    reconstruction = generator.decode(encodings)
+        # LOAD BEST MODEL
+        generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
+        generator.load_state_dict(torch.load(save_to / 'checkpoints' / 'ae_at_{}_{}.torch'.format(best_epoch, parameters['id']), map_location=device))
+        generator.eval()
 
-    encodings = pandas.DataFrame(encodings.detach().cpu().numpy(), index=data_values.index)
-    reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
-    reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
-    reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
+        # PLOT BEST EPOCH RESULTS
+        scaled_data_values = scaler.transform(data_values.values)
 
-    # plot cross correlations of benchmarks in initial and normalized data
-    batch_analysis.plot_batch_cross_correlations(data_values, 'initial data', parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
-    batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch), parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
-    # plot umaps of initial, encoded and normalized data
-    batch_analysis.plot_full_data_umaps(data_values, encodings, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch), save_to=save_to)
-    # plot batch variation coefs in initial and normalized data
-    batch_analysis.plot_batch_cvs(data_values, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch), save_to=save_to / 'cvs')
+        encodings = generator.encode(torch.Tensor(scaled_data_values).to(device))
+        reconstruction = generator.decode(encodings)
 
-    # SAVE ENCODED AND NORMALIZED DATA
-    encodings.to_csv(save_to / 'encodings_{}.csv'.format(parameters['id']))
-    reconstruction.T.to_csv(save_to / 'normalized_{}.csv'.format(parameters['id']))
+        encodings = pandas.DataFrame(encodings.detach().cpu().numpy(), index=data_values.index)
+        reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
+        reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
+        reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
+
+        # plot cross correlations of benchmarks in initial and normalized data
+        batch_analysis.plot_batch_cross_correlations(data_values, 'initial data', parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
+        batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch), parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
+        # plot umaps of initial, encoded and normalized data
+        batch_analysis.plot_full_data_umaps(data_values, encodings, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch), save_to=save_to)
+        # plot batch variation coefs in initial and normalized data
+        vc_batch_normalized = batch_analysis.compute_vc_for_batches(reconstruction, data_batch_labels)
+        batch_analysis.plot_batch_vcs(vc_batch_original, vc_batch_normalized, parameters, 'at epoch {}'.format(best_epoch), save_to=save_to / 'cvs')
+
+        # SAVE ENCODED AND NORMALIZED DATA
+        encodings.to_csv(save_to / 'encodings_{}.csv'.format(parameters['id']))
+        reconstruction.T.to_csv(save_to / 'normalized_{}.csv'.format(parameters['id']))
+
+        print('results saved to {}\n'.format(save_to))
+
+    else:
+        # if no solution is found
+        pass
 
     # SAVE PARAMETERS AND HISTORY
     parameters['stopped_early'] = stopped_early  # indicate whether stopped early
@@ -299,4 +329,3 @@ def run_normalization(data, parameters):
             if not parameters['keep_checkpoints']:
                 # remove the rest
                 os.remove(save_to / 'checkpoints' / file)
-    print('results saved to {}\n'.format(save_to))

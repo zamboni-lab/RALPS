@@ -5,7 +5,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 import harmae
 from constants import default_parameters_values
-from batch_analysis import plot_batch_cross_correlations, compute_cv_for_samples_types
+from batch_analysis import plot_batch_cross_correlations, compute_vc_for_samples_types
 from batch_analysis import compute_number_of_clusters_with_hdbscan
 from batch_analysis import get_sample_cross_correlation_estimate
 from utils import combat
@@ -124,7 +124,7 @@ def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
             normalized = add_prefixes_to_samples_names(normalized, batch_info)
 
-        res = compute_cv_for_samples_types(normalized, benchmarks)
+        res = compute_vc_for_samples_types(normalized, benchmarks)
         res = pandas.DataFrame({'method': [method for x in range(len(res))],
                                 'sample': list(res.keys()),
                                 'cv': [res[key] for key in res.keys()]})
