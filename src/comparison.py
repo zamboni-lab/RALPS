@@ -547,9 +547,9 @@ def plot_percent_of_unique_values(save_to='/Users/andreidm/ETH/projects/normaliz
 
 if __name__ == "__main__":
 
-    save_plots = False
-    scenario = 3
-
+    # save_plots = False
+    # scenario = 3
+    #
     # # benchmarks
     # plot_benchmarks_cvs_for_methods(scenario=scenario, save_plot=save_plots)
     # plot_benchmarks_grouping_coefs_for_methods(scenario=scenario, save_plot=save_plots)
@@ -559,6 +559,65 @@ if __name__ == "__main__":
     # check_relevant_intensities_for_methods(scenario=scenario)
     # plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)
     # plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
+    #
+    # plot_percent_of_unique_values()
 
-    plot_percent_of_unique_values()
+    data_with_mz = pandas.read_csv('D:\ETH\projects\\normalization\data\\filtered_data_with_mz.csv', index_col=0)
+    mz = data_with_mz['mz'].values
+    data_with_mz = data_with_mz.drop(columns=['mz'])
+    initial_data = data_with_mz.iloc[:, 1:].T
 
+    lower_vc_norm = pandas.read_csv('D:\ETH\projects\\normalization\\res\SRM+SPP\\38e4f3a1\\normalized_38e4f3a1.csv', index_col=0).T
+    higher_vc_norm = pandas.read_csv('D:\ETH\projects\\normalization\\res\SRM+SPP\\f549fe5b\\normalized_f549fe5b.csv', index_col=0).T
+
+    from preprocessing import get_initial_samples_names
+
+    lower_vc_norm.index = get_initial_samples_names(lower_vc_norm.index)
+    higher_vc_norm.index = get_initial_samples_names(higher_vc_norm.index)
+
+    batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
+    color_dict = dict(zip(batches, 'kgrcmyb'))
+
+    samples = initial_data.index
+    pyplot.figure(figsize=(8, 6))
+    for i in range(initial_data.shape[0]):
+        batch_id = [batch in samples[i] for batch in batches].index(True)
+        color = color_dict[batches[batch_id]]
+        if color == 'b':
+            pyplot.plot(mz, initial_data.values[i, :], '{}o'.format(color), alpha=0.2)
+        else:
+            pyplot.plot(mz, initial_data.values[i, :], '{}o'.format(color), alpha=0.4)
+    pyplot.title('Initial')
+    pyplot.xlabel('mz')
+    pyplot.ylabel('intensity')
+    pyplot.grid()
+
+    samples = lower_vc_norm.index
+    pyplot.figure(figsize=(8, 6))
+    for i in range(lower_vc_norm.shape[0]):
+        batch_id = [batch in samples[i] for batch in batches].index(True)
+        color = color_dict[batches[batch_id]]
+        if color == 'b':
+            pyplot.plot(mz, lower_vc_norm.values[i, :], '{}o'.format(color), alpha=0.2)
+        else:
+            pyplot.plot(mz, lower_vc_norm.values[i, :], '{}o'.format(color), alpha=0.4)
+    pyplot.title('Lower VC normalized')
+    pyplot.xlabel('mz')
+    pyplot.ylabel('intensity')
+    pyplot.grid()
+
+    samples = higher_vc_norm.index
+    pyplot.figure(figsize=(8, 6))
+    for i in range(higher_vc_norm.shape[0]):
+        batch_id = [batch in samples[i] for batch in batches].index(True)
+        color = color_dict[batches[batch_id]]
+        if color == 'b':
+            pyplot.plot(mz, higher_vc_norm.values[i, :], '{}o'.format(color), alpha=0.2)
+        else:
+            pyplot.plot(mz, higher_vc_norm.values[i, :], '{}o'.format(color), alpha=0.4)
+    pyplot.title('Higher VC normalized')
+    pyplot.xlabel('mz')
+    pyplot.ylabel('intensity')
+    pyplot.grid()
+
+    pyplot.show()

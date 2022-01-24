@@ -8,8 +8,23 @@ from sklearn.preprocessing import RobustScaler
 # constants
 user = 'andreidm'
 min_relevant_intensity = 1000
-# batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
-# sps = []  # set shared perturbations
+bids = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
+sps = []  # set shared perturbations
+
+
+def get_initial_samples_names(data_index):
+    """ This method removes auxiliary prefixes from the names of regularization and benchmark samples. """
+
+    initial_names = []
+    for name in list(data_index):
+        if 'bench_' in name and 'group_' in name:
+            initial_names.append('_'.join(name.split('_')[4:]))
+        elif 'bench_' in name or 'group_' in name:
+            initial_names.append('_'.join(name.split('_')[2:]))
+        else:
+            initial_names.append(name)
+
+    return initial_names
 
 
 def split_to_train_and_test(values, batches, scaler, proportion=0.7):

@@ -72,21 +72,6 @@ def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
     return data
 
 
-def get_initial_samples_names(data_index):
-    """ This method removes auxiliary prefixes from the names of regularization and benchmark samples. """
-
-    initial_names = []
-    for name in list(data_index):
-        if 'bench_' in name and 'group_' in name:
-            initial_names.append('_'.join(name.split('_')[4:]))
-        elif 'bench_' in name or 'group_' in name:
-            initial_names.append('_'.join(name.split('_')[2:]))
-        else:
-            pass
-
-    return initial_names
-
-
 def get_grid_size(config):
 
     try:
