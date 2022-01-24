@@ -3,7 +3,7 @@ import numpy, pandas, seaborn, time
 from matplotlib import pyplot
 from sklearn.preprocessing import MinMaxScaler
 
-import harmae
+import ralps
 from constants import default_parameters_values
 from batch_analysis import plot_batch_cross_correlations, compute_vc_for_samples_types
 from batch_analysis import compute_number_of_clusters_with_hdbscan
@@ -29,18 +29,18 @@ def plot_benchmarks_corrs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = harmae.get_data({'data_path': data_path, 'info_path': info_path,
+    data = ralps.get_data({'data_path': data_path, 'info_path': info_path,
                             'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
-    _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
+    _, benchmarks = ralps.extract_reg_types_and_benchmarks(data)
 
     for method in methods:
 
         if method == 'none':
             normalized = data.iloc[:, 1:]
-        elif method == 'harmAE':
+        elif method == 'ralps':
             # hardcode
             normalized = pandas.read_csv(path_to_my_best, index_col=0).T
 
@@ -89,19 +89,19 @@ def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = harmae.get_data({'data_path': data_path, 'info_path': info_path,
+    data = ralps.get_data({'data_path': data_path, 'info_path': info_path,
                             'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
-    _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
+    _, benchmarks = ralps.extract_reg_types_and_benchmarks(data)
 
     for method in methods:
 
         if method == 'none':
             normalized = data.iloc[:, 1:]
 
-        elif method == 'harmAE':
+        elif method == 'ralps':
             # hardcode
             normalized = pandas.read_csv(path_to_my_best, index_col=0).T
 
@@ -168,12 +168,12 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = harmae.get_data({'data_path': data_path, 'info_path': info_path,
+    data = ralps.get_data({'data_path': data_path, 'info_path': info_path,
                             'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
-    regs, _ = harmae.extract_reg_types_and_benchmarks(data)
+    regs, _ = ralps.extract_reg_types_and_benchmarks(data)
 
     corrs = []
     for method in methods:
@@ -181,7 +181,7 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
         if method == 'none':
             normalized = data.iloc[:, 1:]
 
-        elif method == 'harmAE':
+        elif method == 'ralps':
             normalized = pandas.read_csv(path_to_my_best, index_col=0).T
 
         elif method == 'normAE':
@@ -245,18 +245,18 @@ def get_grouping_coefs_for_samples(method, clustering, total_clusters, benchmark
 def get_paths_and_methods(scenario):
 
     if scenario == 1:
-        methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'harmAE']
+        methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'ralps']
         path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/no_reference_samples/best_model/2d48bfb2_best/normalized_2d48bfb2.csv'
         path_to_others = '/Users/andreidm/ETH/projects/normalization/res/no_reference_samples/other_methods/'
         save_to = '/Users/andreidm/ETH/projects/normalization/res/no_reference_samples/other_methods/plots/'
     elif scenario == 2:
-        methods = ['none', 'normAE', 'harmAE']
+        methods = ['none', 'normAE', 'ralps']
         path_to_my_best = path_to_my_best_method_2
         path_to_others = path_to_other_methods_2
         save_to = '/Users/andreidm/ETH/projects/normalization/res/fake_reference_samples/other_methods/plots/'
     elif scenario == 3:
         # it's actually scenario 2, but on another dataset
-        methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'harmAE']
+        methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'ralps']
         path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/sarahs/b2a75470/normalized_b2a75470.csv'
         path_to_others = '/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/'
         save_to = '/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/plots/'
@@ -280,12 +280,12 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = harmae.get_data({'data_path': data_path, 'info_path': info_path,
+    data = ralps.get_data({'data_path': data_path, 'info_path': info_path,
                             'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
-    _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
+    _, benchmarks = ralps.extract_reg_types_and_benchmarks(data)
 
     pars = {'latent_dim': data.shape[1]-1,
             'n_batches': len(data['batch'].unique()),
@@ -297,7 +297,7 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
 
         if method == 'none':
             normalized = data
-        elif method == 'harmAE':
+        elif method == 'ralps':
             normalized = pandas.read_csv(path_to_my_best, index_col=0).T
             # keep the ordering as in initial data to insert batches
             normalized = normalized.loc[data.index, :]
@@ -394,7 +394,7 @@ def plot_normalized_spectra_for_methods(scenario=1, file_ext='pdf', save_plot=Fa
         if method == 'none':
             normalized = data_with_mz
 
-        elif method == 'harmAE':
+        elif method == 'ralps':
             normalized = pandas.read_csv(path_to_my_best, index_col=0)
             if scenario == 3:
                 # previously the output was transposed
@@ -484,13 +484,13 @@ def check_relevant_intensities_for_methods(scenario=1):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = harmae.get_data({'data_path': data_path, 'info_path': info_path,
+    data = ralps.get_data({'data_path': data_path, 'info_path': info_path,
                             'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     for method in methods:
         if method == 'none':
             normalized = data.iloc[:, 1:]
-        elif method == 'harmAE':
+        elif method == 'ralps':
             normalized = pandas.read_csv(path_to_my_best, index_col=0).T
         # elif method == 'normAE':
         #     # it doesn't output intensities, but I'm curious how much negative values they produce
@@ -514,7 +514,7 @@ def plot_percent_of_unique_values(save_to='/Users/andreidm/ETH/projects/normaliz
     data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/filtered_data.csv'
     info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
 
-    original_data = harmae.get_data({'data_path': data_path, 'info_path': info_path, 'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+    original_data = ralps.get_data({'data_path': data_path, 'info_path': info_path, 'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
     original_data = original_data.iloc[:, 1:].T
     reg_samples_cols = [x for x in original_data.columns if 'MDAMB231_Medium1_BREAST_JB' in x]
     original_values = original_data.loc[:, reg_samples_cols].values.flatten()
@@ -526,16 +526,16 @@ def plot_percent_of_unique_values(save_to='/Users/andreidm/ETH/projects/normaliz
     normae_values = normae_normalized.loc[:, reg_samples_cols].values.flatten()
     print('normae:', len(set(normae_values)) / len(normae_values) * 100)
 
-    harmae_path = '/Users/andreidm/ETH/projects/normalization/res/sarahs/b2a75470/normalized_b2a75470.csv'
-    harmae_normalized = pandas.read_csv(harmae_path, index_col=0)
-    reg_samples_cols = [x for x in harmae_normalized.columns if 'MDAMB231_Medium1_BREAST_JB' in x]
-    harmae_values = harmae_normalized.loc[:, reg_samples_cols].values.flatten()
-    print('harmae:', len(set(harmae_values)) / len(harmae_values) * 100)
+    ralps_path = '/Users/andreidm/ETH/projects/normalization/res/sarahs/b2a75470/normalized_b2a75470.csv'
+    ralps_normalized = pandas.read_csv(ralps_path, index_col=0)
+    reg_samples_cols = [x for x in ralps_normalized.columns if 'MDAMB231_Medium1_BREAST_JB' in x]
+    ralps_values = ralps_normalized.loc[:, reg_samples_cols].values.flatten()
+    print('ralps:', len(set(ralps_values)) / len(ralps_values) * 100)
 
     data = pandas.DataFrame({
-        'method': ['None', 'HarmAE', 'NormAE'],
+        'method': ['None', 'ralps', 'NormAE'],
         'percent': [len(set(original_values)) / len(original_values) * 100,
-                    len(set(harmae_values)) / len(harmae_values) * 100,
+                    len(set(ralps_values)) / len(ralps_values) * 100,
                     len(set(normae_values)) / len(normae_values) * 100]
     })
 

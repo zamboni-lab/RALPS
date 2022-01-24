@@ -7,6 +7,7 @@ from matplotlib import pyplot
 from tqdm import tqdm
 from pathlib import Path
 
+from ralps import get_initial_samples_names
 from models.cl import Classifier
 from models.ae import Autoencoder
 import evaluation, batch_analysis, preprocessing
@@ -293,7 +294,7 @@ def run_normalization(data, parameters):
 
         encodings = pandas.DataFrame(encodings.detach().cpu().numpy(), index=data_values.index)
         reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
-        reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
+        reconstruction = pandas.DataFrame(reconstruction, index=get_initial_samples_names(data_values.index), columns=data_values.columns)
         reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
 
         # plot cross correlations of benchmarks in initial and normalized data
