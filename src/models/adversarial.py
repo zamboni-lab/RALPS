@@ -9,7 +9,7 @@ from pathlib import Path
 
 from models.cl import Classifier
 from models.ae import Autoencoder
-import evaluation, batch_analysis, preprocessing
+import evaluation, batch_analysis, processing
 
 
 def run_normalization(data, parameters):
@@ -53,7 +53,7 @@ def run_normalization(data, parameters):
     # create and fit the scaler
     scaler = RobustScaler().fit(data_values)
     # apply scaling and do train test split
-    X_train, X_test, y_train, y_test = preprocessing.split_to_train_and_test(data_values, data_batch_labels, scaler, proportion=parameters['train_ratio'])
+    X_train, X_test, y_train, y_test = processing.split_to_train_and_test(data_values, data_batch_labels, scaler, proportion=parameters['train_ratio'])
 
     # make datasets
     train_dataset = TensorDataset(torch.Tensor(X_train), torch.LongTensor(y_train))
@@ -293,7 +293,7 @@ def run_normalization(data, parameters):
 
         encodings = pandas.DataFrame(encodings.detach().cpu().numpy(), index=data_values.index)
         reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
-        reconstruction = pandas.DataFrame(reconstruction, index=preprocessing.get_initial_samples_names(data_values.index), columns=data_values.columns)
+        reconstruction = pandas.DataFrame(reconstruction, index=processing.get_initial_samples_names(data_values.index), columns=data_values.columns)
         reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
 
         # plot cross correlations of benchmarks in initial and normalized data

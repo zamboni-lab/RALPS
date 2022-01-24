@@ -3,7 +3,7 @@ import numpy, pandas, seaborn, time
 from matplotlib import pyplot
 from sklearn.preprocessing import MinMaxScaler
 
-import ralps
+import ralps, processing
 from constants import default_parameters_values
 from batch_analysis import plot_batch_cross_correlations, compute_vc_for_samples_types
 from batch_analysis import compute_number_of_clusters_with_hdbscan
@@ -34,7 +34,7 @@ def plot_benchmarks_corrs_for_methods(scenario=1, save_plot=False):
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
-    _, benchmarks = ralps.extract_reg_types_and_benchmarks(data)
+    _, benchmarks = processing.extract_reg_types_and_benchmarks(data)
 
     for method in methods:
 
@@ -94,7 +94,7 @@ def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
-    _, benchmarks = ralps.extract_reg_types_and_benchmarks(data)
+    _, benchmarks = processing.extract_reg_types_and_benchmarks(data)
 
     for method in methods:
 
@@ -173,7 +173,7 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
-    regs, _ = ralps.extract_reg_types_and_benchmarks(data)
+    regs, _ = processing.extract_reg_types_and_benchmarks(data)
 
     corrs = []
     for method in methods:
@@ -285,7 +285,7 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
-    _, benchmarks = ralps.extract_reg_types_and_benchmarks(data)
+    _, benchmarks = processing.extract_reg_types_and_benchmarks(data)
 
     pars = {'latent_dim': data.shape[1]-1,
             'n_batches': len(data['batch'].unique()),
@@ -570,7 +570,7 @@ if __name__ == "__main__":
     lower_vc_norm = pandas.read_csv('D:\ETH\projects\\normalization\\res\\3SRMs\\766c8a1a\\normalized_766c8a1a.csv', index_col=0).T
     higher_vc_norm = pandas.read_csv('D:\ETH\projects\\normalization\\res\\3SRMs\\e7ba0b43\\normalized_e7ba0b43.csv', index_col=0).T
 
-    from preprocessing import get_initial_samples_names
+    from processing import get_initial_samples_names
 
     lower_vc_norm.index = get_initial_samples_names(lower_vc_norm.index)
     higher_vc_norm.index = get_initial_samples_names(higher_vc_norm.index)

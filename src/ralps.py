@@ -8,6 +8,7 @@ from pathlib import Path
 from models.adversarial import run_normalization
 from evaluation import evaluate_models
 from constants import default_parameters_values, default_labels
+import processing
 
 
 def parse_config(path=None):
@@ -204,7 +205,7 @@ def generate_parameters_grid(config, data):
     parameters['n_batches'] = data['batch'].unique().shape[0]
 
     # add reg_types and benchmarks to parameters
-    reg_types, benchmarks = extract_reg_types_and_benchmarks(data)
+    reg_types, benchmarks = processing.extract_reg_types_and_benchmarks(data)
     parameters['reg_types'] = ','.join(reg_types)
     parameters['benchmarks'] = ','.join(benchmarks)
 
