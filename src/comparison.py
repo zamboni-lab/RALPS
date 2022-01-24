@@ -567,13 +567,37 @@ if __name__ == "__main__":
     data_with_mz = data_with_mz.drop(columns=['mz'])
     initial_data = data_with_mz.iloc[:, 1:].T
 
-    lower_vc_norm = pandas.read_csv('D:\ETH\projects\\normalization\\res\SRM+SPP\\38e4f3a1\\normalized_38e4f3a1.csv', index_col=0).T
-    higher_vc_norm = pandas.read_csv('D:\ETH\projects\\normalization\\res\SRM+SPP\\f549fe5b\\normalized_f549fe5b.csv', index_col=0).T
+    lower_vc_norm = pandas.read_csv('D:\ETH\projects\\normalization\\res\\3SRMs\\766c8a1a\\normalized_766c8a1a.csv', index_col=0).T
+    higher_vc_norm = pandas.read_csv('D:\ETH\projects\\normalization\\res\\3SRMs\\e7ba0b43\\normalized_e7ba0b43.csv', index_col=0).T
 
     from preprocessing import get_initial_samples_names
 
     lower_vc_norm.index = get_initial_samples_names(lower_vc_norm.index)
     higher_vc_norm.index = get_initial_samples_names(higher_vc_norm.index)
+
+    lower = []
+    higher = []
+
+    for sample in initial_data.index:
+
+        init_vc = initial_data.loc[sample].std() / initial_data.loc[sample].mean()
+        sample_vc_lower = lower_vc_norm.loc[sample].std() / lower_vc_norm.loc[sample].mean()
+        sample_vc_higher = higher_vc_norm.loc[sample].std() / higher_vc_norm.loc[sample].mean()
+        if sample_vc_lower-init_vc > 0.01:
+            lower.append((sample_vc_lower-init_vc, '{}: {} -> {}'.format(sample, init_vc, sample_vc_lower)))
+        if sample_vc_higher-init_vc > 0.01:
+            higher.append((sample_vc_higher-init_vc, '{}: {} -> {}'.format(sample, init_vc, sample_vc_higher)))
+
+    print('Lowest VC solution ({}, {}%)\n'.format(len(lower), int(100 * len(lower) / initial_data.shape[0])))
+    for s in sorted(lower, key=lambda x: x[0], reverse=True)[-10:]:
+        print(s[1])
+    print('Highest VC solution ({}, {}%)\n'.format(len(higher), int(100 * len(higher) / initial_data.shape[0])))
+    for s in sorted(higher, key=lambda x: x[0], reverse=True)[-10:]:
+        print(s[1])
+
+    initial_data = initial_data.T[['P2_SF_0004_0110_2']].T
+    lower_vc_norm = lower_vc_norm.T[['P2_SF_0004_0110_2']].T
+    higher_vc_norm = higher_vc_norm.T[['P2_SF_0004_0110_2']].T
 
     batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
     color_dict = dict(zip(batches, 'kgrcmyb'))

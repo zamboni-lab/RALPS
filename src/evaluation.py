@@ -88,20 +88,27 @@ def select_top_solutions(history, g_percent, c_percent):
         # there are benchmarks to account for
         history['all_corr'] = history['reg_corr'] + history['b_corr']
         history['all_grouping'] = history['reg_grouping'] + history['b_grouping']
-
-        try:
-            # grouping slice
-            df = history[history['all_grouping'] <= numpy.percentile(history['all_grouping'].values, g_percent)]
-            # correlation slice + sorting by variation coefs
-            df = df[df['all_corr'] >= numpy.percentile(df['all_corr'].values, c_percent)].sort_values('rec_loss')
-            assert df.shape[0] > 0
-            df['best'] = True
-        except Exception:
-            df = None
-        return df
-
     else:
-        return slice_by_grouping_and_correlation(history, g_percent, c_percent)
+        history['all_corr'] = history['reg_corr']
+        history['all_grouping'] = history['reg_grouping']
+
+    df = pandas.DataFrame()
+    try:
+        df = pandas.concat([df, history[
+            (history['batch_vc'] <= numpy.percentile(history['batch_vc'].values, g_percent))
+            & (history['all_corr'] >= numpy.percentile(history['all_corr'].values, c_percent))
+            ]])
+        df = pandas.concat([df, history[
+            (history['all_grouping'] <= numpy.percentile(history['all_grouping'].values, g_percent))
+            & (history['all_corr'] >= numpy.percentile(history['all_corr'].values, c_percent))
+            ]])
+        df = df.drop_duplicates().sort_values('rec_loss')
+
+        assert df.shape[0] > 0
+        df['best'] = True
+    except Exception:
+        df = None
+    return df
 
 
 def find_best_epoch(history, skip_epochs, mean_batch_vc_original, mean_reg_vc_original):
