@@ -115,8 +115,13 @@ def find_best_epoch(history, skip_epochs, mean_batch_vc_original, mean_reg_vc_or
     """ This method seeks for the best epoch using logged history of quality metrics. """
 
     # skip first n epochs
-    if 0 < skip_epochs < history.shape[0]:
-        history = history.iloc[skip_epochs:, :]
+    if 0 < skip_epochs:
+        if skip_epochs < history.shape[0]:
+            history = history.iloc[skip_epochs:, :]
+        else:
+            print('WARNING: {} epochs skipped of total {} -> no solution for current parameter set'
+                  .format(skip_epochs, history.shape[0]))
+            return None
 
     # filter out epochs of increased variation coefs
     history = history.loc[(history['batch_vc'] < mean_batch_vc_original) & (history['reg_vc'] < mean_reg_vc_original), :]

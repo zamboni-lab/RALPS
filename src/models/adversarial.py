@@ -221,6 +221,8 @@ def run_normalization(data, parameters):
         mean_batch_vc = sum([vc for batch, vc in batch_vcs.items()]) / len(batch_vcs)
         batch_vc_history.append(mean_batch_vc)
 
+        # TODO: percent of increased VCs?
+
         # assess cross correlations of regularization samples
         reg_corr = batch_analysis.get_sample_cross_correlation_estimate(reconstruction, reg_types, percent=25)
         reg_samples_corr_history.append(reg_corr)  # append mean
@@ -341,6 +343,8 @@ def run_normalization(data, parameters):
         # plot batch variation coefs in initial and normalized data
         vc_batch_normalized = batch_analysis.compute_vc_for_batches(reconstruction, data_batch_labels)
         batch_analysis.plot_batch_vcs(vc_batch_original, vc_batch_normalized, parameters, 'at epoch {}'.format(best_epoch), save_to=save_to / 'cvs')
+
+        # TODO: plot spectra of initial and normalized data?
 
         # SAVE ENCODED AND NORMALIZED DATA
         encodings.to_csv(save_to / 'encodings_{}.csv'.format(parameters['id']))
