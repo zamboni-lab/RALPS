@@ -27,8 +27,9 @@ def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
 
     # TODO:
     #  - check input data for reg_types, benchmarks, batch labels,
-    #  - warn and stop if there are obvious problems
-    #  - test with no benchmarks
+    #  - warn and stop if there are obvious problems,
+    #  - test with no benchmarks,
+    #  - move plots to a single folder?
 
     # transpose and remove annotation
     annotation = data.iloc[:, 0]
@@ -94,6 +95,8 @@ def sample_from_default_ranges(par_name):
     elif par_name == 'd_lambda':
         return round(random.uniform(0., 10.), 1)
     elif par_name == 'g_lambda':
+        return round(random.uniform(0., 10.), 1)
+    elif par_name == 'v_lambda':
         return round(random.uniform(0., 10.), 1)
     elif par_name == 'batch_size':
         return random.sample([32, 64, 128], 1)[0]
@@ -221,6 +224,7 @@ def generate_parameters_grid(config, data):
         new_pars['g_lr'] = set_parameter('g_lr', new_pars['g_lr'])
         new_pars['d_lambda'] = set_parameter('d_lambda', new_pars['d_lambda'])
         new_pars['g_lambda'] = set_parameter('g_lambda', new_pars['g_lambda'])
+        new_pars['v_lambda'] = set_parameter('v_lambda', new_pars['v_lambda'])
         new_pars['batch_size'] = int(set_parameter('batch_size', new_pars['batch_size']))
         new_pars['variance_ratio'] = set_parameter('variance_ratio', new_pars['variance_ratio'])
 
@@ -248,10 +252,11 @@ def ralps(config):
                 f.write(traceback.format_exc())
             print("full traceback saved to", log_path, '\n')
 
+    # TODO: add try-except too
     evaluate_models(config)
 
 
 if __name__ == "__main__":
-    # config = parse_config(path='D:\ETH\projects\\normalization\data\configs\\config_all_refs.csv')
-    config = parse_config()
+    config = parse_config(path='D:\ETH\projects\\normalization\data\configs\\config_SRM_SPP.csv')
+    # config = parse_config()
     ralps(config)

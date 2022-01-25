@@ -151,32 +151,39 @@ def find_best_epoch(history, skip_epochs, mean_batch_vc_original, mean_reg_vc_or
         return int(df['epoch'].values[0])
 
 
-def plot_losses(rec_loss, d_loss, g_loss, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_losses(rec_loss, d_loss, g_loss, v_loss, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
-    fig, axs = pyplot.subplots(3, figsize=(6,9))
+    fig, axs = pyplot.subplots(2, 2, figsize=(9,6))
 
     fig.suptitle('Adversarial training loop losses')
 
-    axs[0].plot(range(1, 1+len(d_loss)), d_loss)
-    axs[0].axvline(best_epoch, c='black', label='Best')
-    axs[0].set_title('Classifier loss')
-    axs[0].set_xlabel('Epochs')
-    axs[0].set_ylabel('Cross-entropy')
-    axs[0].grid(True)
+    axs[0,0].plot(range(1, 1+len(d_loss)), d_loss)
+    axs[0,0].axvline(best_epoch, c='black', label='Best')
+    axs[0,0].set_title('Classifier loss')
+    axs[0,0].set_xlabel('Epochs')
+    axs[0,0].set_ylabel('Cross-entropy')
+    axs[0,0].grid(True)
 
-    axs[1].plot(range(1, 1+len(g_loss)), g_loss)
-    axs[1].axvline(best_epoch, c='black', label='Best')
-    axs[1].set_title('Autoencoder loss')
-    axs[1].set_xlabel('Epochs')
-    axs[1].set_ylabel('Regularized MSE - Cross-entropy')
-    axs[1].grid(True)
+    axs[1,0].plot(range(1, 1+len(g_loss)), g_loss)
+    axs[1,0].axvline(best_epoch, c='black', label='Best')
+    axs[1,0].set_title('Autoencoder loss')
+    axs[1,0].set_xlabel('Epochs')
+    axs[1,0].set_ylabel('Regularized MSE - Cross-entropy')
+    axs[1,0].grid(True)
 
-    axs[2].plot(range(1, 1 + len(rec_loss)), rec_loss)
-    axs[2].axvline(best_epoch, c='black', label='Best')
-    axs[2].set_title('Reconstruction loss')
-    axs[2].set_xlabel('Epochs')
-    axs[2].set_ylabel('MSE')
-    axs[2].grid(True)
+    axs[0,1].plot(range(1, 1 + len(rec_loss)), rec_loss)
+    axs[0,1].axvline(best_epoch, c='black', label='Best')
+    axs[0,1].set_title('Reconstruction loss')
+    axs[0,1].set_xlabel('Epochs')
+    axs[0,1].set_ylabel('MSE')
+    axs[0,1].grid(True)
+
+    axs[1,1].plot(range(1, 1 + len(v_loss)), v_loss)
+    axs[1,1].axvline(best_epoch, c='black', label='Best')
+    axs[1,1].set_title('Variation loss')
+    axs[1,1].set_xlabel('Epochs')
+    axs[1,1].set_ylabel('Adjusted median diff')
+    axs[1,1].grid(True)
 
     pyplot.tight_layout()
     pyplot.savefig(save_to / 'losses_{}.{}'.format(parameters['id'], parameters['plots_extension']))

@@ -75,7 +75,7 @@ def compute_vc_for_batches(data, batch_labels):
     """ This method computes variation coefs for entire batches. """
 
     batch_vcs = {}
-    for label in batch_labels:
+    for label in batch_labels.unique():
         batch_values = data.loc[batch_labels == label, :].values.flatten()
         batch_vcs[label] = numpy.std(batch_values) / numpy.mean(batch_values)
 

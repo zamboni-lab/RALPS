@@ -12,7 +12,30 @@ from models.ae import Autoencoder
 import evaluation, batch_analysis, processing
 
 
+def v_criterion(inputs, recs, allowed_increase_percent=0.05):
+    """ This is a variation loss function. It returns median VC diff for samples
+        that happened to have increased variation coefs. Samples of decreased or equal VCs do not contribute. """
+
+    # TODO: allowed percent a parameter?
+    v_loss = torch.Tensor([0])[0]
+
+    vcs_inputs = torch.std(inputs, 1) / torch.mean(inputs, 1)
+    vcs_recs = torch.std(recs, 1) / torch.mean(recs, 1)
+
+    vcs_diffs = vcs_recs - vcs_inputs  # find diffs
+    vcs_diffs = vcs_diffs - vcs_inputs * allowed_increase_percent  # subtract sample-wise allowed variance increase
+    vcs_diffs = vcs_diffs[vcs_diffs > 0]  # keep vastly increased VCs
+
+    if vcs_diffs.size()[0] > 0:
+        v_loss += torch.median(vcs_diffs)
+
+    return v_loss
+
+
 def run_normalization(data, parameters):
+    """ Main function of RALPS,
+        includes preprocessing steps, adversarial training loop, evaluation,
+        reporting and saving results. """
 
     # create folders to save results
     save_to = Path(parameters['out_path']) / parameters['id']
@@ -66,6 +89,8 @@ def run_normalization(data, parameters):
     g_loss_history = []
     d_loss_history = []
     rec_loss_history = []
+    v_loss_history = []
+
     val_acc_history = []
     batch_vc_history = []
 
@@ -87,6 +112,7 @@ def run_normalization(data, parameters):
         d_loss_per_epoch = 0
         g_loss_per_epoch = 0
         rec_loss_per_epoch = 0
+        v_loss_per_epoch = 0
 
         for batch_features, labels in train_loader:
 
@@ -117,9 +143,15 @@ def run_normalization(data, parameters):
                 reconstruction_loss = g_criterion(reconstruction, batch_features)
                 rec_loss_per_epoch += reconstruction_loss.item()
 
-                # add regularization by grouping of benchmarks
+                # compute variation loss
+                variation_loss = v_criterion(batch_features, reconstruction)
+                v_loss_per_epoch += variation_loss.item()
+
+                # add variation loss to tackle noisy reconstructions
+                g_loss += parameters['v_lambda'] * variation_loss
+                # add regularized (by grouping of samples) reconstruction loss
                 g_loss += (1 + g_regularizer) * reconstruction_loss
-                # substitute discriminator loss to push it towards smaller batch effects
+                # subtract discriminator loss to push it towards smaller batch effects
                 g_loss -= parameters['d_lambda'] * d_loss.item()
 
                 # compute accumulated gradients
@@ -133,10 +165,12 @@ def run_normalization(data, parameters):
         d_loss = d_loss_per_epoch / len(train_loader)
         g_loss = g_loss_per_epoch / len(train_loader)
         rec_loss = rec_loss_per_epoch / len(train_loader)
+        v_loss = v_loss_per_epoch / len(train_loader)
 
         d_loss_history.append(d_loss)
         g_loss_history.append(g_loss)
         rec_loss_history.append(rec_loss)
+        v_loss_history.append(v_loss)
 
         # GENERATE DATA FOR OTHER METRICS
         scaled_data_values = scaler.transform(data_values.values)
@@ -236,8 +270,11 @@ def run_normalization(data, parameters):
         # display the epoch training loss
         timing = int(time.time() - start)
         print("epoch {}/{}, {} sec elapsed:\n"
-              "g_loss = {:.4f}, rec_loss = {:.4f}, d_loss = {:.4f}, "
-              "val_acc = {:.4f}, reg_grouping = {:.4f}, reg_corr = {:.4f}, reg_vc = {:.4f}\n".format(epoch + 1, total_epochs, timing, g_loss, rec_loss, d_loss, accuracy, reg_grouping, reg_corr, reg_vc))
+              "g_loss = {:.4f}, rec_loss = {:.4f}, d_loss = {:.4f}, v_loss = {:.4f},\n"
+              "val_acc = {:.4f}, reg_grouping = {:.4f}, reg_corr = {:.4f}, reg_vc = {:.4f}\n"
+            .format(epoch+1, total_epochs, timing,
+                    g_loss, rec_loss, d_loss, v_loss,
+                    accuracy, reg_grouping, reg_corr, reg_vc))
 
         # check early stopping condition
         if epoch >= 2:
@@ -249,7 +286,7 @@ def run_normalization(data, parameters):
 
     # CHOOSE BEST EPOCH AND PLOT TRAINING HISTORY
     history = pandas.DataFrame({'epoch': [x+1 for x in range(len(g_loss_history))], 'solution': [False for x in range(len(g_loss_history))],
-                                'rec_loss': rec_loss_history, 'd_loss': d_loss_history, 'g_loss': g_loss_history,
+                                'rec_loss': rec_loss_history, 'd_loss': d_loss_history, 'g_loss': g_loss_history, 'v_loss': v_loss_history,
                                 'reg_grouping': reg_samples_grouping_history, 'reg_corr': reg_samples_corr_history, 'reg_vc': reg_samples_vc_history,
                                 'val_acc': val_acc_history, 'batch_vc': batch_vc_history,
                                 'b_corr': benchmarks_corr_history if len(benchmarks_corr_history) == len(g_loss_history) else [-1 for x in g_loss_history],
@@ -272,7 +309,7 @@ def run_normalization(data, parameters):
         # mark the best epoch as existing solution
         history.loc[best_epoch-1, 'solution'] = True
 
-        evaluation.plot_losses(rec_loss_history, d_loss_history, g_loss_history, best_epoch, parameters, save_to=save_to)
+        evaluation.plot_losses(rec_loss_history, d_loss_history, g_loss_history, v_loss_history, best_epoch, parameters, save_to=save_to)
         evaluation.plot_metrics(val_acc_history, reg_samples_corr_history, reg_samples_grouping_history, reg_samples_vc_history, best_epoch, parameters, save_to=save_to)
         evaluation.plot_benchmarks_metrics(benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters, save_to=save_to / 'benchmarks')
 
@@ -293,7 +330,7 @@ def run_normalization(data, parameters):
 
         encodings = pandas.DataFrame(encodings.detach().cpu().numpy(), index=data_values.index)
         reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
-        reconstruction = pandas.DataFrame(reconstruction, index=processing.get_initial_samples_names(data_values.index), columns=data_values.columns)
+        reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
         reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
 
         # plot cross correlations of benchmarks in initial and normalized data
@@ -307,6 +344,7 @@ def run_normalization(data, parameters):
 
         # SAVE ENCODED AND NORMALIZED DATA
         encodings.to_csv(save_to / 'encodings_{}.csv'.format(parameters['id']))
+        reconstruction.index = processing.get_initial_samples_names(reconstruction.index)  # reindex to original names
         reconstruction.T.to_csv(save_to / 'normalized_{}.csv'.format(parameters['id']))
 
         print('results saved to {}\n'.format(save_to))
