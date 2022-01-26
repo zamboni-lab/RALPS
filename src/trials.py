@@ -12,11 +12,4 @@ import h5py
 from pathlib import Path
 
 if __name__ == "__main__":
-
-    d = pandas.DataFrame({'a': ['', ' ', 0]})
-
-    vals = d['a'].astype('str').unique().tolist()
-    vals.remove('1')
-
-    print(vals)
-
+    pass

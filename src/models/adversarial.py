@@ -27,8 +27,7 @@ def v_criterion(inputs, recs, allowed_increase_percent=0.05):
     vcs_diffs = vcs_diffs[vcs_diffs > 0]  # keep vastly increased VCs
 
     if vcs_diffs.size()[0] > 0:
-        # v_loss += torch.median(vcs_diffs)
-        v_loss += torch.Tensor([vcs_diffs.size()[0] / vcs_inputs.size()[0] * 100])[0]  # percent itself
+        v_loss += torch.median(vcs_diffs)
 
     return v_loss
 
@@ -94,6 +93,9 @@ def run_normalization(data, parameters):
 
     val_acc_history = []
     batch_vc_history = []
+    ivc_percent_history = []  # increased vc percent
+    # compute initial VCs to compare to normalized ones
+    initial_samples_vcs = batch_analysis.compute_samples_vcs(data_values)
 
     reg_samples_grouping_history = []
     reg_samples_corr_history = []
@@ -222,7 +224,9 @@ def run_normalization(data, parameters):
         mean_batch_vc = sum([vc for batch, vc in batch_vcs.items()]) / len(batch_vcs)
         batch_vc_history.append(mean_batch_vc)
 
-        # TODO: percent of increased VCs?
+        # calculate percent of increased vcs
+        increased_vc_percent = batch_analysis.compute_percent_of_increased_vcs(reconstruction, initial_samples_vcs)
+        ivc_percent_history.append(increased_vc_percent)
 
         # assess cross correlations of regularization samples
         reg_corr = batch_analysis.get_sample_cross_correlation_estimate(reconstruction, reg_types, percent=25)
@@ -274,10 +278,10 @@ def run_normalization(data, parameters):
         timing = int(time.time() - start)
         print("epoch {}/{}, {} sec elapsed:\n"
               "g_loss = {:.4f}, rec_loss = {:.4f}, d_loss = {:.4f}, v_loss = {:.4f},\n"
-              "val_acc = {:.4f}, reg_grouping = {:.4f}, reg_corr = {:.4f}, reg_vc = {:.4f}\n"
+              "reg_grouping = {:.4f}, reg_corr = {:.4f}, reg_vc = {:.4f}, increased_vc = {}%\n"
             .format(epoch+1, total_epochs, timing,
                     g_loss, rec_loss, d_loss, v_loss,
-                    accuracy, reg_grouping, reg_corr, reg_vc))
+                    reg_grouping, reg_corr, reg_vc, increased_vc_percent))
 
         # check early stopping condition
         if epoch >= 2:
@@ -291,7 +295,7 @@ def run_normalization(data, parameters):
     history = pandas.DataFrame({'epoch': [x+1 for x in range(len(g_loss_history))], 'solution': [False for x in range(len(g_loss_history))],
                                 'rec_loss': rec_loss_history, 'd_loss': d_loss_history, 'g_loss': g_loss_history, 'v_loss': v_loss_history,
                                 'reg_grouping': reg_samples_grouping_history, 'reg_corr': reg_samples_corr_history, 'reg_vc': reg_samples_vc_history,
-                                'val_acc': val_acc_history, 'batch_vc': batch_vc_history,
+                                'val_acc': val_acc_history, 'batch_vc': batch_vc_history, 'ivc_percent': ivc_percent_history,
                                 'b_corr': benchmarks_corr_history if len(benchmarks_corr_history) == len(g_loss_history) else [-1 for x in g_loss_history],
                                 'b_grouping': benchmarks_grouping_history if len(benchmarks_grouping_history) == len(g_loss_history) else [-1 for x in g_loss_history]
                                 })

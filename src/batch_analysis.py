@@ -5,7 +5,23 @@ from sklearn.preprocessing import RobustScaler, StandardScaler
 from sklearn.decomposition import PCA
 
 
-from models.ae import Autoencoder
+def compute_samples_vcs(data):
+    """ This method computes sample-wise variation coefs. """
+    vcs = []
+    for i in range(data.shape[0]):
+        vcs.append(data.iloc[i,:].std() / data.iloc[i,:].mean())
+    return vcs
+
+
+def compute_percent_of_increased_vcs(normalized, init_vcs, allowed_increase_percent=0.05):
+    """ This method computes percent of increased VCs in normalized data, compared to the initial ones.
+        Note that normalized and initial data have the same index. """
+    count = 0
+    for i in range(normalized.shape[0]):
+        norm_vc = normalized.iloc[i,:].std() / normalized.iloc[i,:].mean()
+        if norm_vc - init_vcs[i] > init_vcs[i] * allowed_increase_percent:
+            count += 1
+    return int(count / normalized.shape[0] * 100)
 
 
 def get_samples_by_types_dict(samples_names, types_of_interest):
