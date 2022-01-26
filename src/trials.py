@@ -1,6 +1,7 @@
 import pandas, numpy, os, sys, umap, random
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from tqdm import tqdm
 
 # from src.ralps import get_data
 # from src.manipulations import run_pca
@@ -12,5 +13,4 @@ from pathlib import Path
 
 if __name__ == "__main__":
     pass
-
 

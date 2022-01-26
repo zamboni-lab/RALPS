@@ -27,7 +27,8 @@ def v_criterion(inputs, recs, allowed_increase_percent=0.05):
     vcs_diffs = vcs_diffs[vcs_diffs > 0]  # keep vastly increased VCs
 
     if vcs_diffs.size()[0] > 0:
-        v_loss += torch.median(vcs_diffs)
+        # v_loss += torch.median(vcs_diffs)
+        v_loss += vcs_diffs.size()[0] / vcs_inputs.size()[0] * 100  # percent itself
 
     return v_loss
 

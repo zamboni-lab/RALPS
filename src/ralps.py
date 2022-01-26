@@ -112,7 +112,14 @@ def set_parameter(name, string_value):
     elif string_value[0] != '-' and '-' in string_value:
         # sample from interval
         lower, upper = string_value.split('-')
-        value = round(random.uniform(float(lower), float(upper)), 5)
+        if '_lr' in name:
+            value = round(random.uniform(float(lower), float(upper)), 4)
+        elif '_lambda' in name:
+            value = round(random.uniform(float(lower), float(upper)), 1)
+        elif name == 'variance_ratio':
+            value = round(random.uniform(float(lower), float(upper)), 2)
+        else:
+            value = int(random.uniform(float(lower), float(upper)))
     else:
         # set provided value
         try:

@@ -545,98 +545,67 @@ def plot_percent_of_unique_values(save_to='/Users/andreidm/ETH/projects/normaliz
     pyplot.savefig(save_to + 'unique_values.pdf')
 
 
-if __name__ == "__main__":
+def compute_percent_of_increased_vcs_for_methods(path_to_init_data, path_to_other_methods, allowed_percent=0.05):
+    """ This method computes percent of increased (compared to initial data) VCs for samples. """
 
-    # save_plots = False
-    # scenario = 3
-    #
-    # # benchmarks
-    # plot_benchmarks_cvs_for_methods(scenario=scenario, save_plot=save_plots)
-    # plot_benchmarks_grouping_coefs_for_methods(scenario=scenario, save_plot=save_plots)
-    # plot_benchmarks_corrs_for_methods(scenario=scenario, save_plot=save_plots)
-    #
-    # # all samples
-    # check_relevant_intensities_for_methods(scenario=scenario)
-    # plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)
-    # plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
-    #
-    # plot_percent_of_unique_values()
+    initial_data = pandas.read_csv(path_to_init_data, index_col=0).T
 
-    data_with_mz = pandas.read_csv('D:\ETH\projects\\normalization\data\\filtered_data_with_mz.csv', index_col=0)
-    mz = data_with_mz['mz'].values
-    data_with_mz = data_with_mz.drop(columns=['mz'])
-    initial_data = data_with_mz.iloc[:, 1:].T
+    percent_of_increased_vc = {}
+    for method in ['normAE', 'combat', 'eigenMS', 'lev+eig', 'pqn+pow', 'waveICA']:
 
-    lower_vc_norm = pandas.read_csv('D:\ETH\projects\\normalization\\res\\SRM+SPP\\6bb18914\\normalized_6bb18914.csv', index_col=0).T
-    higher_vc_norm = pandas.read_csv('D:\ETH\projects\\normalization\\res\\SRM+SPP\\58e7bf4c\\normalized_58e7bf4c.csv', index_col=0).T
+        if method == 'normAE':
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
+        else:
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
 
-    lower = []
-    higher = []
+        count = 0
+        for sample in initial_data.index:
+            init_vc = initial_data.loc[sample].std() / initial_data.loc[sample].mean()
+            sample_vc = normalized.loc[sample].std() / normalized.loc[sample].mean()
+            if sample_vc - init_vc > init_vc * allowed_percent:
+                count += 1
+        percent_of_increased_vc[method] = int(count / normalized.shape[0] * 100)
 
-    for sample in initial_data.index:
+    for key, value in percent_of_increased_vc.items():
+        print('{}: {}%'.format(key, value))
 
-        init_vc = initial_data.loc[sample].std() / initial_data.loc[sample].mean()
-        sample_vc_lower = lower_vc_norm.loc[sample].std() / lower_vc_norm.loc[sample].mean()
-        sample_vc_higher = higher_vc_norm.loc[sample].std() / higher_vc_norm.loc[sample].mean()
-        if sample_vc_lower-init_vc > init_vc * 0.05:
-            lower.append((sample_vc_lower-init_vc, '{}: {} -> {}'.format(sample, init_vc, sample_vc_lower)))
-        if sample_vc_higher-init_vc > init_vc * 0.05:
-            higher.append((sample_vc_higher-init_vc, '{}: {} -> {}'.format(sample, init_vc, sample_vc_higher)))
 
-    print('Lowest VC solution ({}, {}%)\n'.format(len(lower), int(100 * len(lower) / initial_data.shape[0])))
-    # for s in sorted(lower, key=lambda x: x[0], reverse=True)[-10:]:
-    #     print(s[1])
-    print('Highest VC solution ({}, {}%)\n'.format(len(higher), int(100 * len(higher) / initial_data.shape[0])))
-    # for s in sorted(higher, key=lambda x: x[0], reverse=True)[-10:]:
-    #     print(s[1])
+def plot_single_spectrum(mz, data, title):
+    """ Plots a spectrum of data. """
 
-    # initial_data = initial_data.T[['P2_SF_0004_0110_2']].T
-    # lower_vc_norm = lower_vc_norm.T[['P2_SF_0004_0110_2']].T
-    # higher_vc_norm = higher_vc_norm.T[['P2_SF_0004_0110_2']].T
-
+    # hardcoded batch ids and colors for the benchmarking dataset
     batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
     color_dict = dict(zip(batches, 'kgrcmyb'))
 
-    samples = initial_data.index
+    samples = data.index
     pyplot.figure(figsize=(8, 6))
-    for i in range(initial_data.shape[0]):
+    for i in range(data.shape[0]):
         batch_id = [batch in samples[i] for batch in batches].index(True)
         color = color_dict[batches[batch_id]]
         if color == 'b':
-            pyplot.plot(mz, initial_data.values[i, :], '{}o'.format(color), alpha=0.2)
+            pyplot.plot(mz, data.values[i, :], '{}o'.format(color), alpha=0.2)
         else:
-            pyplot.plot(mz, initial_data.values[i, :], '{}o'.format(color), alpha=0.4)
-    pyplot.title('Initial')
+            pyplot.plot(mz, data.values[i, :], '{}o'.format(color), alpha=0.4)
+    pyplot.title(title)
     pyplot.xlabel('mz')
     pyplot.ylabel('intensity')
     pyplot.grid()
-
-    samples = lower_vc_norm.index
-    pyplot.figure(figsize=(8, 6))
-    for i in range(lower_vc_norm.shape[0]):
-        batch_id = [batch in samples[i] for batch in batches].index(True)
-        color = color_dict[batches[batch_id]]
-        if color == 'b':
-            pyplot.plot(mz, lower_vc_norm.values[i, :], '{}o'.format(color), alpha=0.2)
-        else:
-            pyplot.plot(mz, lower_vc_norm.values[i, :], '{}o'.format(color), alpha=0.4)
-    pyplot.title('Lower VC normalized')
-    pyplot.xlabel('mz')
-    pyplot.ylabel('intensity')
-    pyplot.grid()
-
-    samples = higher_vc_norm.index
-    pyplot.figure(figsize=(8, 6))
-    for i in range(higher_vc_norm.shape[0]):
-        batch_id = [batch in samples[i] for batch in batches].index(True)
-        color = color_dict[batches[batch_id]]
-        if color == 'b':
-            pyplot.plot(mz, higher_vc_norm.values[i, :], '{}o'.format(color), alpha=0.2)
-        else:
-            pyplot.plot(mz, higher_vc_norm.values[i, :], '{}o'.format(color), alpha=0.4)
-    pyplot.title('Higher VC normalized')
-    pyplot.xlabel('mz')
-    pyplot.ylabel('intensity')
-    pyplot.grid()
-
     pyplot.show()
+
+
+if __name__ == "__main__":
+
+    save_plots = False
+    scenario = 3
+
+    # benchmarks
+    plot_benchmarks_cvs_for_methods(scenario=scenario, save_plot=save_plots)
+    plot_benchmarks_grouping_coefs_for_methods(scenario=scenario, save_plot=save_plots)
+    plot_benchmarks_corrs_for_methods(scenario=scenario, save_plot=save_plots)
+
+    # all samples
+    check_relevant_intensities_for_methods(scenario=scenario)
+    plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)
+    plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
+
+    plot_percent_of_unique_values()
