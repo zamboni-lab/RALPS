@@ -259,8 +259,11 @@ def ralps(config):
                 f.write(traceback.format_exc())
             print("full traceback saved to", log_path, '\n')
 
-    # TODO: add try-except too
-    evaluate_models(config)
+    print('Grid search completed.\n')
+    try:
+        evaluate_models(config)
+    except Exception as e:
+        print('Ops! Error while evaluating models:\n', e)
 
 
 if __name__ == "__main__":

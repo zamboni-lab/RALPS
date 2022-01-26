@@ -1,5 +1,5 @@
 
-version = "v.0.6.20"
+version = "v.0.6.22"
 
 # CONFIG
 default_parameters_values = {
@@ -23,3 +23,4 @@ default_labels = ('0', '')  # for batch info
 # MODEL SELECTION
 grouping_threshold_percent = 30
 correlation_threshold_percent = 70
+n_best_models = 10

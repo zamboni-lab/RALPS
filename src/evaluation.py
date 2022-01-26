@@ -5,6 +5,7 @@ from pathlib import Path
 
 from constants import grouping_threshold_percent as g_percent
 from constants import correlation_threshold_percent as c_percent
+from constants import n_best_models
 
 
 def mask_non_relevant_intensities(reconstruction, min_relevant_intensity):
@@ -41,19 +42,20 @@ def evaluate_models(config):
                     pass
                 del id_results
 
-    ids = best_models['id']
-    best_models = best_models.drop(columns=['solution', 'id'])
-    best_models.insert(1, 'best', False)
-    best_models.insert(2, 'id', ids)
-    # pick best models
-    print('GRID SEARCH BEST MODELS:', '\n')
     if best_models.shape[0] == 0:
         print('WARNING: no solutions found! Check input data, try other parameters, or report an issue.\n')
     else:
+
+        ids = best_models['id']
+        best_models = best_models.drop(columns=['solution', 'id', 'g_loss', 'val_acc'])
+        best_models.insert(1, 'best', False)
+        best_models.insert(2, 'id', ids)
+
+        print('GRID SEARCH BEST MODELS:', '\n')
         top = select_top_solutions(best_models, g_percent, c_percent)
         if top is None:
-                print('WARNING: could not find the best solution, returning the full list sorted by reg_grouping\n')
-                best_models = best_models.sort_values('reg_grouping')
+                print('WARNING: could not find the best solution, returning the full list sorted by rec_loss\n')
+                best_models = best_models.sort_values('rec_loss')
                 print(best_models.to_string(), '\n')
         else:
             for top_id in top['id'].values:
@@ -103,6 +105,7 @@ def select_top_solutions(history, g_percent, c_percent):
             & (history['all_corr'] >= numpy.percentile(history['all_corr'].values, c_percent))
             ]])
         df = df.drop_duplicates().sort_values('rec_loss')
+        df = df.iloc[:n_best_models, :]  # keep only n best
 
         assert df.shape[0] > 0
         df['best'] = True
@@ -123,11 +126,18 @@ def find_best_epoch(history, skip_epochs, mean_batch_vc_original, mean_reg_vc_or
                   .format(skip_epochs, history.shape[0]))
             return None
 
+    # filter out epochs of high reconstruction error
+    history = history.loc[history['rec_loss'] < history['rec_loss'][0] / 2, :]
+    if history.shape[0] < 1:
+        print('WARNING: low reconstruction quality -> no solution for current parameter set')
+        return None
+
     # filter out epochs of increased variation coefs
     history = history.loc[(history['batch_vc'] < mean_batch_vc_original) & (history['reg_vc'] < mean_reg_vc_original), :]
     if history.shape[0] < 1:
         print('WARNING: increased VCs -> no solution for current parameter set')
         return None
+
     else:
         df = slice_by_grouping_and_correlation(history, 10, 90)
         if df is None:
@@ -150,7 +160,6 @@ def find_best_epoch(history, skip_epochs, mean_batch_vc_original, mean_reg_vc_or
                                 best_epoch = int(history.loc[history['reg_grouping'] == history['reg_grouping'].min(), 'epoch'].values[-1])
                                 print('WARNING: couldn\'t find the best epoch, '
                                       'returning the last one of min grouping coef: epoch {}'.format(best_epoch))
-
                             return best_epoch
 
         return int(df['epoch'].values[0])
