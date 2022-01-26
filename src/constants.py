@@ -1,7 +1,12 @@
 
-version = "v.0.6.22"
+version = "v.0.6.23"
 
 # CONFIG
+
+required_config_fields = ['data_path', 'info_path', 'out_path', 'latent_dim', 'variance_ratio', 'n_replicates',
+                          'grid_size', 'd_lr', 'g_lr', 'd_lambda', 'g_lambda', 'v_lambda', 'train_ratio', 'batch_size',
+                          'epochs', 'callback_step', 'keep_checkpoints', 'device', 'plots_extension', 'min_relevant_intensity']
+
 default_parameters_values = {
     'latent_dim': -1,
     'variance_ratio': 0.99,
@@ -15,6 +20,16 @@ default_parameters_values = {
     'plots_extension': 'png',
     'device': 'cpu',
     'min_relevant_intensity': 1000
+}
+
+default_parameters_ranges = {
+    'd_lr': [0.00005, 0.005],
+    'g_lr': [0.00005, 0.005],
+    'd_lambda': [0., 10.],
+    'g_lambda': [0., 10.],
+    'v_lambda': [0., 10.],
+    'batch_size': [32, 64, 128],
+    'variance_ratio': [0.9, 0.95, 0.99]
 }
 
 # DATA

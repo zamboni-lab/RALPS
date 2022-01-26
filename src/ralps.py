@@ -7,7 +7,8 @@ from pathlib import Path
 
 from models.adversarial import run_normalization
 from evaluation import evaluate_models
-from constants import default_parameters_values, default_labels
+from constants import default_parameters_values, default_labels, default_parameters_ranges
+from constants import required_config_fields
 import processing
 
 
@@ -26,8 +27,6 @@ def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
     batch_info = pandas.read_csv(Path(config['info_path']), keep_default_na=False)
 
     # TODO:
-    #  - check input data for reg_types, benchmarks, batch labels,
-    #  - warn and stop if there are obvious problems,
     #  - test with no benchmarks,
     #  - move plots to a single folder?
 
@@ -63,7 +62,7 @@ def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
         data = data.mask(numpy.random.random(data.shape) < na_fraction)
         data = data.fillna(config['min_relevant_intensity'])
 
-    # just insert batch (correct ordering)
+    # just insert batch (mind the ordering)
     data.insert(0, 'batch', batch_info['batch'].values)
     data = data.sample(frac=1)  # shuffle
 
@@ -89,19 +88,19 @@ def get_grid_size(config):
 def sample_from_default_ranges(par_name):
 
     if par_name == 'd_lr':
-        return round(random.uniform(0.00005, 0.005), 4)
+        return round(random.uniform(*default_parameters_ranges['d_lr']), 4)
     elif par_name == 'g_lr':
-        return round(random.uniform(0.00005, 0.005), 4)
+        return round(random.uniform(*default_parameters_ranges['g_lr']), 4)
     elif par_name == 'd_lambda':
-        return round(random.uniform(0., 10.), 1)
+        return round(random.uniform(*default_parameters_ranges['d_lambda']), 1)
     elif par_name == 'g_lambda':
-        return round(random.uniform(0., 10.), 1)
+        return round(random.uniform(*default_parameters_ranges['g_lambda']), 1)
     elif par_name == 'v_lambda':
-        return round(random.uniform(0., 10.), 1)
+        return round(random.uniform(*default_parameters_ranges['v_lambda']), 1)
     elif par_name == 'batch_size':
-        return random.sample([32, 64, 128], 1)[0]
+        return random.sample(default_parameters_ranges['batch_size'], 1)[0]
     elif par_name == 'variance_ratio':
-        return random.sample([0.9, 0.95, 0.99], 1)[0]
+        return random.sample(default_parameters_ranges['variance_ratio'], 1)[0]
 
 
 def set_parameter(name, string_value):
@@ -244,29 +243,89 @@ def generate_parameters_grid(config, data):
     return grid
 
 
+def check_input(config):
+    """ This method makes a few sanity checks and returns True if all right. """
+
+    message = ''
+    is_correct_input = True
+
+    # check if config contains all necessary fields
+    not_all_fields_present = sum([x not in config for x in required_config_fields]) > 0
+    if not_all_fields_present:
+        is_correct_input = False
+        message += '- Config is not complete.\n'
+    else:
+        # check if data file exists
+        if not os.path.exists(Path(config['data_path'])):
+            is_correct_input = False
+            message += '- Wrong data path.\n'
+        # check if batch info file exists
+        elif not os.path.exists(Path(config['info_path'])):
+            is_correct_input = False
+            message += '- Wrong batch info path.\n'
+        else:
+            data = pandas.read_csv(Path(config['data_path']))
+            batch_info = pandas.read_csv(Path(config['info_path']), keep_default_na=False)
+
+            # check if names of samples match between data and batch_info files
+            data_samples = sorted(list(data.iloc[:, 1:].columns))
+            batch_info_samples = sorted(list(batch_info.iloc[:, 0]))
+            for i in range(len(data_samples)):
+                if data_samples[i] != batch_info_samples[i]:
+                    is_correct_input = False
+                    message += '- Samples\' names do not match between data and batch_info files.\n' \
+                               'At least, not for {}.'.format(data_samples[i])
+                    break
+
+            # check if regularization samples are provided
+            reg_types = batch_info['group'].astype('str').unique().tolist()
+            for value in default_labels:
+                if value in reg_types:
+                    reg_types.remove(value)  # default labels are not parsed as reg_types
+            if len(reg_types) == 0:
+                is_correct_input = False
+                message += '- Regularization samples (\'group\') are missing in batch_info file.\n'
+
+            # check if multiple batches are provided
+            batch_ids = batch_info['batch'].astype('str').unique().tolist()
+            for value in default_labels:
+                if value in reg_types:
+                    batch_ids.remove(value)  # default labels are not parsed as batch_ids
+            if len(batch_ids) == 1:
+                is_correct_input = False
+                message += '- Only a single batch label provided: {}.\n'.format(batch_ids[0])
+
+    return is_correct_input, message
+
+
 def ralps(config):
 
-    data = get_data(config)
-    grid = generate_parameters_grid(config, data)
+    is_correct, warning = check_input(config)
+    if is_correct:
 
-    for parameters in tqdm(grid):
+        data = get_data(config)
+        grid = generate_parameters_grid(config, data)
+
+        for parameters in tqdm(grid):
+            try:
+                run_normalization(data, parameters)
+            except Exception as e:
+                print("failed with", e)
+                log_path = Path(parameters['out_path']) / parameters['id'] / 'traceback.txt'
+                with open(log_path, 'w') as f:
+                    f.write(traceback.format_exc())
+                print("full traceback saved to", log_path, '\n')
+
+        print('Grid search completed.\n')
         try:
-            run_normalization(data, parameters)
+            evaluate_models(config)
         except Exception as e:
-            print("failed with", e)
-            log_path = Path(parameters['out_path']) / parameters['id'] / 'traceback.txt'
-            with open(log_path, 'w') as f:
-                f.write(traceback.format_exc())
-            print("full traceback saved to", log_path, '\n')
-
-    print('Grid search completed.\n')
-    try:
-        evaluate_models(config)
-    except Exception as e:
-        print('Ops! Error while evaluating models:\n', e)
+            print('Ops! Error while evaluating models:\n', e)
+    else:
+        print(warning)
 
 
 if __name__ == "__main__":
-    config = parse_config(path='D:\ETH\projects\\normalization\data\configs\\config_SRM_SPP.csv')
-    # config = parse_config()
+    # config = parse_config(path='D:\ETH\projects\\normalization\data\configs\\config_SRM_SPP.csv')
+    config = parse_config()
     ralps(config)
