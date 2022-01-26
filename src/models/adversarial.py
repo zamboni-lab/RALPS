@@ -28,7 +28,7 @@ def v_criterion(inputs, recs, allowed_increase_percent=0.05):
 
     if vcs_diffs.size()[0] > 0:
         # v_loss += torch.median(vcs_diffs)
-        v_loss += vcs_diffs.size()[0] / vcs_inputs.size()[0] * 100  # percent itself
+        v_loss += torch.Tensor([vcs_diffs.size()[0] / vcs_inputs.size()[0] * 100])[0]  # percent itself
 
     return v_loss
 
