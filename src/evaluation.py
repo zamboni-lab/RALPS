@@ -47,11 +47,11 @@ def evaluate_models(config):
     else:
 
         ids = best_models['id']
-        best_models = best_models.drop(columns=['solution', 'id', 'g_loss', 'val_acc'])
+        best_models = best_models.drop(columns=['solution', 'id', 'g_loss', 'val_acc', 'stopped_early'])
         best_models.insert(1, 'best', False)
         best_models.insert(2, 'id', ids)
 
-        print('GRID SEARCH BEST MODELS:', '\n')
+        print('GRID SEARCH BEST MODELS:\n')
         top = select_top_solutions(best_models, g_percent, c_percent)
         if top is None:
                 print('WARNING: could not find the best solution, returning the full list sorted by rec_loss\n')
@@ -63,6 +63,8 @@ def evaluate_models(config):
                 best_models.loc[best_models['id'] == top_id, 'best'] = True
             print(top.to_string(), '\n')
 
+        best_models = best_models.sort_values(['best', 'rec_loss'], ascending=[False, True])
+        best_models = best_models.round({key: 3 for key in best_models.columns[3:] if key != 'ivc_percent'})
         best_models.to_csv(out_path / 'best_models.csv', index=False)
         print('full grid saved to {}'.format(out_path / 'best_models.csv'))
 
@@ -104,6 +106,11 @@ def select_top_solutions(history, g_percent, c_percent):
             (history['all_grouping'] <= numpy.percentile(history['all_grouping'].values, g_percent))
             & (history['all_corr'] >= numpy.percentile(history['all_corr'].values, c_percent))
             ]])
+        df = pandas.concat([df, history[
+            (history['all_grouping'] <= numpy.percentile(history['all_grouping'].values, g_percent))
+            & (history['ivc_percent'] <= numpy.percentile(history['ivc_percent'].values, g_percent))
+            ]])
+
         df = df.drop_duplicates().sort_values('rec_loss')
         df = df.iloc[:n_best_models, :]  # keep only n best
 
@@ -122,20 +129,20 @@ def find_best_epoch(history, skip_epochs, mean_batch_vc_original, mean_reg_vc_or
         if skip_epochs < history.shape[0]:
             history = history.iloc[skip_epochs:, :]
         else:
-            print('WARNING: {} epochs skipped of total {} -> no solution for current parameter set'
+            print('WARNING: {} epochs skipped of total {} -> no solution for current parameter set\n'
                   .format(skip_epochs, history.shape[0]))
             return None
 
     # filter out epochs of high reconstruction error
     history = history.loc[history['rec_loss'] < history['rec_loss'].values[0] / 2, :]
     if history.shape[0] < 1:
-        print('WARNING: low reconstruction quality -> no solution for current parameter set')
+        print('WARNING: low reconstruction quality -> no solution for current parameter set\n')
         return None
 
     # filter out epochs of increased variation coefs
     history = history.loc[(history['batch_vc'] < mean_batch_vc_original) & (history['reg_vc'] < mean_reg_vc_original), :]
     if history.shape[0] < 1:
-        print('WARNING: increased VCs -> no solution for current parameter set')
+        print('WARNING: increased VCs -> no solution for current parameter set\n')
         return None
 
     else:
@@ -154,12 +161,12 @@ def find_best_epoch(history, skip_epochs, mean_batch_vc_original, mean_reg_vc_or
                                 # min grouping + max correlation
                                 best_epoch = int(min_grouping_epochs.loc[min_grouping_epochs['reg_corr'] == min_grouping_epochs['reg_corr'].max(), 'epoch'].values[-1])
                                 print('WARNING: couldn\'t find the best epoch, '
-                                      'returning the one of min grouping with max cross-correlation: epoch {}'.format(best_epoch))
+                                      'returning the one of min grouping with max cross-correlation: epoch {}\n'.format(best_epoch))
                             else:
                                 # min grouping
                                 best_epoch = int(history.loc[history['reg_grouping'] == history['reg_grouping'].min(), 'epoch'].values[-1])
                                 print('WARNING: couldn\'t find the best epoch, '
-                                      'returning the last one of min grouping coef: epoch {}'.format(best_epoch))
+                                      'returning the last one of min grouping coef: epoch {}\n'.format(best_epoch))
                             return best_epoch
 
         return int(df['epoch'].values[0])

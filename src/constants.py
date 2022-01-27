@@ -1,5 +1,5 @@
 
-version = "v.0.6.24"
+version = "v.0.6.26"
 
 # CONFIG
 

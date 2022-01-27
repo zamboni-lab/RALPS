@@ -21,7 +21,7 @@ def compute_percent_of_increased_vcs(normalized, init_vcs, allowed_increase_perc
         norm_vc = normalized.iloc[i,:].std() / normalized.iloc[i,:].mean()
         if norm_vc - init_vcs[i] > init_vcs[i] * allowed_increase_percent:
             count += 1
-    return int(count / normalized.shape[0] * 100)
+    return round(count / normalized.shape[0] * 100, 1)
 
 
 def get_samples_by_types_dict(samples_names, types_of_interest):

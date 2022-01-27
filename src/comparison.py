@@ -571,9 +571,9 @@ def compute_percent_of_increased_vcs_for_methods(path_to_init_data, path_to_othe
 
 
 def plot_single_spectrum(mz, data, title):
-    """ Plots a spectrum of data. """
+    """ Plots a spectrum of data for the benchmarking dataset. """
 
-    # hardcoded batch ids and colors for the benchmarking dataset
+    # hardcoded batch ids and colors
     batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
     color_dict = dict(zip(batches, 'kgrcmyb'))
 
@@ -595,17 +595,31 @@ def plot_single_spectrum(mz, data, title):
 
 if __name__ == "__main__":
 
-    save_plots = False
-    scenario = 3
+    # save_plots = False
+    # scenario = 3
+    #
+    # # benchmarks
+    # plot_benchmarks_cvs_for_methods(scenario=scenario, save_plot=save_plots)
+    # plot_benchmarks_grouping_coefs_for_methods(scenario=scenario, save_plot=save_plots)
+    # plot_benchmarks_corrs_for_methods(scenario=scenario, save_plot=save_plots)
+    #
+    # # all samples
+    # check_relevant_intensities_for_methods(scenario=scenario)
+    # plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)
+    # plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
+    #
+    # plot_percent_of_unique_values()
 
-    # benchmarks
-    plot_benchmarks_cvs_for_methods(scenario=scenario, save_plot=save_plots)
-    plot_benchmarks_grouping_coefs_for_methods(scenario=scenario, save_plot=save_plots)
-    plot_benchmarks_corrs_for_methods(scenario=scenario, save_plot=save_plots)
+    compute_percent_of_increased_vcs_for_methods(
+        'D:\ETH\projects\\normalization\data\\filtered_data.csv',
+        'D:\ETH\projects\\normalization\\res\\all_refs_other_methods\\'
+    )
 
-    # all samples
-    check_relevant_intensities_for_methods(scenario=scenario)
-    plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)
-    plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
+    original_data = pandas.read_csv('D:\ETH\projects\\normalization\data\\filtered_data_with_mz.csv', index_col=0)
+    mz = original_data['mz']
 
-    plot_percent_of_unique_values()
+    original_data = original_data.drop(columns=['name', 'mz']).T
+    plot_single_spectrum(mz, original_data, 'Original')
+
+    normalized_1 = pandas.read_csv('D:\ETH\projects\\normalization\\res\\SRM+SPP\\dc98d5fc\\normalized_dc98d5fc.csv', index_col=0).T
+    plot_single_spectrum(mz, normalized_1, 'dc98d5fc, rec_loss > 4')

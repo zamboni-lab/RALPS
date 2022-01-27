@@ -274,7 +274,7 @@ def check_input(config):
                 if data_samples[i] != batch_info_samples[i]:
                     is_correct_input = False
                     message += '- Samples\' names do not match between data and batch_info files.\n' \
-                               'At least, not for {}.'.format(data_samples[i])
+                               'At least, not for {}.\n'.format(data_samples[i])
                     break
 
             # check if regularization samples are provided
@@ -326,6 +326,6 @@ def ralps(config):
 
 
 if __name__ == "__main__":
-    config = parse_config(path='D:\ETH\projects\\normalization\data\configs\\config_SRM_SPP.csv')
-    # config = parse_config()
+    # config = parse_config(path='D:\ETH\projects\\normalization\data\configs\\config_SRM_SPP.csv')
+    config = parse_config()
     ralps(config)
