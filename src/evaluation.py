@@ -127,7 +127,7 @@ def find_best_epoch(history, skip_epochs, mean_batch_vc_original, mean_reg_vc_or
             return None
 
     # filter out epochs of high reconstruction error
-    history = history.loc[history['rec_loss'] < history['rec_loss'][0] / 2, :]
+    history = history.loc[history['rec_loss'] < history['rec_loss'].values[0] / 2, :]
     if history.shape[0] < 1:
         print('WARNING: low reconstruction quality -> no solution for current parameter set')
         return None

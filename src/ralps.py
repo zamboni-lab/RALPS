@@ -326,6 +326,6 @@ def ralps(config):
 
 
 if __name__ == "__main__":
-    # config = parse_config(path='D:\ETH\projects\\normalization\data\configs\\config_SRM_SPP.csv')
-    config = parse_config()
+    config = parse_config(path='D:\ETH\projects\\normalization\data\configs\\config_SRM_SPP.csv')
+    # config = parse_config()
     ralps(config)
