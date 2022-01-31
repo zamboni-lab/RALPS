@@ -12,18 +12,17 @@ from models.ae import Autoencoder
 import evaluation, batch_analysis, processing
 
 
-def v_criterion(inputs, recs, allowed_increase_percent=0.05):
+def v_criterion(inputs, recs, increase_percent=0.05):
     """ This is a variation loss function. It returns median VC diff for samples
         that happened to have increased variation coefs. Samples of decreased or equal VCs do not contribute. """
 
-    # TODO: allowed percent a parameter?
     v_loss = torch.Tensor([0])[0]
 
     vcs_inputs = torch.std(inputs, 1) / torch.mean(inputs, 1)
     vcs_recs = torch.std(recs, 1) / torch.mean(recs, 1)
 
     vcs_diffs = vcs_recs - vcs_inputs  # find diffs
-    vcs_diffs = vcs_diffs - vcs_inputs * allowed_increase_percent  # subtract sample-wise allowed variance increase
+    vcs_diffs = vcs_diffs - vcs_inputs * increase_percent  # subtract sample-wise allowed variance increase
     vcs_diffs = vcs_diffs[vcs_diffs > 0]  # keep vastly increased VCs
 
     if vcs_diffs.size()[0] > 0:
@@ -147,7 +146,7 @@ def run_normalization(data, parameters):
                 rec_loss_per_epoch += reconstruction_loss.item()
 
                 # compute variation loss
-                variation_loss = v_criterion(batch_features, reconstruction)
+                variation_loss = v_criterion(batch_features, reconstruction, increase_percent=parameters['allowed_vc_increase'])
                 v_loss_per_epoch += variation_loss.item()
 
                 # add variation loss to tackle noisy reconstructions
@@ -225,7 +224,7 @@ def run_normalization(data, parameters):
         batch_vc_history.append(mean_batch_vc)
 
         # calculate percent of increased vcs
-        increased_vc_percent = batch_analysis.compute_percent_of_increased_vcs(reconstruction, initial_samples_vcs)
+        increased_vc_percent = batch_analysis.compute_percent_of_increased_vcs(reconstruction, initial_samples_vcs, increase_percent=parameters['allowed_vc_increase'])
         ivc_percent_history.append(increased_vc_percent)
 
         # assess cross correlations of regularization samples
@@ -359,7 +358,7 @@ def run_normalization(data, parameters):
         print('results saved to {}\n'.format(save_to))
 
     else:
-        # if no solution is found
+        # skip all of the above if no solution is found
         pass
 
     # SAVE PARAMETERS AND HISTORY

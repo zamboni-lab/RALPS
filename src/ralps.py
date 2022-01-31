@@ -140,17 +140,18 @@ def initialise_constant_parameters(config):
     for int_par_name in ['latent_dim', 'n_replicates', 'epochs', 'skip_epochs', 'callback_step', 'min_relevant_intensity']:
         try:
             parameters[int_par_name] = int(parameters[int_par_name])
-            if parameters[int_par_name] < 0:
+            if parameters[int_par_name] <= 0:
                 parameters[int_par_name] = default_parameters_values[int_par_name]
         except Exception:
             parameters[int_par_name] = default_parameters_values[int_par_name]
 
-    try:
-        parameters['train_ratio'] = float(parameters['train_ratio'])
-        if parameters['train_ratio'] <= 0:
-            parameters['train_ratio'] = default_parameters_values['train_ratio']
-    except Exception:
-        parameters['train_ratio'] = default_parameters_values['train_ratio']
+    for float_par_name in ['train_ratio', 'allowed_vc_increase']:
+        try:
+            parameters[float_par_name] = float(parameters[float_par_name])
+            if parameters[float_par_name] <= 0:
+                parameters[float_par_name] = default_parameters_values[float_par_name]
+        except Exception:
+            parameters[float_par_name] = default_parameters_values[float_par_name]
 
     if parameters['keep_checkpoints'].lower() not in ['true', '1']:
         parameters['keep_checkpoints'] = default_parameters_values['keep_checkpoints']
