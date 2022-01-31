@@ -47,7 +47,7 @@ def run_normalization(data, parameters):
 
     # parse samples of interest
     reg_types = parameters['reg_types'].split(',')
-    benchmarks = parameters['benchmarks'].split(',')
+    benchmarks = parameters['benchmarks'].split(',') if parameters['benchmarks'] != '' else []
     all_samples_types = [*benchmarks, *reg_types]
 
     # create models
@@ -100,9 +100,10 @@ def run_normalization(data, parameters):
     reg_samples_corr_history = []
     reg_samples_vc_history = []
 
-    benchmarks_corr_history = []
-    benchmarks_grouping_history = []
-    benchmarks_variation_coefs = dict([(sample, []) for sample in benchmarks])
+    if len(benchmarks) > 0:
+        benchmarks_corr_history = []
+        benchmarks_grouping_history = []
+        benchmarks_variation_coefs = dict([(sample, []) for sample in benchmarks])
 
     g_regularizer = 0
     total_epochs = parameters['epochs']
@@ -229,10 +230,10 @@ def run_normalization(data, parameters):
         reg_corr = batch_analysis.get_sample_cross_correlation_estimate(reconstruction, reg_types, percent=25)
         reg_samples_corr_history.append(reg_corr)  # append mean
 
-        # assess cross correlations of benchmarks
-        b_corr = batch_analysis.get_sample_cross_correlation_estimate(reconstruction, benchmarks)
-        if b_corr:
-            # if benchmark are there, append mean correlation coef
+        if len(benchmarks) > 0:
+            # assess cross correlations of benchmarks
+            b_corr = batch_analysis.get_sample_cross_correlation_estimate(reconstruction, benchmarks)
+            # append mean correlation coef
             benchmarks_corr_history.append(b_corr)
 
         # collect clustering results for reg_types and benchmarks
@@ -251,11 +252,12 @@ def run_normalization(data, parameters):
             if sample in benchmarks:
                 b_grouping_coefs.append(coef)
 
-        b_grouping = numpy.mean(b_grouping_coefs)
         reg_grouping = numpy.mean(reg_grouping_coefs)
-
-        benchmarks_grouping_history.append(b_grouping)
         reg_samples_grouping_history.append(reg_grouping)
+
+        if len(benchmarks):
+            b_grouping = numpy.mean(b_grouping_coefs)
+            benchmarks_grouping_history.append(b_grouping)
 
         # SET REGULARIZATION FOR GENERATOR'S NEXT ITERATION
         g_regularizer = parameters['g_lambda'] * reg_grouping
@@ -285,8 +287,8 @@ def run_normalization(data, parameters):
                                 'rec_loss': rec_loss_history, 'd_loss': d_loss_history, 'g_loss': g_loss_history, 'v_loss': v_loss_history,
                                 'reg_grouping': reg_samples_grouping_history, 'reg_corr': reg_samples_corr_history, 'reg_vc': reg_samples_vc_history,
                                 'val_acc': val_acc_history, 'batch_vc': batch_vc_history, 'ivc_percent': ivc_percent_history,
-                                'b_corr': benchmarks_corr_history if len(benchmarks_corr_history) == len(g_loss_history) else [-1 for x in g_loss_history],
-                                'b_grouping': benchmarks_grouping_history if len(benchmarks_grouping_history) == len(g_loss_history) else [-1 for x in g_loss_history]
+                                'b_corr': benchmarks_corr_history if len(benchmarks) > 0 else [-1 for x in g_loss_history],
+                                'b_grouping': benchmarks_grouping_history if len(benchmarks) > 0 else [-1 for x in g_loss_history]
                                 })
 
     # compute mean batch variation coef
@@ -299,24 +301,18 @@ def run_normalization(data, parameters):
     # now find the best epoch
     best_epoch = evaluation.find_best_epoch(history, parameters['skip_epochs'], mean_vc_batch_original, mean_vc_reg_original)
     if best_epoch > 0:
-        os.makedirs(save_to / 'benchmarks')
-
         # mark the best epoch as existing solution
         history.loc[best_epoch-1, 'solution'] = True
 
         evaluation.plot_losses(rec_loss_history, d_loss_history, g_loss_history, v_loss_history, best_epoch, parameters, save_to=save_to)
         evaluation.plot_metrics(val_acc_history, reg_samples_corr_history, reg_samples_grouping_history, reg_samples_vc_history, best_epoch, parameters, save_to=save_to)
-        evaluation.plot_benchmarks_metrics(benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters, save_to=save_to / 'benchmarks')
-
-        cv_bench_original = batch_analysis.compute_vc_for_samples_types(data_values, benchmarks)
-        evaluation.plot_variation_coefs(benchmarks_variation_coefs, cv_bench_original, best_epoch, parameters, save_to=save_to / 'benchmarks')
 
         # LOAD BEST MODEL
         generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
         generator.load_state_dict(torch.load(save_to / 'checkpoints' / 'ae_at_{}_{}.torch'.format(best_epoch, parameters['id']), map_location=device))
         generator.eval()
 
-        # PLOT BEST EPOCH RESULTS
+        # APPLY NORMALIZATION AND PLOT BEST EPOCH RESULTS
         scaled_data_values = scaler.transform(data_values.values)
 
         encodings = generator.encode(torch.Tensor(scaled_data_values).to(device))
@@ -327,14 +323,21 @@ def run_normalization(data, parameters):
         reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
         reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
 
-        # plot cross correlations of benchmarks in initial and normalized data
-        batch_analysis.plot_batch_cross_correlations(data_values, 'initial', parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
-        batch_analysis.plot_batch_cross_correlations(reconstruction, 'normalized', parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
         # plot umaps of initial and normalized data
         batch_analysis.plot_full_data_umaps(data_values, reconstruction, data_batch_labels, parameters, save_to=save_to)
         # plot batch variation coefs in initial and normalized data
         vc_batch_normalized = batch_analysis.compute_vc_for_batches(reconstruction, data_batch_labels)
         batch_analysis.plot_batch_vcs(vc_batch_original, vc_batch_normalized, parameters, save_to=save_to)
+
+        if len(benchmarks) > 0:
+            os.makedirs(save_to / 'benchmarks')
+            # plot metrics and variation coefs for benchmarks
+            evaluation.plot_benchmarks_metrics(benchmarks_corr_history, benchmarks_grouping_history, best_epoch, parameters, save_to=save_to / 'benchmarks')
+            cv_bench_original = batch_analysis.compute_vc_for_samples_types(data_values, benchmarks)
+            evaluation.plot_variation_coefs(benchmarks_variation_coefs, cv_bench_original, best_epoch, parameters, save_to=save_to / 'benchmarks')
+            # plot cross correlations of benchmarks in initial and normalized data
+            batch_analysis.plot_batch_cross_correlations(data_values, 'initial', parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
+            batch_analysis.plot_batch_cross_correlations(reconstruction, 'normalized', parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
 
         # SAVE ENCODED AND NORMALIZED DATA
         encodings.to_csv(save_to / 'encodings_{}.csv'.format(parameters['id']))

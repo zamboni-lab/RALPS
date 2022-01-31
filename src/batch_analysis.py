@@ -81,10 +81,8 @@ def get_sample_cross_correlation_estimate(data, sample_types_of_interest, percen
         df = df.T.corr()  # transpose to call corr() on samples, not metabolites
         values = df.values.flatten()
         corrs.append(numpy.percentile(values, percent))
-    if len(corrs) > 0:
-        return numpy.mean(corrs)
-    else:
-        return None
+
+    return numpy.mean(corrs)
 
 
 def compute_vc_for_batches(data, batch_labels):

@@ -26,9 +26,6 @@ def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
     data = pandas.read_csv(Path(config['data_path']))
     batch_info = pandas.read_csv(Path(config['info_path']), keep_default_na=False)
 
-    # TODO:
-    #  - test with no benchmarks
-
     # transpose and remove annotation
     annotation = data.iloc[:, 0]
     data = data.iloc[:, 1:].T
@@ -326,5 +323,6 @@ def ralps(config):
 
 
 if __name__ == "__main__":
-    config = parse_config()
+    config = parse_config(path='D:\ETH\projects\\normalization\data\configs\\config_SRM_SPP_no_bench.csv')
+    # config = parse_config()
     ralps(config)
