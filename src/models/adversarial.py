@@ -308,7 +308,7 @@ def run_normalization(data, parameters):
 
     # now find the best epoch
     best_epoch = evaluation.find_best_epoch(history, parameters['skip_epochs'], mean_vc_batch_original, mean_vc_reg_original)
-    if best_epoch:
+    if best_epoch > 0:
         os.makedirs(save_to / 'benchmarks')
 
         # mark the best epoch as existing solution
@@ -374,5 +374,6 @@ def run_normalization(data, parameters):
 
     # SAVE PARAMETERS AND HISTORY
     parameters['stopped_early'] = stopped_early  # indicate whether stopped early
+    parameters['best_epoch'] = best_epoch
     pandas.DataFrame(parameters, index=['values'], columns=parameters.keys()).T.to_csv(save_to / 'parameters_{}.csv'.format(parameters['id']))
     history.to_csv(save_to / 'history_{}.csv'.format(parameters['id']), index=False)

@@ -131,19 +131,19 @@ def find_best_epoch(history, skip_epochs, mean_batch_vc_initial, mean_reg_vc_ini
         else:
             print('WARNING: {} epochs skipped of total {} -> no solution for current parameter set\n'
                   .format(skip_epochs, history.shape[0]))
-            return None
+            return -1
 
     # filter out epochs of high reconstruction error
     history = history.loc[history['rec_loss'] < history['rec_loss'].values[0] / 2, :]
     if history.shape[0] < 1:
         print('WARNING: low reconstruction quality -> no solution for current parameter set\n')
-        return None
+        return -1
 
     # filter out epochs of increased variation coefs
     history = history.loc[(history['batch_vc'] < mean_batch_vc_initial) & (history['reg_vc'] < mean_reg_vc_initial), :]
     if history.shape[0] < 1:
         print('WARNING: increased VCs -> no solution for current parameter set\n')
-        return None
+        return -1
 
     else:
         df = slice_by_grouping_and_correlation(history, 10, 90)
