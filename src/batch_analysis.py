@@ -49,21 +49,21 @@ def plot_batch_cross_correlations(data, method_name, parameters, sample_types_of
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
     # plot one by one
-    for i, type in enumerate(samples_by_types):
+    for i, s_type in enumerate(samples_by_types):
         pyplot.figure()
-        df = data.loc[numpy.array(samples_by_types[type]), :]
+        df = data.loc[numpy.array(samples_by_types[s_type]), :]
         df = df.T  # transpose to call corr() on samples, not metabolites
         df.columns = ['_'.join(x.split('_')[-2:]) for x in df.columns]  # shorten sample names
         df = df.reindex(sorted(df.columns), axis=1)  # sort column names
         df = df.corr()
 
         seaborn.heatmap(df, vmin=0, vmax=1)
-        pyplot.title(type)
+        pyplot.title(s_type)
         pyplot.suptitle('Cross correlations: {}'.format(method_name))
         pyplot.tight_layout()
 
         if save_plot:
-            pyplot.savefig(save_to / 'correlations_{}_{}_{}.{}'.format(type, method_name.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
+            pyplot.savefig(save_to / 'correlations_{}_{}_{}.{}'.format(s_type, method_name.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
         else:
             pyplot.show()
         pyplot.close()
@@ -161,37 +161,29 @@ def plot_full_data_umaps(data, reconstruction, batch_labels, parameters, save_to
     initial_reduced = get_pca_reduced_data(data, parameters)
     normalized_reduced = get_pca_reduced_data(reconstruction, parameters)
 
-    plot_umaps_initial_vs_normalized(initial_reduced, normalized_reduced, batch_labels.values, parameters, save_to=save_to)
+    plot_umap(initial_reduced, batch_labels.values, parameters, 'initial data', save_to=save_to)
+    plot_umap(normalized_reduced, batch_labels.values, parameters, 'normalized data', save_to=save_to)
 
 
-def plot_umaps_initial_vs_normalized(initial, normalized, batch_labels, parameters, metric='braycurtis', save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_umap(data, batch_labels, parameters, plot_name, metric='braycurtis', save_to='/Users/andreidm/ETH/projects/normalization/res/'):
     """ This method visualizes UMAP embeddings of the data encodings.
         It helps to assess batch effects on the high level."""
 
     neighbors = int(parameters['n_batches'] * parameters['n_replicates'])
 
     reducer = umap.UMAP(n_neighbors=neighbors, metric=metric, min_dist=0.9, random_state=77)
-    embeddings_initial = reducer.fit_transform(initial)
-    embeddings_normalized = reducer.fit_transform(normalized)
+    embeddings = reducer.fit_transform(data)
 
     # plot coloring batches
     seaborn.set()
-    pyplot.figure(figsize=(14, 6))
-    common_palette = seaborn.color_palette('deep', n_colors=len(set(batch_labels)))
+    pyplot.figure(figsize=(7, 6))
+    palette = seaborn.color_palette('deep', n_colors=len(set(batch_labels)))
 
-    pyplot.subplot(121)
-    seaborn.scatterplot(x=embeddings_initial[:, 0], y=embeddings_initial[:, 1], hue=batch_labels, alpha=.8, palette=common_palette)
+    seaborn.scatterplot(x=embeddings[:, 0], y=embeddings[:, 1], hue=batch_labels, alpha=.8, palette=palette)
     pyplot.legend(title='Batch', loc=1, borderaxespad=0., fontsize=10)
-    pyplot.title('Initial')
-
-    pyplot.subplot(122)
-    seaborn.scatterplot(x=embeddings_normalized[:, 0], y=embeddings_normalized[:, 1], hue=batch_labels, alpha=.8, palette=common_palette)
-    pyplot.legend(title='Batch', loc=1, borderaxespad=0., fontsize=10)
-    pyplot.title('Normalized')
-
-    pyplot.suptitle('UMAP: n={}, metric={}'.format(neighbors, metric))
+    pyplot.title('UMAP: {}'.format(plot_name, neighbors, metric))
     pyplot.tight_layout()
-    pyplot.savefig(save_to / 'umap_initial_vs_normalized_{}.{}'.format(parameters['id'], parameters['plots_extension']))
+    pyplot.savefig(save_to / 'umap_{}_{}.{}'.format(plot_name.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
     pyplot.close()
 
 
@@ -360,7 +352,8 @@ if __name__ == '__main__':
     save_to = '/Users/andreidm/ETH/projects/normalization/res/SRM+SPP-disc/'
 
     pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'before', 'plots_extension': 'pdf'}
-    plot_umaps_initial_vs_normalized(encodings_raw, encodings_normalized, numpy.array(batch), pars, save_to=save_to)
+    plot_umap(encodings_raw, numpy.array(batch), pars, 'initial', save_to=save_to)
+    plot_umap(encodings_normalized, numpy.array(batch), pars, 'normalized', save_to=save_to)
 
     samples = ['P2_SRM_0001', 'P2_SPP_0001']
 

@@ -42,8 +42,6 @@ def run_normalization(data, parameters):
     save_to = Path(parameters['out_path']) / parameters['id']
     if not save_to.exists():
         os.makedirs(save_to)
-        if parameters['callback_step'] > 0:
-            os.makedirs(save_to / 'callbacks')
         os.makedirs(save_to / 'checkpoints')
     print('save folder created')
 
@@ -265,14 +263,6 @@ def run_normalization(data, parameters):
         # SAVE MODEL
         torch.save(generator.state_dict(), save_to / 'checkpoints' / 'ae_at_{}_{}.torch'.format(epoch+1, parameters['id']))
 
-        # PRINT AND PLOT EPOCH INFO
-        # plot every N epochs what happens with data
-        if parameters['callback_step'] > 0 and epoch % parameters['callback_step'] == 0:
-            # plot cross correlations of benchmarks in reconstructed data
-            batch_analysis.plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], benchmarks, save_to=save_to / 'callbacks', save_plot=True)
-            # plot umap of encoded data
-            batch_analysis.plot_umaps_initial_vs_normalized(encodings, 'epoch {}'.format(epoch + 1), parameters, save_to=save_to / 'callbacks')
-
         # display the epoch training loss
         timing = int(time.time() - start)
         print("epoch {}/{}, {} sec elapsed:\n"
@@ -338,15 +328,13 @@ def run_normalization(data, parameters):
         reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
 
         # plot cross correlations of benchmarks in initial and normalized data
-        batch_analysis.plot_batch_cross_correlations(data_values, 'initial data', parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
-        batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch), parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
-        # plot umaps of initial, encoded and normalized data
+        batch_analysis.plot_batch_cross_correlations(data_values, 'initial', parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
+        batch_analysis.plot_batch_cross_correlations(reconstruction, 'normalized', parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
+        # plot umaps of initial and normalized data
         batch_analysis.plot_full_data_umaps(data_values, reconstruction, data_batch_labels, parameters, save_to=save_to)
         # plot batch variation coefs in initial and normalized data
         vc_batch_normalized = batch_analysis.compute_vc_for_batches(reconstruction, data_batch_labels)
         batch_analysis.plot_batch_vcs(vc_batch_original, vc_batch_normalized, parameters, save_to=save_to)
-
-        # TODO: plot spectra of initial and normalized data?
 
         # SAVE ENCODED AND NORMALIZED DATA
         encodings.to_csv(save_to / 'encodings_{}.csv'.format(parameters['id']))
@@ -369,8 +357,6 @@ def run_normalization(data, parameters):
         # skip all of the above if no solution is found
         # and clear up directories
         shutil.rmtree(save_to / 'checkpoints')
-        if parameters['callback_step'] > 0:
-            shutil.rmtree(save_to / 'callbacks')
 
     # SAVE PARAMETERS AND HISTORY
     parameters['stopped_early'] = stopped_early  # indicate whether stopped early

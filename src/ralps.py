@@ -136,7 +136,7 @@ def initialise_constant_parameters(config):
 
     parameters = config.copy()
     # set types and defaults for constant parameters
-    for int_par_name in ['latent_dim', 'n_replicates', 'epochs', 'skip_epochs', 'callback_step', 'min_relevant_intensity']:
+    for int_par_name in ['latent_dim', 'n_replicates', 'epochs', 'skip_epochs', 'min_relevant_intensity']:
         try:
             parameters[int_par_name] = int(parameters[int_par_name])
             if parameters[int_par_name] <= 0:
@@ -326,6 +326,5 @@ def ralps(config):
 
 
 if __name__ == "__main__":
-    # config = parse_config(path='D:\ETH\projects\\normalization\data\configs\\config_SRM_SPP.csv')
     config = parse_config()
     ralps(config)

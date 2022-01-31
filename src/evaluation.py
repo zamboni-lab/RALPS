@@ -283,7 +283,7 @@ def plot_variation_coefs(vc_dict, vc_dict_initial, best_epoch, parameters, save_
         y = vc_dict[type]  # values
 
         pyplot.figure()
-        pyplot.plot(x, y, label='Training process')
+        pyplot.plot(x, y, label='Training')
         pyplot.hlines(y=vc_dict_initial[type], xmin=x[0], xmax=x[-1], colors='r', label='Initial data')
         pyplot.hlines(y=y[best_epoch-1], xmin=x[0], xmax=x[-1], colors='k', label='Normalized data')
         pyplot.vlines(x=best_epoch, ymin=min(y), ymax=y[best_epoch-1], colors='k')
@@ -340,4 +340,5 @@ def plot_n_clusters(clusters_dict, clusters_dict_initial, id, save_to='/Users/an
 
 
 if __name__ == '__main__':
+    # TODO: implement full model evaluation for checkpoints
     pass
