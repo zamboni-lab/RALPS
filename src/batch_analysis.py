@@ -124,18 +124,18 @@ def get_pca_reduced_data(data, parameters):
     return pca_reduced
 
 
-def plot_batch_vcs(vc_batch_original, vc_batch_normalized, parameters, plot_label, save_to=None):
+def plot_batch_vcs(vc_batch_initial, vc_batch_normalized, parameters, save_to=None):
     """ This methos plots variation coefs of batches before and after normalization. """
 
-    data = {'batch': [], 'cv': [], 'label': []}
+    data = {'batch': [], 'vc': [], 'label': []}
     # merge into a single container
-    for key, value in vc_batch_original.items():
+    for key, value in vc_batch_initial.items():
         data['batch'].append(key)
-        data['cv'].append(value)
-        data['label'].append('Original')
+        data['vc'].append(value)
+        data['label'].append('Initial')
     for key, value in vc_batch_normalized.items():
         data['batch'].append(key)
-        data['cv'].append(value)
+        data['vc'].append(value)
         data['label'].append('Normalized')
 
     data = pandas.DataFrame(data)
@@ -143,57 +143,55 @@ def plot_batch_vcs(vc_batch_original, vc_batch_normalized, parameters, plot_labe
 
     pyplot.figure()
     seaborn.set_theme(style="whitegrid")
-    seaborn.barplot(x='batch', y='cv', hue='label', data=data)
+    seaborn.barplot(x='batch', y='vc', hue='label', data=data)
     pyplot.title('Batch variation coefs')
     pyplot.legend(bbox_to_anchor=(1.01, 1))
     pyplot.tight_layout()
     if save_to:
-        pyplot.savefig(save_to / 'batch_cv_{}_{}.{}'.format(plot_label.replace(' ','_'), parameters['id'], parameters['plots_extension']))
+        pyplot.savefig(save_to / 'batch_vc_initial_vs_normalized_{}.{}'.format(parameters['id'], parameters['plots_extension']))
         pyplot.close()
     else:
         pyplot.show()
 
 
-def plot_full_data_umaps(data, encodings, reconstruction, batch_labels, parameters, common_plot_label, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_full_data_umaps(data, reconstruction, batch_labels, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
     """ This method plots UMAP embeddings of PCA reduced data (initial, normalized and model encoded). """
 
     # plot initial data
-    initial_data_reduced = get_pca_reduced_data(data, parameters)
-    initial_data_reduced.insert(0, 'batch', batch_labels.values)
-    plot_encodings_umap(initial_data_reduced, 'initial data', parameters, save_to=save_to)
+    initial_reduced = get_pca_reduced_data(data, parameters)
+    normalized_reduced = get_pca_reduced_data(reconstruction, parameters)
 
-    # plot normalized data
-    normalized_data_reduced = get_pca_reduced_data(reconstruction, parameters)
-    normalized_data_reduced.insert(0, 'batch', batch_labels.values)
-    plot_encodings_umap(normalized_data_reduced, 'normalized data ' + common_plot_label, parameters, save_to=save_to)
-
-    # plot encodings
-    encodings.insert(0, 'batch', batch_labels.values)
-    plot_encodings_umap(encodings, 'encodings ' + common_plot_label, parameters, save_to=save_to)
+    plot_umaps_initial_vs_normalized(initial_reduced, normalized_reduced, batch_labels.values, parameters, save_to=save_to)
 
 
-def plot_encodings_umap(encodings, plot_label, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_umaps_initial_vs_normalized(initial, normalized, batch_labels, parameters, metric='braycurtis', save_to='/Users/andreidm/ETH/projects/normalization/res/'):
     """ This method visualizes UMAP embeddings of the data encodings.
         It helps to assess batch effects on the high level."""
 
-    batches = encodings['batch'].values
-    values = encodings.iloc[:, 1:].values
-
     neighbors = int(parameters['n_batches'] * parameters['n_replicates'])
-    metric = 'braycurtis'
 
     reducer = umap.UMAP(n_neighbors=neighbors, metric=metric, min_dist=0.9, random_state=77)
-    embeddings = reducer.fit_transform(values)
+    embeddings_initial = reducer.fit_transform(initial)
+    embeddings_normalized = reducer.fit_transform(normalized)
 
     # plot coloring batches
     seaborn.set()
-    pyplot.figure(figsize=(7, 6))
+    pyplot.figure(figsize=(14, 6))
+    common_palette = seaborn.color_palette('deep', n_colors=len(set(batch_labels)))
 
-    seaborn.scatterplot(x=embeddings[:, 0], y=embeddings[:, 1], hue=batches, alpha=.8, palette=seaborn.color_palette('deep', n_colors=len(set(batches))))
+    pyplot.subplot(121)
+    seaborn.scatterplot(x=embeddings_initial[:, 0], y=embeddings_initial[:, 1], hue=batch_labels, alpha=.8, palette=common_palette)
     pyplot.legend(title='Batch', loc=1, borderaxespad=0., fontsize=10)
-    pyplot.title('UMAP: {}: n={}, metric={}'.format(plot_label, neighbors, metric))
+    pyplot.title('Initial')
+
+    pyplot.subplot(122)
+    seaborn.scatterplot(x=embeddings_normalized[:, 0], y=embeddings_normalized[:, 1], hue=batch_labels, alpha=.8, palette=common_palette)
+    pyplot.legend(title='Batch', loc=1, borderaxespad=0., fontsize=10)
+    pyplot.title('Normalized')
+
+    pyplot.suptitle('UMAP: n={}, metric={}'.format(neighbors, metric))
     pyplot.tight_layout()
-    pyplot.savefig(save_to / 'umap_{}_{}.{}'.format(plot_label.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
+    pyplot.savefig(save_to / 'umap_initial_vs_normalized_{}.{}'.format(parameters['id'], parameters['plots_extension']))
     pyplot.close()
 
 
@@ -201,13 +199,11 @@ def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, samp
     """ Produces a plot with UMAP embeddings, colored after specified samples.
         Seems to be not very useful. """
 
-    values = encodings.iloc[:, 1:].values
-
     neighbors = int(parameters['n_batches'] * parameters['n_replicates'])
     metric = 'braycurtis'
 
     reducer = umap.UMAP(n_neighbors=neighbors, metric=metric, min_dist=0.9, random_state=77)
-    embeddings = reducer.fit_transform(values)
+    embeddings = reducer.fit_transform(encodings.values)
 
     # define colors of benchmark samples
     samples_by_types = get_samples_by_types_dict(encodings.index.values, sample_types_of_interest)
@@ -296,7 +292,7 @@ if __name__ == '__main__':
     # data = data.iloc[:, 1:]
     #
     # pars = {'id': '', 'plots_extension': 'pdf'}
-    # plot_batch_cross_correlations(data.T, 'original samples', '', ['P1_FA_0001', 'P2_SF_0001',
+    # plot_batch_cross_correlations(data.T, 'initial samples', '', ['P1_FA_0001', 'P2_SF_0001',
     #                                                                'P2_SFA_0001', 'P2_SRM_0001',
     #                                                                'P2_SFA_0002', 'P1_FA_0008'])
     #
@@ -309,7 +305,7 @@ if __name__ == '__main__':
     # encodings = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/autoencoder/encodings.csv', index_col=0)
     #
     # pars = {'n_batches': 7, 'n_replicates': 3, 'id': '', 'plots_extension': 'pdf'}
-    # plot_encodings_umap(encodings, 'original samples', pars,
+    # plot_encodings_umap(encodings, 'initial samples', pars,
     #                     save_to='/Users/andreidm/ETH/projects/normalization/res/')
     #
     # pars = {'latent_dim': 100, 'n_batches': 7, 'n_replicates': 3}
@@ -360,26 +356,23 @@ if __name__ == '__main__':
             batch.append(6)
         else:
             batch.append(7)
-    encodings_normalized.insert(0, 'batch', batch)
 
     save_to = '/Users/andreidm/ETH/projects/normalization/res/SRM+SPP-disc/'
 
     pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'before', 'plots_extension': 'pdf'}
-    plot_encodings_umap(encodings_raw, 'original', pars, save_to=save_to)
-    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'after', 'plots_extension': 'pdf'}
-    plot_encodings_umap(encodings_normalized, 'normalized', pars, save_to=save_to)
+    plot_umaps_initial_vs_normalized(encodings_raw, encodings_normalized, numpy.array(batch), pars, save_to=save_to)
 
     samples = ['P2_SRM_0001', 'P2_SPP_0001']
 
     pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'reg_samples_before'}
-    plot_full_data_umap_with_benchmarks(encodings_raw, 'original', pars, sample_types_of_interest=samples, save_to=save_to)
+    plot_full_data_umap_with_benchmarks(encodings_raw, 'initial', pars, sample_types_of_interest=samples, save_to=save_to)
     pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'reg_samples_after'}
     plot_full_data_umap_with_benchmarks(encodings_normalized, 'normalized', pars, sample_types_of_interest=samples, save_to=save_to)
 
     samples = ['P1_FA_0008', 'P2_SF_0001', 'P2_SFA_0002', 'P1_FA_0001', 'P2_SFA_0001']
 
     pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'benchmarks_before'}
-    plot_full_data_umap_with_benchmarks(encodings_raw, 'original', pars, sample_types_of_interest=samples, save_to=save_to)
+    plot_full_data_umap_with_benchmarks(encodings_raw, 'initial', pars, sample_types_of_interest=samples, save_to=save_to)
     pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'benchmarks_after'}
     plot_full_data_umap_with_benchmarks(encodings_normalized, 'normalized', pars, sample_types_of_interest=samples, save_to=save_to)
 

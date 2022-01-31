@@ -121,7 +121,7 @@ def select_top_solutions(history, g_percent, c_percent):
     return df
 
 
-def find_best_epoch(history, skip_epochs, mean_batch_vc_original, mean_reg_vc_original):
+def find_best_epoch(history, skip_epochs, mean_batch_vc_initial, mean_reg_vc_initial):
     """ This method seeks for the best epoch using logged history of quality metrics. """
 
     # skip first n epochs
@@ -140,7 +140,7 @@ def find_best_epoch(history, skip_epochs, mean_batch_vc_original, mean_reg_vc_or
         return None
 
     # filter out epochs of increased variation coefs
-    history = history.loc[(history['batch_vc'] < mean_batch_vc_original) & (history['reg_vc'] < mean_reg_vc_original), :]
+    history = history.loc[(history['batch_vc'] < mean_batch_vc_initial) & (history['reg_vc'] < mean_reg_vc_initial), :]
     if history.shape[0] < 1:
         print('WARNING: increased VCs -> no solution for current parameter set\n')
         return None
@@ -275,7 +275,7 @@ def plot_benchmarks_metrics(b_correlations, b_grouping, best_epoch, parameters, 
     pyplot.close()
 
 
-def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_variation_coefs(vc_dict, vc_dict_initial, best_epoch, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     # save one by one for each sample in dict
     for i, type in enumerate(vc_dict):
@@ -284,7 +284,7 @@ def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, parameters, save
 
         pyplot.figure()
         pyplot.plot(x, y, label='Training process')
-        pyplot.hlines(y=vc_dict_original[type], xmin=x[0], xmax=x[-1], colors='r', label='Original data')
+        pyplot.hlines(y=vc_dict_initial[type], xmin=x[0], xmax=x[-1], colors='r', label='Initial data')
         pyplot.hlines(y=y[best_epoch-1], xmin=x[0], xmax=x[-1], colors='k', label='Normalized data')
         pyplot.vlines(x=best_epoch, ymin=min(y), ymax=y[best_epoch-1], colors='k')
         pyplot.ylabel('VC')
@@ -297,7 +297,7 @@ def plot_variation_coefs(vc_dict, vc_dict_original, best_epoch, parameters, save
         pyplot.close()
 
 
-def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_n_clusters(clusters_dict, clusters_dict_initial, id, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
 
     if len(clusters_dict) == 6:
         # save all on one figure
@@ -309,7 +309,7 @@ def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/a
 
             ax = pyplot.subplot(2, 3, i + 1)
             ax.plot(x,y, label='Normalized data')
-            ax.axhline(y=len(set(clusters_dict_original[type])), color='r', linestyle='-', label='Original data')
+            ax.axhline(y=len(set(clusters_dict_initial[type])), color='r', linestyle='-', label='Initial data')
             ax.set_xlabel('Epochs')
             ax.set_ylabel('Clusters found')
             ax.set_title(type)
@@ -328,7 +328,7 @@ def plot_n_clusters(clusters_dict, clusters_dict_original, id, save_to='/Users/a
 
             pyplot.figure()
             pyplot.plot(x, y, label='Normalized data')
-            pyplot.axhline(y=len(set(clusters_dict_original[type])), color='r', linestyle='-', label='Original data')
+            pyplot.axhline(y=len(set(clusters_dict_initial[type])), color='r', linestyle='-', label='Initial data')
             pyplot.ylabel('Clusters found')
             pyplot.xlabel('Epochs')
             pyplot.title('HDBSCAN clustering for {}'.format(type))

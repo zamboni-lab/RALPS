@@ -1,3 +1,5 @@
+import shutil
+
 import torch, numpy, pandas, time, os, uuid, random
 from torch import nn, optim
 from torch.utils.data import DataLoader, TensorDataset
@@ -99,7 +101,6 @@ def run_normalization(data, parameters):
     reg_samples_grouping_history = []
     reg_samples_corr_history = []
     reg_samples_vc_history = []
-    reg_samples_variation_coefs = dict([(sample, []) for sample in reg_types])
 
     benchmarks_corr_history = []
     benchmarks_grouping_history = []
@@ -211,7 +212,6 @@ def run_normalization(data, parameters):
         for sample in all_samples_types:
             if sample in reg_types:
                 reg_vcs_sum += vcs[sample]  # calculate sum of (reg) variation coefs
-                reg_samples_variation_coefs[sample].append(vcs[sample])
             if sample in benchmarks:
                 benchmarks_variation_coefs[sample].append(vcs[sample])
 
@@ -271,7 +271,7 @@ def run_normalization(data, parameters):
             # plot cross correlations of benchmarks in reconstructed data
             batch_analysis.plot_batch_cross_correlations(reconstruction, 'epoch {}'.format(epoch+1), parameters['id'], benchmarks, save_to=save_to / 'callbacks', save_plot=True)
             # plot umap of encoded data
-            batch_analysis.plot_encodings_umap(encodings, 'epoch {}'.format(epoch + 1), parameters, save_to=save_to / 'callbacks')
+            batch_analysis.plot_umaps_initial_vs_normalized(encodings, 'epoch {}'.format(epoch + 1), parameters, save_to=save_to / 'callbacks')
 
         # display the epoch training loss
         timing = int(time.time() - start)
@@ -310,7 +310,6 @@ def run_normalization(data, parameters):
     best_epoch = evaluation.find_best_epoch(history, parameters['skip_epochs'], mean_vc_batch_original, mean_vc_reg_original)
     if best_epoch:
         os.makedirs(save_to / 'benchmarks')
-        os.makedirs(save_to / 'cvs')
 
         # mark the best epoch as existing solution
         history.loc[best_epoch-1, 'solution'] = True
@@ -321,7 +320,6 @@ def run_normalization(data, parameters):
 
         cv_bench_original = batch_analysis.compute_vc_for_samples_types(data_values, benchmarks)
         evaluation.plot_variation_coefs(benchmarks_variation_coefs, cv_bench_original, best_epoch, parameters, save_to=save_to / 'benchmarks')
-        evaluation.plot_variation_coefs(reg_samples_variation_coefs, vc_reg_original, best_epoch, parameters, save_to=save_to / 'cvs')
 
         # LOAD BEST MODEL
         generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
@@ -343,10 +341,10 @@ def run_normalization(data, parameters):
         batch_analysis.plot_batch_cross_correlations(data_values, 'initial data', parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
         batch_analysis.plot_batch_cross_correlations(reconstruction, 'at epoch {}'.format(best_epoch), parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
         # plot umaps of initial, encoded and normalized data
-        batch_analysis.plot_full_data_umaps(data_values, encodings, reconstruction, data_batch_labels, parameters, 'at epoch {}'.format(best_epoch), save_to=save_to)
+        batch_analysis.plot_full_data_umaps(data_values, reconstruction, data_batch_labels, parameters, save_to=save_to)
         # plot batch variation coefs in initial and normalized data
         vc_batch_normalized = batch_analysis.compute_vc_for_batches(reconstruction, data_batch_labels)
-        batch_analysis.plot_batch_vcs(vc_batch_original, vc_batch_normalized, parameters, 'at epoch {}'.format(best_epoch), save_to=save_to / 'cvs')
+        batch_analysis.plot_batch_vcs(vc_batch_original, vc_batch_normalized, parameters, save_to=save_to)
 
         # TODO: plot spectra of initial and normalized data?
 
@@ -355,23 +353,26 @@ def run_normalization(data, parameters):
         reconstruction.index = processing.get_initial_samples_names(reconstruction.index)  # reindex to original names
         reconstruction.T.to_csv(save_to / 'normalized_{}.csv'.format(parameters['id']))
 
+        # REFACTOR CHECKPOINTS
+        for file in os.listdir(save_to / 'checkpoints'):
+            if file.startswith('ae_at_{}_'.format(best_epoch)):
+                # rename to best
+                os.rename(save_to / 'checkpoints' / file, save_to / 'checkpoints' / 'best_{}'.format(file))
+            else:
+                if not parameters['keep_checkpoints']:
+                    # remove the rest
+                    os.remove(save_to / 'checkpoints' / file)
+
         print('results saved to {}\n'.format(save_to))
 
     else:
         # skip all of the above if no solution is found
-        pass
+        # and clear up directories
+        shutil.rmtree(save_to / 'checkpoints')
+        if parameters['callback_step'] > 0:
+            shutil.rmtree(save_to / 'callbacks')
 
     # SAVE PARAMETERS AND HISTORY
     parameters['stopped_early'] = stopped_early  # indicate whether stopped early
     pandas.DataFrame(parameters, index=['values'], columns=parameters.keys()).T.to_csv(save_to / 'parameters_{}.csv'.format(parameters['id']))
     history.to_csv(save_to / 'history_{}.csv'.format(parameters['id']), index=False)
-
-    # REFACTOR CHECKPOINTS
-    for file in os.listdir(save_to / 'checkpoints'):
-        if file.startswith('ae_at_{}_'.format(best_epoch)):
-            # rename to best
-            os.rename(save_to / 'checkpoints' / file, save_to / 'checkpoints' / 'best_{}'.format(file))
-        else:
-            if not parameters['keep_checkpoints']:
-                # remove the rest
-                os.remove(save_to / 'checkpoints' / file)

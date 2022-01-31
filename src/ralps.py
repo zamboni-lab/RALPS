@@ -27,8 +27,7 @@ def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
     batch_info = pandas.read_csv(Path(config['info_path']), keep_default_na=False)
 
     # TODO:
-    #  - test with no benchmarks,
-    #  - move plots to a single folder?
+    #  - test with no benchmarks
 
     # transpose and remove annotation
     annotation = data.iloc[:, 0]

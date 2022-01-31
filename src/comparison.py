@@ -514,11 +514,11 @@ def plot_percent_of_unique_values(save_to='/Users/andreidm/ETH/projects/normaliz
     data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/filtered_data.csv'
     info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
 
-    original_data = ralps.get_data({'data_path': data_path, 'info_path': info_path, 'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
-    original_data = original_data.iloc[:, 1:].T
-    reg_samples_cols = [x for x in original_data.columns if 'MDAMB231_Medium1_BREAST_JB' in x]
-    original_values = original_data.loc[:, reg_samples_cols].values.flatten()
-    print('original:', len(set(original_values)) / len(original_values) * 100)
+    initial_data = ralps.get_data({'data_path': data_path, 'info_path': info_path, 'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+    initial_data = initial_data.iloc[:, 1:].T
+    reg_samples_cols = [x for x in initial_data.columns if 'MDAMB231_Medium1_BREAST_JB' in x]
+    initial_values = initial_data.loc[:, reg_samples_cols].values.flatten()
+    print('initial:', len(set(initial_values)) / len(initial_values) * 100)
 
     normae_path = '/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/normAE.csv'
     normae_normalized = pandas.read_csv(normae_path, index_col=0)
@@ -534,7 +534,7 @@ def plot_percent_of_unique_values(save_to='/Users/andreidm/ETH/projects/normaliz
 
     data = pandas.DataFrame({
         'method': ['None', 'ralps', 'NormAE'],
-        'percent': [len(set(original_values)) / len(original_values) * 100,
+        'percent': [len(set(initial_values)) / len(initial_values) * 100,
                     len(set(ralps_values)) / len(ralps_values) * 100,
                     len(set(normae_values)) / len(normae_values) * 100]
     })
@@ -615,11 +615,11 @@ if __name__ == "__main__":
         'D:\ETH\projects\\normalization\\res\\all_refs_other_methods\\'
     )
 
-    original_data = pandas.read_csv('D:\ETH\projects\\normalization\data\\filtered_data_with_mz.csv', index_col=0)
-    mz = original_data['mz']
+    initial_data = pandas.read_csv('D:\ETH\projects\\normalization\data\\filtered_data_with_mz.csv', index_col=0)
+    mz = initial_data['mz']
 
-    original_data = original_data.drop(columns=['name', 'mz']).T
-    plot_single_spectrum(mz, original_data, 'Original')
+    initial_data = initial_data.drop(columns=['name', 'mz']).T
+    plot_single_spectrum(mz, initial_data, 'Initial')
 
     normalized_1 = pandas.read_csv('D:\ETH\projects\\normalization\\res\\SRM+SPP\\dc98d5fc\\normalized_dc98d5fc.csv', index_col=0).T
     plot_single_spectrum(mz, normalized_1, 'dc98d5fc, rec_loss > 4')
