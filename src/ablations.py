@@ -7,6 +7,7 @@ from tqdm import tqdm
 from pathlib import Path
 
 from ralps import get_data, check_input, generate_parameters_grid, parse_config
+from ralps import initialise_constant_parameters, get_grid_size
 from models.adversarial import run_normalization
 from evaluation import evaluate_models
 
@@ -216,8 +217,9 @@ def ablate_n_batches(config, grid):
         for value in grid:
             new_config = config.copy()
             new_config['out_path'] += 'n_batches={}'.format(value)
-            data = get_data(new_config, n_batches=value)
-            grid = generate_parameters_grid(new_config, data)
+            parameters = initialise_constant_parameters(new_config)
+            data = get_data(new_config, parameters, n_batches=value)
+            grid = generate_parameters_grid(get_grid_size(new_config), parameters, data)
 
             for parameters in tqdm(grid):
                 try:
@@ -246,8 +248,9 @@ def ablate_m_fraction(config, grid):
         for value in grid:
             new_config = config.copy()
             new_config['out_path'] += 'm_fraction={}'.format(value)
-            data = get_data(new_config, m_fraction=value)
-            grid = generate_parameters_grid(new_config, data)
+            parameters = initialise_constant_parameters(new_config)
+            data = get_data(new_config, parameters, m_fraction=value)
+            grid = generate_parameters_grid(get_grid_size(new_config), parameters, data)
 
             for parameters in tqdm(grid):
                 try:
@@ -275,8 +278,9 @@ def ablate_na_fraction(config, grid):
         for value in grid:
             new_config = config.copy()
             new_config['out_path'] += 'na_fraction={}'.format(value)
-            data = get_data(new_config, na_fraction=value)
-            grid = generate_parameters_grid(new_config, data)
+            parameters = initialise_constant_parameters(new_config)
+            data = get_data(new_config, parameters, na_fraction=value)
+            grid = generate_parameters_grid(get_grid_size(new_config), parameters, data)
 
             for parameters in tqdm(grid):
                 try:
@@ -306,8 +310,9 @@ def ablate_variance_ratio(config, grid):
             new_config = config.copy()
             new_config['out_path'] += 'variance_ratio={}'.format(value)
             new_config['variance_ratio'] = str(value)
-            data = get_data(new_config)
-            grid = generate_parameters_grid(new_config, data)
+            parameters = initialise_constant_parameters(new_config)
+            data = get_data(new_config, parameters)
+            grid = generate_parameters_grid(get_grid_size(new_config), parameters, data)
 
             for parameters in tqdm(grid):
                 try:

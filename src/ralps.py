@@ -21,7 +21,7 @@ def parse_config(path=None):
     return config
 
 
-def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
+def get_data(config, parameters, n_batches=None, m_fraction=None, na_fraction=None):
     # collect data and batch info
     data = pandas.read_csv(Path(config['data_path']))
     batch_info = pandas.read_csv(Path(config['info_path']), keep_default_na=False)
@@ -31,7 +31,7 @@ def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
     data = data.iloc[:, 1:].T
     data.columns = annotation
     # fill in missing values
-    data = data.fillna(value=int(config['min_relevant_intensity']))
+    data = data.fillna(value=parameters['min_relevant_intensity'])
 
     # unify ordering of samples between data and batch_info
     batch_info = batch_info.set_index(batch_info.columns[0])
@@ -56,7 +56,7 @@ def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
     if na_fraction is not None:
         # randomly mask a fraction of values (for ablation experiments)
         data = data.mask(numpy.random.random(data.shape) < na_fraction)
-        data = data.fillna(config['min_relevant_intensity'])
+        data = data.fillna(parameters['min_relevant_intensity'])
 
     # just insert batch (mind the ordering)
     data.insert(0, 'batch', batch_info['batch'].values)
@@ -204,9 +204,8 @@ def extract_reg_types_and_benchmarks(data):
     return list(reg_types), list(benchmarks)
 
 
-def generate_parameters_grid(config, data):
+def generate_parameters_grid(grid_size, parameters, data):
 
-    parameters = initialise_constant_parameters(config)
     parameters['n_features'] = data.shape[1]-1
     parameters['n_batches'] = data['batch'].unique().shape[0]
 
@@ -219,7 +218,7 @@ def generate_parameters_grid(config, data):
         pca = get_pca_results(data)
 
     grid = []
-    for _ in range(get_grid_size(config)):
+    for _ in range(grid_size):
         new_pars = parameters.copy()
         # sample the other parameters, if not provided
         new_pars['id'] = str(uuid.uuid4())[:8]
@@ -300,8 +299,9 @@ def ralps(config):
     is_correct, warning = check_input(config)
     if is_correct:
 
-        data = get_data(config)
-        grid = generate_parameters_grid(config, data)
+        parameters = initialise_constant_parameters(config)
+        data = get_data(config, parameters)
+        grid = generate_parameters_grid(get_grid_size(config), parameters, data)
 
         for parameters in tqdm(grid):
             try:

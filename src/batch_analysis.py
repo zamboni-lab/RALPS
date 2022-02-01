@@ -322,8 +322,8 @@ if __name__ == '__main__':
 
     from ralps import get_data
     raw_data = get_data({'data_path': '/Users/andreidm/ETH/projects/normalization/data/filtered_data_v5.csv',
-                               'info_path': '/Users/andreidm/ETH/projects/normalization/data/batch_info_v5_SRM+SPP.csv',
-                               'min_relevant_intensity': 1000})
+                         'info_path': '/Users/andreidm/ETH/projects/normalization/data/batch_info_v5_SRM+SPP.csv'},
+                        {'min_relevant_intensity': 1000})
 
     transformer = PCA()
     scaler = StandardScaler()

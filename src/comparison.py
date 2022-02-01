@@ -29,8 +29,8 @@ def plot_benchmarks_corrs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = ralps.get_data({'data_path': data_path, 'info_path': info_path,
-                            'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+    data = ralps.get_data({'data_path': data_path, 'info_path': info_path},
+                          {'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
@@ -89,8 +89,8 @@ def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = ralps.get_data({'data_path': data_path, 'info_path': info_path,
-                            'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+    data = ralps.get_data({'data_path': data_path, 'info_path': info_path},
+                          {'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
@@ -168,8 +168,8 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = ralps.get_data({'data_path': data_path, 'info_path': info_path,
-                            'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+    data = ralps.get_data({'data_path': data_path, 'info_path': info_path},
+                          {'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
@@ -280,8 +280,8 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = ralps.get_data({'data_path': data_path, 'info_path': info_path,
-                            'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+    data = ralps.get_data({'data_path': data_path, 'info_path': info_path},
+                          {'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
@@ -484,8 +484,8 @@ def check_relevant_intensities_for_methods(scenario=1):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = ralps.get_data({'data_path': data_path, 'info_path': info_path,
-                            'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+    data = ralps.get_data({'data_path': data_path, 'info_path': info_path},
+                          {'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     for method in methods:
         if method == 'none':
@@ -514,7 +514,7 @@ def plot_percent_of_unique_values(save_to='/Users/andreidm/ETH/projects/normaliz
     data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/filtered_data.csv'
     info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
 
-    initial_data = ralps.get_data({'data_path': data_path, 'info_path': info_path, 'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+    initial_data = ralps.get_data({'data_path': data_path, 'info_path': info_path}, {'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
     initial_data = initial_data.iloc[:, 1:].T
     reg_samples_cols = [x for x in initial_data.columns if 'MDAMB231_Medium1_BREAST_JB' in x]
     initial_values = initial_data.loc[:, reg_samples_cols].values.flatten()
