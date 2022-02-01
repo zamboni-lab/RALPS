@@ -1,10 +1,11 @@
 
-version = "v.0.6.31"
+version = "v.0.6.33"
 
 # CONFIG
 required_config_fields = ['data_path', 'info_path', 'out_path', 'latent_dim', 'variance_ratio', 'n_replicates',
                           'grid_size', 'd_lr', 'g_lr', 'd_lambda', 'g_lambda', 'v_lambda', 'train_ratio', 'batch_size',
-                          'epochs', 'keep_checkpoints', 'device', 'plots_extension', 'min_relevant_intensity', 'allowed_vc_increase']
+                          'epochs', 'skip_epochs', 'keep_checkpoints', 'device', 'plots_extension',
+                          'min_relevant_intensity', 'allowed_vc_increase']
 
 default_parameters_values = {
     'latent_dim': -1,

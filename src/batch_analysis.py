@@ -43,6 +43,17 @@ def get_samples_by_types_dict(samples_names, types_of_interest):
     return samples_by_types
 
 
+def get_shortened_samples_names(samples_names):
+    """ This method shortens samples' names for better visualization. """
+
+    for i in [-5, -4, -3, -2]:
+        new_names = ['_'.join(name.split('_')[-i:]) for name in samples_names]
+        are_all_short = sum([len(name) > 10 for name in new_names]) == 0
+        if are_all_short:
+            return new_names
+    return [name[-10:] for name in samples_names]
+
+
 def plot_batch_cross_correlations(data, method_name, parameters, sample_types_of_interest, save_to='/Users/andreidm/ETH/projects/normalization/res/', save_plot=False):
     """ This method plots heatmaps of intra-batch correaltions of the same samples of interest. """
 
@@ -53,8 +64,8 @@ def plot_batch_cross_correlations(data, method_name, parameters, sample_types_of
         pyplot.figure()
         df = data.loc[numpy.array(samples_by_types[s_type]), :]
         df = df.T  # transpose to call corr() on samples, not metabolites
-        df.columns = ['_'.join(x.split('_')[-2:]) for x in df.columns]  # shorten sample names
         df = df.reindex(sorted(df.columns), axis=1)  # sort column names
+        df.columns = get_shortened_samples_names(df.columns)
         df = df.corr()
 
         seaborn.heatmap(df, vmin=0, vmax=1)
