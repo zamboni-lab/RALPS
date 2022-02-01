@@ -48,13 +48,13 @@ def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
     data.index = new_index
 
     if m_fraction is not None:
-        # randomly select a fraction of metabolites
+        # randomly select a fraction of metabolites (for ablation experiments)
         all_metabolites = list(data.columns)
         metabolites_to_drop = random.sample(all_metabolites, int(round(1 - m_fraction, 2) * len(all_metabolites)))
         data = data.drop(labels=metabolites_to_drop, axis=1)
 
     if na_fraction is not None:
-        # randomly mask a fraction of values
+        # randomly mask a fraction of values (for ablation experiments)
         data = data.mask(numpy.random.random(data.shape) < na_fraction)
         data = data.fillna(config['min_relevant_intensity'])
 
@@ -63,7 +63,7 @@ def get_data(config, n_batches=None, m_fraction=None, na_fraction=None):
     data = data.sample(frac=1)  # shuffle
 
     if n_batches is not None:
-        # select first n batches
+        # select first n batches (for ablation experiments)
         data = data.loc[data['batch'] <= n_batches, :]
 
     return data

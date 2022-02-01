@@ -1,7 +1,14 @@
 
-import os, pandas, seaborn, numpy
-from src import evaluation
+import os, pandas, seaborn, numpy, traceback
+import sys
+
 from matplotlib import pyplot
+from tqdm import tqdm
+from pathlib import Path
+
+from ralps import get_data, check_input, generate_parameters_grid, parse_config
+from models.adversarial import run_normalization
+from evaluation import evaluate_models
 
 
 def choose_best_for_50_percent_NAs(best_models, g_percent, c_percent):
@@ -201,11 +208,133 @@ def plot_variance_ratio(save_path=None):
         pyplot.show()
 
 
+def ablate_n_batches(config, grid):
+
+    is_correct, warning = check_input(config)
+    if is_correct:
+
+        for value in grid:
+            config['out_path'] += 'n_batches={}'.format(value)
+            data = get_data(config, n_batches=value)
+            grid = generate_parameters_grid(config, data)
+
+            for parameters in tqdm(grid):
+                try:
+                    run_normalization(data, parameters)
+                except Exception as e:
+                    print("failed with", e)
+                    log_path = Path(parameters['out_path']) / parameters['id'] / 'traceback.txt'
+                    with open(log_path, 'w') as f:
+                        f.write(traceback.format_exc())
+                    print("full traceback saved to", log_path, '\n')
+
+            print('Grid search completed.\n')
+            try:
+                evaluate_models(config)
+            except Exception as e:
+                print('Ops! Error while evaluating models:\n', e)
+    else:
+        print(warning)
+
+
+def ablate_m_fraction(config, grid):
+
+    is_correct, warning = check_input(config)
+    if is_correct:
+
+        for value in grid:
+            config['out_path'] += 'm_fraction={}'.format(value)
+            data = get_data(config, m_fraction=value)
+            grid = generate_parameters_grid(config, data)
+
+            for parameters in tqdm(grid):
+                try:
+                    run_normalization(data, parameters)
+                except Exception as e:
+                    print("failed with", e)
+                    log_path = Path(parameters['out_path']) / parameters['id'] / 'traceback.txt'
+                    with open(log_path, 'w') as f:
+                        f.write(traceback.format_exc())
+                    print("full traceback saved to", log_path, '\n')
+
+            print('Grid search completed.\n')
+            try:
+                evaluate_models(config)
+            except Exception as e:
+                print('Ops! Error while evaluating models:\n', e)
+        else:
+            print(warning)
+
+
+def ablate_na_fraction(config, grid):
+    is_correct, warning = check_input(config)
+    if is_correct:
+
+        for value in grid:
+            config['out_path'] += 'na_fraction={}'.format(value)
+            data = get_data(config, na_fraction=value)
+            grid = generate_parameters_grid(config, data)
+
+            for parameters in tqdm(grid):
+                try:
+                    run_normalization(data, parameters)
+                except Exception as e:
+                    print("failed with", e)
+                    log_path = Path(parameters['out_path']) / parameters['id'] / 'traceback.txt'
+                    with open(log_path, 'w') as f:
+                        f.write(traceback.format_exc())
+                    print("full traceback saved to", log_path, '\n')
+
+            print('Grid search completed.\n')
+            try:
+                evaluate_models(config)
+            except Exception as e:
+                print('Ops! Error while evaluating models:\n', e)
+        else:
+            print(warning)
+
+
+def ablate_variance_ratio(config, grid):
+
+    is_correct, warning = check_input(config)
+    if is_correct:
+
+        for value in grid:
+            config['out_path'] += 'variance_ratio={}'.format(value)
+            config['variance_ratio'] = str(value)
+            data = get_data(config)
+            grid = generate_parameters_grid(config, data)
+
+            for parameters in tqdm(grid):
+                try:
+                    run_normalization(data, parameters)
+                except Exception as e:
+                    print("failed with", e)
+                    log_path = Path(parameters['out_path']) / parameters['id'] / 'traceback.txt'
+                    with open(log_path, 'w') as f:
+                        f.write(traceback.format_exc())
+                    print("full traceback saved to", log_path, '\n')
+
+            print('Grid search completed.\n')
+            try:
+                evaluate_models(config)
+            except Exception as e:
+                print('Ops! Error while evaluating models:\n', e)
+        else:
+            print(warning)
+
+
 if __name__ == "__main__":
 
-    save_path = None
+    config = parse_config()
 
-    plot_removed_batches(save_path=save_path)
-    plot_removed_metabolites(save_path=save_path)
-    plot_variance_ratio(save_path=save_path)
-    plot_missing_values(save_path=save_path)
+    if sys.argv[2] == 'n_batches':
+        ablate_n_batches(config, [7, 6, 5, 4, 3, 2])
+    elif sys.argv[2] == 'm_fraction':
+        ablate_m_fraction(config, [1, 0.9, 0.7, 0.5, 0.3, 0.1])
+    elif sys.argv[2] == 'na_fraction':
+        ablate_na_fraction(config, [0, 0.05, 0.1, 0.15, 0.2, 0.3])
+    elif sys.argv[2] == 'variance_ratio':
+        ablate_variance_ratio(config, [0.7, 0.8, 0.85, 0.9, 0.95, 0.99])
+    else:
+        raise ValueError('Ablation not recognized.')
