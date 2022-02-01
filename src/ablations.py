@@ -214,9 +214,10 @@ def ablate_n_batches(config, grid):
     if is_correct:
 
         for value in grid:
-            config['out_path'] += 'n_batches={}'.format(value)
-            data = get_data(config, n_batches=value)
-            grid = generate_parameters_grid(config, data)
+            new_config = config.copy()
+            new_config['out_path'] += 'n_batches={}'.format(value)
+            data = get_data(new_config, n_batches=value)
+            grid = generate_parameters_grid(new_config, data)
 
             for parameters in tqdm(grid):
                 try:
@@ -230,7 +231,7 @@ def ablate_n_batches(config, grid):
 
             print('Grid search completed.\n')
             try:
-                evaluate_models(config)
+                evaluate_models(new_config)
             except Exception as e:
                 print('Ops! Error while evaluating models:\n', e)
     else:
@@ -243,9 +244,10 @@ def ablate_m_fraction(config, grid):
     if is_correct:
 
         for value in grid:
-            config['out_path'] += 'm_fraction={}'.format(value)
-            data = get_data(config, m_fraction=value)
-            grid = generate_parameters_grid(config, data)
+            new_config = config.copy()
+            new_config['out_path'] += 'm_fraction={}'.format(value)
+            data = get_data(new_config, m_fraction=value)
+            grid = generate_parameters_grid(new_config, data)
 
             for parameters in tqdm(grid):
                 try:
@@ -259,7 +261,7 @@ def ablate_m_fraction(config, grid):
 
             print('Grid search completed.\n')
             try:
-                evaluate_models(config)
+                evaluate_models(new_config)
             except Exception as e:
                 print('Ops! Error while evaluating models:\n', e)
         else:
@@ -271,9 +273,10 @@ def ablate_na_fraction(config, grid):
     if is_correct:
 
         for value in grid:
-            config['out_path'] += 'na_fraction={}'.format(value)
-            data = get_data(config, na_fraction=value)
-            grid = generate_parameters_grid(config, data)
+            new_config = config.copy()
+            new_config['out_path'] += 'na_fraction={}'.format(value)
+            data = get_data(new_config, na_fraction=value)
+            grid = generate_parameters_grid(new_config, data)
 
             for parameters in tqdm(grid):
                 try:
@@ -287,7 +290,7 @@ def ablate_na_fraction(config, grid):
 
             print('Grid search completed.\n')
             try:
-                evaluate_models(config)
+                evaluate_models(new_config)
             except Exception as e:
                 print('Ops! Error while evaluating models:\n', e)
         else:
@@ -300,10 +303,11 @@ def ablate_variance_ratio(config, grid):
     if is_correct:
 
         for value in grid:
-            config['out_path'] += 'variance_ratio={}'.format(value)
-            config['variance_ratio'] = str(value)
-            data = get_data(config)
-            grid = generate_parameters_grid(config, data)
+            new_config = config.copy()
+            new_config['out_path'] += 'variance_ratio={}'.format(value)
+            new_config['variance_ratio'] = str(value)
+            data = get_data(new_config)
+            grid = generate_parameters_grid(new_config, data)
 
             for parameters in tqdm(grid):
                 try:
@@ -317,7 +321,7 @@ def ablate_variance_ratio(config, grid):
 
             print('Grid search completed.\n')
             try:
-                evaluate_models(config)
+                evaluate_models(new_config)
             except Exception as e:
                 print('Ops! Error while evaluating models:\n', e)
         else:
