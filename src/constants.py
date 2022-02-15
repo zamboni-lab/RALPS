@@ -1,5 +1,5 @@
 
-version = "v.0.6.37"
+version = "v.0.6.38"
 
 # CONFIG
 required_config_fields = ['data_path', 'info_path', 'out_path', 'latent_dim', 'variance_ratio', 'n_replicates',
@@ -13,7 +13,7 @@ default_parameters_values = {
     'n_replicates': 3,
     'grid_size': 1,
     'epochs': 30,
-    'skip_epochs': 5,
+    'skip_epochs': 3,
     'train_ratio': 0.9,
     'keep_checkpoints': False,
     'plots_extension': 'png',
