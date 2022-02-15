@@ -99,7 +99,7 @@ def sample_from_default_ranges(par_name):
         return random.sample(default_parameters_ranges['variance_ratio'], 1)[0]
 
 
-def set_parameter(name, string_value):
+def set_parameter(name, string_value, non_zero=False):
 
     if ',' in string_value:
         # sample from options
@@ -122,9 +122,13 @@ def set_parameter(name, string_value):
         except Exception:
             value = -1
 
-        if value <= 0:
+        if value < 0:
             # -1 supplied, so set defaults
             value = sample_from_default_ranges(name)
+        elif value == 0 and non_zero:
+            value = sample_from_default_ranges(name)
+        else:
+            pass
 
     return value
 
@@ -222,13 +226,13 @@ def generate_parameters_grid(grid_size, parameters, data):
         new_pars = parameters.copy()
         # sample the other parameters, if not provided
         new_pars['id'] = str(uuid.uuid4())[:8]
-        new_pars['d_lr'] = set_parameter('d_lr', new_pars['d_lr'])
-        new_pars['g_lr'] = set_parameter('g_lr', new_pars['g_lr'])
+        new_pars['d_lr'] = set_parameter('d_lr', new_pars['d_lr'], non_zero=True)
+        new_pars['g_lr'] = set_parameter('g_lr', new_pars['g_lr'], non_zero=True)
         new_pars['d_lambda'] = set_parameter('d_lambda', new_pars['d_lambda'])
         new_pars['g_lambda'] = set_parameter('g_lambda', new_pars['g_lambda'])
         new_pars['v_lambda'] = set_parameter('v_lambda', new_pars['v_lambda'])
-        new_pars['batch_size'] = int(set_parameter('batch_size', new_pars['batch_size']))
-        new_pars['variance_ratio'] = set_parameter('variance_ratio', new_pars['variance_ratio'])
+        new_pars['batch_size'] = int(set_parameter('batch_size', new_pars['batch_size'], non_zero=True))
+        new_pars['variance_ratio'] = set_parameter('variance_ratio', new_pars['variance_ratio'], non_zero=True)
 
         if new_pars['latent_dim'] <= 0:
             # PCA itself is precomputed and reused
