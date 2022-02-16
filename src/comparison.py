@@ -588,6 +588,55 @@ def plot_percent_of_increased_vcs_for_methods(path_to_init_data, path_to_my_meth
     pyplot.show()
 
 
+def plot_mean_batch_vc_for_methods(path_to_init_data, path_to_my_method, path_to_other_methods,
+                                   batch_labels=('0108', '0110', '0124', '0219', '0221', '0304', '0306'),
+                                   allowed_percent=0.05):
+    """ This method computes percent of increased (compared to initial data) VCs for samples. """
+
+    initial_data = pandas.read_csv(path_to_init_data, index_col=0).T
+
+    mean_batch_vc = {}
+    for method in ['None', 'normAE', 'combat', 'eigenMS', 'lev+eig', 'pqn+pow', 'waveICA', 'RALPS']:
+
+        if method == 'None':
+            normalized = initial_data
+        elif method == 'RALPS':
+            normalized = pandas.read_csv(path_to_my_method, index_col=0).T
+        elif method == 'normAE':
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
+        else:
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
+
+        batch = []
+        # parse batch labels from samples' names
+        for name in list(normalized.index):
+            for i in range(len(batch_labels)):
+
+                if batch_labels[i] in name:
+                    batch.append(i)
+                    break
+
+        normalized['batch'] = batch
+
+        batch_vcs = []
+        for i in range(len(batch_labels)):
+            batch_values = normalized.loc[normalized['batch'] == i]
+            batch_values = batch_values.iloc[:, :-1].values.flatten()
+            if (batch_values < 0).sum() > 0:
+                # some methods produce arbitrary values < 0
+                batch_values = batch_values[batch_values > 0]
+            batch_vcs.append(numpy.std(batch_values) / numpy.mean(batch_values))
+
+        mean_batch_vc[method] = numpy.mean(batch_vcs)
+
+    data = pandas.DataFrame({'method': [key for key in mean_batch_vc],
+                            'batch_vc': [mean_batch_vc[key] for key in mean_batch_vc]})
+
+    seaborn.set_style('whitegrid')
+    seaborn.barplot(x='method', y='batch_vc', data=data)
+    pyplot.show()
+
+
 def plot_single_spectrum(mz, data, title, batches):
     """ Plots a spectrum of data for the benchmarking dataset. """
 
@@ -642,21 +691,34 @@ def plot_normalized_vs_initial_spectra(path_to_initial_data_with_mz, path_to_nor
 
 if __name__ == "__main__":
 
+    # # application: SRM+SPP
+    # plot_percent_of_increased_vcs_for_methods(
+    #     'D:\ETH\projects\\normalization\data\\filtered_data.csv',
+    #     'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv',
+    #     'D:\ETH\projects\\normalization\\res\\SRM_SPP_other_methods\\')
+    # # application: Sarah
+    # plot_percent_of_increased_vcs_for_methods(
+    #     'D:\ETH\projects\\normalization\data\\sarah\\filtered_data.csv',
+    #     'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
+    #     'D:\ETH\projects\\normalization\\res\\sarah_other_methods\\')
+
+    # # application: SRM+SPP
+    # plot_normalized_vs_initial_spectra('D:\ETH\projects\\normalization\data\\filtered_data_with_mz.csv',
+    #                                    'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv')
+    # # application: Sarah
+    # plot_normalized_vs_initial_spectra('D:\ETH\projects\\normalization\data\\sarah\\data_with_mzs.csv',
+    #                                    'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
+    #                                    batch_labels=['Batch' + str(i) for i in range(1,8)])
+
     # application: SRM+SPP
-    plot_percent_of_increased_vcs_for_methods(
+    plot_mean_batch_vc_for_methods(
         'D:\ETH\projects\\normalization\data\\filtered_data.csv',
         'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv',
         'D:\ETH\projects\\normalization\\res\\SRM_SPP_other_methods\\')
+
     # application: Sarah
-    plot_percent_of_increased_vcs_for_methods(
+    plot_mean_batch_vc_for_methods(
         'D:\ETH\projects\\normalization\data\\sarah\\filtered_data.csv',
         'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
-        'D:\ETH\projects\\normalization\\res\\sarah_other_methods\\')
-
-    # application: SRM+SPP
-    plot_normalized_vs_initial_spectra('D:\ETH\projects\\normalization\data\\filtered_data_with_mz.csv',
-                                       'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv')
-    # application: Sarah
-    plot_normalized_vs_initial_spectra('D:\ETH\projects\\normalization\data\\sarah\\data_with_mzs.csv',
-                                       'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
-                                       batch_labels=['Batch' + str(i) for i in range(1,8)])
+        'D:\ETH\projects\\normalization\\res\\sarah_other_methods\\',
+        batch_labels=['Batch' + str(i) for i in range(1,8)])
