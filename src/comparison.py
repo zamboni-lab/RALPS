@@ -545,7 +545,8 @@ def plot_percent_of_unique_values(save_to='/Users/andreidm/ETH/projects/normaliz
     pyplot.savefig(save_to + 'unique_values.pdf')
 
 
-def plot_percent_of_increased_vcs_for_methods(path_to_init_data, path_to_my_method, path_to_other_methods, allowed_percent=0.05):
+def plot_percent_of_increased_vcs_for_methods(path_to_init_data, path_to_my_method, path_to_other_methods,
+                                              allowed_percent=0.05):
     """ This method computes percent of increased (compared to initial data) VCs for samples. """
 
     initial_data = pandas.read_csv(path_to_init_data, index_col=0).T
@@ -589,9 +590,8 @@ def plot_percent_of_increased_vcs_for_methods(path_to_init_data, path_to_my_meth
 
 
 def plot_mean_batch_vc_for_methods(path_to_init_data, path_to_my_method, path_to_other_methods,
-                                   batch_labels=('0108', '0110', '0124', '0219', '0221', '0304', '0306'),
-                                   allowed_percent=0.05):
-    """ This method computes percent of increased (compared to initial data) VCs for samples. """
+                                   batch_labels=('0108', '0110', '0124', '0219', '0221', '0304', '0306')):
+    """ This method plots mean batch VCs for methods to compare. """
 
     initial_data = pandas.read_csv(path_to_init_data, index_col=0).T
 
@@ -635,6 +635,45 @@ def plot_mean_batch_vc_for_methods(path_to_init_data, path_to_my_method, path_to
     seaborn.set_style('whitegrid')
     seaborn.barplot(x='method', y='batch_vc', data=data)
     pyplot.show()
+
+
+def plot_mean_samples_corrs_for_ralps(path_to_init_data, path_to_my_method,
+                                      batch_labels=('0108', '0110', '0124', '0219', '0221', '0304', '0306')):
+    """ This method visualizes how cross-correlation coefs change after RALPS. """
+
+    initial_data = pandas.read_csv(path_to_init_data, index_col=0).T
+    normalized = pandas.read_csv(path_to_my_method, index_col=0).T
+
+    new_index = ['_'.join(name.split('_')[:3]) for name in initial_data.index]
+    initial_data.index = new_index
+    new_index = ['_'.join(name.split('_')[:3]) for name in normalized.index]
+    normalized.index = new_index
+
+    u_index = list(set(new_index))
+    corrs_before = []
+    corrs_after = []
+    for index in u_index:
+        # cross correlations for initial data
+        corr_map = initial_data.loc[initial_data.index == index].T.corr()
+        median_corr = numpy.median(corr_map.values.flatten())
+        corrs_before.append(median_corr)
+        # cross correlations for normalized data
+        corr_map = normalized.loc[normalized.index == index].T.corr()
+        median_corr = numpy.median(corr_map.values.flatten())
+        corrs_after.append(median_corr)
+
+    data = pandas.DataFrame({
+        'type': [*['Initial' for x in corrs_before], *['Normalized' for x in corrs_after]],
+        'corr': [*[x for x in corrs_before], *[x for x in corrs_after]]
+    })
+
+    seaborn.set_style('whitegrid')
+    ax = seaborn.kdeplot(x='corr', hue='type', data=data, fill=True, alpha=0.5)
+    pyplot.ylim(0, 4)
+    pyplot.xlim(0.3, 1.02)
+    ax.legend_._set_loc(2)
+    # pyplot.show()
+    pyplot.savefig('D:\ETH\projects\\normalization\\res\\0.6.26\\all_refs\d3cc414f\\corrs.pdf')
 
 
 def plot_single_spectrum(mz, data, title, batches):
@@ -710,15 +749,19 @@ if __name__ == "__main__":
     #                                    'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
     #                                    batch_labels=['Batch' + str(i) for i in range(1,8)])
 
-    # application: SRM+SPP
-    plot_mean_batch_vc_for_methods(
-        'D:\ETH\projects\\normalization\data\\filtered_data.csv',
-        'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv',
-        'D:\ETH\projects\\normalization\\res\\SRM_SPP_other_methods\\')
+    # # application: SRM+SPP
+    # plot_mean_batch_vc_for_methods(
+    #     'D:\ETH\projects\\normalization\data\\filtered_data.csv',
+    #     'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv',
+    #     'D:\ETH\projects\\normalization\\res\\SRM_SPP_other_methods\\')
+    # # application: Sarah
+    # plot_mean_batch_vc_for_methods(
+    #     'D:\ETH\projects\\normalization\data\\sarah\\filtered_data.csv',
+    #     'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
+    #     'D:\ETH\projects\\normalization\\res\\sarah_other_methods\\',
+    #     batch_labels=['Batch' + str(i) for i in range(1,8)])
 
-    # application: Sarah
-    plot_mean_batch_vc_for_methods(
-        'D:\ETH\projects\\normalization\data\\sarah\\filtered_data.csv',
-        'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
-        'D:\ETH\projects\\normalization\\res\\sarah_other_methods\\',
-        batch_labels=['Batch' + str(i) for i in range(1,8)])
+    # application: all ref
+    plot_mean_samples_corrs_for_ralps(
+        'D:\ETH\projects\\normalization\data\\filtered_data.csv',
+        'D:\ETH\projects\\normalization\\res\\0.6.26\\all_refs\d3cc414f\\normalized_d3cc414f.csv')
