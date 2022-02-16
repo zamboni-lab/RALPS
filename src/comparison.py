@@ -545,23 +545,34 @@ def plot_percent_of_unique_values(save_to='/Users/andreidm/ETH/projects/normaliz
     pyplot.savefig(save_to + 'unique_values.pdf')
 
 
-def compute_percent_of_increased_vcs_for_methods(path_to_init_data, path_to_other_methods, allowed_percent=0.05):
+def plot_percent_of_increased_vcs_for_methods(path_to_init_data, path_to_my_method, path_to_other_methods, allowed_percent=0.05):
     """ This method computes percent of increased (compared to initial data) VCs for samples. """
 
     initial_data = pandas.read_csv(path_to_init_data, index_col=0).T
 
     percent_of_increased_vc = {}
-    for method in ['normAE', 'combat', 'eigenMS', 'lev+eig', 'pqn+pow', 'waveICA']:
+    for method in ['None', 'normAE', 'combat', 'eigenMS', 'lev+eig', 'pqn+pow', 'waveICA', 'RALPS']:
 
-        if method == 'normAE':
+        if method == 'None':
+            percent_of_increased_vc[method] = 0
+            continue
+
+        elif method == 'RALPS':
+            normalized = pandas.read_csv(path_to_my_method, index_col=0).T
+        elif method == 'normAE':
             normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
         else:
             normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
 
         count = 0
-        for sample in initial_data.index:
-            init_vc = initial_data.loc[sample].std() / initial_data.loc[sample].mean()
-            sample_vc = normalized.loc[sample].std() / normalized.loc[sample].mean()
+        initial_data = initial_data.sort_index()
+        normalized = normalized.sort_index()
+
+        for i in range(initial_data.shape[0]):
+
+            init_vc = initial_data.iloc[i,:].std() / initial_data.iloc[i,:].mean()
+            sample_vc = normalized.iloc[i,:].std() / normalized.iloc[i,:].mean()
+
             if sample_vc - init_vc > init_vc * allowed_percent:
                 count += 1
         percent_of_increased_vc[method] = int(count / normalized.shape[0] * 100)
@@ -569,12 +580,18 @@ def compute_percent_of_increased_vcs_for_methods(path_to_init_data, path_to_othe
     for key, value in percent_of_increased_vc.items():
         print('{}: {}%'.format(key, value))
 
+    data = pandas.DataFrame({'method': [key for key in percent_of_increased_vc],
+                            'percent': [percent_of_increased_vc[key] for key in percent_of_increased_vc]})
 
-def plot_single_spectrum(mz, data, title):
+    seaborn.set_style('whitegrid')
+    seaborn.barplot(x='method', y='percent', data=data)
+    pyplot.show()
+
+
+def plot_single_spectrum(mz, data, title, batches):
     """ Plots a spectrum of data for the benchmarking dataset. """
 
     # hardcoded batch ids and colors
-    batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
     color_dict = dict(zip(batches, 'kgrcmyb'))
 
     samples = data.index
@@ -586,40 +603,60 @@ def plot_single_spectrum(mz, data, title):
             pyplot.plot(mz, data.values[i, :], '{}o'.format(color), alpha=0.2)
         else:
             pyplot.plot(mz, data.values[i, :], '{}o'.format(color), alpha=0.4)
+
     pyplot.title(title)
     pyplot.xlabel('mz')
-    pyplot.ylabel('intensity')
+    pyplot.ylabel('scaled normalized intensities')
     pyplot.grid()
     pyplot.show()
 
 
+def compare_methods_v5():
+
+    save_plots = False
+    scenario = 3
+
+    # benchmarks
+    plot_benchmarks_cvs_for_methods(scenario=scenario, save_plot=save_plots)
+    plot_benchmarks_grouping_coefs_for_methods(scenario=scenario, save_plot=save_plots)
+    plot_benchmarks_corrs_for_methods(scenario=scenario, save_plot=save_plots)
+
+    # all samples
+    check_relevant_intensities_for_methods(scenario=scenario)
+    plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)
+    plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
+
+    plot_percent_of_unique_values()
+
+
+def plot_normalized_vs_initial_spectra(path_to_initial_data_with_mz, path_to_normalized_data,
+                                       batch_labels=('0108', '0110', '0124', '0219', '0221', '0304', '0306')):
+
+    initial_data = pandas.read_csv(path_to_initial_data_with_mz, index_col=0)
+    mz = initial_data['mz']
+    initial_data = initial_data.drop(columns=['name', 'mz']).T
+    plot_single_spectrum(mz, initial_data, 'Initial', batch_labels)
+    normalized = pandas.read_csv(path_to_normalized_data, index_col=0).T
+    plot_single_spectrum(mz, normalized, 'Normalized', batch_labels)
+
+
 if __name__ == "__main__":
 
-    # save_plots = False
-    # scenario = 3
-    #
-    # # benchmarks
-    # plot_benchmarks_cvs_for_methods(scenario=scenario, save_plot=save_plots)
-    # plot_benchmarks_grouping_coefs_for_methods(scenario=scenario, save_plot=save_plots)
-    # plot_benchmarks_corrs_for_methods(scenario=scenario, save_plot=save_plots)
-    #
-    # # all samples
-    # check_relevant_intensities_for_methods(scenario=scenario)
-    # plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)
-    # plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
-    #
-    # plot_percent_of_unique_values()
-
-    compute_percent_of_increased_vcs_for_methods(
+    # application: SRM+SPP
+    plot_percent_of_increased_vcs_for_methods(
         'D:\ETH\projects\\normalization\data\\filtered_data.csv',
-        'D:\ETH\projects\\normalization\\res\\all_refs_other_methods\\'
-    )
+        'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv',
+        'D:\ETH\projects\\normalization\\res\\SRM_SPP_other_methods\\')
+    # application: Sarah
+    plot_percent_of_increased_vcs_for_methods(
+        'D:\ETH\projects\\normalization\data\\sarah\\filtered_data.csv',
+        'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
+        'D:\ETH\projects\\normalization\\res\\sarah_other_methods\\')
 
-    initial_data = pandas.read_csv('D:\ETH\projects\\normalization\data\\filtered_data_with_mz.csv', index_col=0)
-    mz = initial_data['mz']
-
-    initial_data = initial_data.drop(columns=['name', 'mz']).T
-    plot_single_spectrum(mz, initial_data, 'Initial')
-
-    normalized_1 = pandas.read_csv('D:\ETH\projects\\normalization\\res\\SRM+SPP\\dc98d5fc\\normalized_dc98d5fc.csv', index_col=0).T
-    plot_single_spectrum(mz, normalized_1, 'dc98d5fc, rec_loss > 4')
+    # application: SRM+SPP
+    plot_normalized_vs_initial_spectra('D:\ETH\projects\\normalization\data\\filtered_data_with_mz.csv',
+                                       'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv')
+    # application: Sarah
+    plot_normalized_vs_initial_spectra('D:\ETH\projects\\normalization\data\\sarah\\data_with_mzs.csv',
+                                       'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
+                                       batch_labels=['Batch' + str(i) for i in range(1,8)])
