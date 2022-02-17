@@ -237,7 +237,7 @@ def run_normalization(data, parameters):
             benchmarks_corr_history.append(b_corr)
 
         # collect clustering results for reg_types and benchmarks
-        clustering, total_clusters = batch_analysis.compute_number_of_clusters_with_hdbscan(encodings, parameters, all_samples_types, print_info=False)
+        clustering, total_clusters = batch_analysis.compute_number_of_clusters(encodings, parameters, all_samples_types, print_info=False)
         # assess grouping of samples: compute g_lambda, so that it equals
         # 0, when all samples of a reg_type belong to the sample cluster
         # 1, when N samples of a reg_type belong to N different clusters

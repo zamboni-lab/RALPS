@@ -6,7 +6,7 @@ from sklearn.preprocessing import MinMaxScaler
 import ralps, processing
 from constants import default_parameters_values
 from batch_analysis import plot_batch_cross_correlations, compute_vc_for_samples_types
-from batch_analysis import compute_number_of_clusters_with_hdbscan
+from batch_analysis import compute_number_of_clusters
 from batch_analysis import get_sample_cross_correlation_estimate
 from utils import combat
 
@@ -336,7 +336,7 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
             normalized = normalized.loc[data.index, :]
             normalized['batch'] = data['batch']
 
-        clustering, total_clusters = compute_number_of_clusters_with_hdbscan(normalized, pars, benchmarks, print_info=False)
+        clustering, total_clusters = compute_number_of_clusters(normalized, pars, benchmarks, print_info=False)
         grouping_dict = get_grouping_coefs_for_samples(method, clustering, total_clusters, benchmarks)
 
         res = pandas.DataFrame({'method': [method for x in range(len(grouping_dict))],

@@ -3,6 +3,11 @@ import numpy, pandas, seaborn, umap, time, hdbscan, torch, matplotlib
 from matplotlib import pyplot
 from sklearn.preprocessing import RobustScaler, StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.cluster import MeanShift, OPTICS, Birch, SpectralClustering
+from scipy.cluster.hierarchy import linkage, fcluster
+
+from constants import clustering_algorithm as algorithm
+from constants import clustering_metric as metric
 
 
 def compute_samples_vcs(data):
@@ -201,7 +206,6 @@ def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, samp
         Seems to be not very useful. """
 
     neighbors = int(parameters['n_batches'] * parameters['n_replicates'])
-    metric = 'braycurtis'
 
     reducer = umap.UMAP(n_neighbors=neighbors, metric=metric, min_dist=0.9, random_state=77)
     embeddings = reducer.fit_transform(encodings.values)
@@ -241,8 +245,34 @@ def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, samp
     pyplot.close()
 
 
-def compute_number_of_clusters_with_hdbscan(encodings, parameters, sample_types_of_interest, print_info=True):
-    """ This method applied HDBSCAN clustering on the encodings,
+def get_clustering_labels(data, parameters, metric='braycurtis'):
+
+    n_clusters = int(parameters['n_batches'])
+    if algorithm == 'upgma':
+        Z = linkage(data, method='average', metric=metric)
+        labels = fcluster(Z, t=n_clusters, criterion='maxclust')
+        return labels-1
+
+    else:
+        min_cluster_size = int(parameters['n_batches'] * parameters['n_replicates'])
+        if algorithm == 'mean_shift':
+            clusterer = MeanShift(cluster_all=False, n_jobs=-1)
+        elif algorithm == 'optics':
+            clusterer = OPTICS(min_cluster_size=min_cluster_size, metric=metric, n_jobs=-1)
+        elif algorithm == 'birch':
+            clusterer = Birch(branching_factor=min_cluster_size, n_clusters=n_clusters)
+        elif algorithm == 'spectral':
+            clusterer = SpectralClustering(n_clusters=n_clusters, n_neighbors=min_cluster_size, affinity='nearest_neighbors', n_jobs=-1)
+        else:
+            # default clustering algorithm
+            clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=min_cluster_size, allow_single_cluster=False)
+
+        clusterer.fit(data)
+        return clusterer.labels_
+
+
+def compute_number_of_clusters(encodings, parameters, sample_types_of_interest, print_info=True):
+    """ This method applies clustering on the encodings,
         and returns assigned clusters to the samples of interest.  """
 
     samples_by_types = get_samples_by_types_dict(encodings.index.values, sample_types_of_interest)
@@ -252,15 +282,12 @@ def compute_number_of_clusters_with_hdbscan(encodings, parameters, sample_types_
 
     n_comp = int(parameters['latent_dim'] / 3)
     neighbors = int(parameters['n_batches'] * parameters['n_replicates'])
-    metric = 'braycurtis'
 
     reducer = umap.UMAP(n_components=n_comp, n_neighbors=neighbors, metric=metric, min_dist=0.1, random_state=77)
     embeddings = reducer.fit_transform(values)
-
-    clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=neighbors, allow_single_cluster=False)
-    clusterer.fit(embeddings)
-
-    total = clusterer.labels_.max() + 1
+    # cluster
+    labels = get_clustering_labels(embeddings, parameters, metric=metric)
+    total = max(labels) + 1
     if print_info:
         print('CLUSTERING INFO:\n')
         print('Total of clusters:', total)
@@ -270,10 +297,7 @@ def compute_number_of_clusters_with_hdbscan(encodings, parameters, sample_types_
         indices_of_type = [list(encodings.index.values).index(x) for x in samples_by_types[type]]
         type_batches = batches[numpy.array(indices_of_type)]
 
-        type_labels = clusterer.labels_[numpy.array(indices_of_type)]
-        type_probs = clusterer.probabilities_[numpy.array(indices_of_type)]
-        type_outlier_probs = clusterer.outlier_scores_[numpy.array(indices_of_type)]
-
+        type_labels = labels[numpy.array(indices_of_type)]
         labels_dict[type] = list(type_labels)
 
         if print_info:
@@ -281,8 +305,6 @@ def compute_number_of_clusters_with_hdbscan(encodings, parameters, sample_types_
             print('n clusters:', len(set(type_labels)))
             print('true batches:', list(type_batches))
             print('labels:', list(type_labels))
-            print('probs:', list(type_probs))
-            print('outlier probs:', list(type_outlier_probs), '\n')
 
     return labels_dict, total
 

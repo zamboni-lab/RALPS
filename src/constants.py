@@ -1,5 +1,5 @@
 
-version = "v.0.6.43"
+version = "v.0.6.44"
 
 # CONFIG
 required_config_fields = ['data_path', 'info_path', 'out_path', 'latent_dim', 'variance_ratio', 'n_replicates',
@@ -34,6 +34,10 @@ default_parameters_ranges = {
 
 # DATA
 default_labels = ('0', '')  # for batch info
+
+# REGULARIZATION
+clustering_algorithm = 'hdbscan'  # 'hdbscan', 'upgma', 'mean_shift', 'optics', 'birch', 'spectral'
+clustering_metric = 'braycurtis'
 
 # MODEL SELECTION
 grouping_threshold_percent = 30
