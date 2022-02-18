@@ -256,13 +256,13 @@ def get_clustering_labels(data, parameters, metric='braycurtis'):
     else:
         min_cluster_size = int(parameters['n_batches'] * parameters['n_replicates'])
         if algorithm == 'mean_shift':
-            clusterer = MeanShift(cluster_all=False, n_jobs=-1)
+            clusterer = MeanShift(cluster_all=False, n_jobs=1)
         elif algorithm == 'optics':
-            clusterer = OPTICS(min_cluster_size=min_cluster_size, metric=metric, n_jobs=-1)
+            clusterer = OPTICS(min_cluster_size=min_cluster_size, metric=metric, n_jobs=1)
         elif algorithm == 'birch':
             clusterer = Birch(branching_factor=min_cluster_size, n_clusters=n_clusters)
         elif algorithm == 'spectral':
-            clusterer = SpectralClustering(n_clusters=n_clusters, n_neighbors=min_cluster_size, affinity='nearest_neighbors', n_jobs=-1)
+            clusterer = SpectralClustering(n_clusters=n_clusters, n_neighbors=min_cluster_size, affinity='nearest_neighbors', n_jobs=1)
         else:
             # default clustering algorithm
             clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=min_cluster_size, allow_single_cluster=False)

@@ -82,6 +82,95 @@ def plot_lambdas(save_path=None):
         pyplot.show()
 
 
+def plot_clustering(save_path=None):
+
+    all_models = pandas.DataFrame()
+
+    best_models = pandas.read_csv('D:\ETH\projects\\normalization\\res\clustering_SRM_SPP\\birch\\best_models.csv')
+    best_models = best_models[best_models['best'] == True]
+    best_models['algorithm'] = 'BIRCH'
+    all_models = pandas.concat([all_models, best_models])
+
+    best_models = pandas.read_csv('D:\ETH\projects\\normalization\\res\clustering_SRM_SPP\\meanshift\\best_models.csv')
+    best_models = best_models[best_models['best'] == True]
+    best_models['algorithm'] = 'MeanShift'
+    all_models = pandas.concat([all_models, best_models])
+
+    best_models = pandas.read_csv('D:\ETH\projects\\normalization\\res\clustering_SRM_SPP\\optics\\best_models.csv')
+    best_models = best_models[best_models['best'] == True]
+    best_models['algorithm'] = 'OPTICS'
+    all_models = pandas.concat([all_models, best_models])
+
+    best_models = pandas.read_csv('D:\ETH\projects\\normalization\\res\clustering_SRM_SPP\\spectral\\best_models.csv')
+    best_models = best_models[best_models['best'] == True]
+    best_models['algorithm'] = 'Spectral'
+    all_models = pandas.concat([all_models, best_models])
+
+    best_models = pandas.read_csv('D:\ETH\projects\\normalization\\res\clustering_SRM_SPP\\upgma\\best_models.csv')
+    best_models = best_models[best_models['best'] == True]
+    best_models['algorithm'] = 'UPGMA'
+    all_models = pandas.concat([all_models, best_models])
+
+    best_models = pandas.read_csv('D:\ETH\projects\\normalization\\res\SRM+SPP\\best_models.csv')
+    best_models = best_models[best_models['best'] == True]
+    best_models['algorithm'] = 'HDBSCAN'
+    all_models = pandas.concat([all_models, best_models])
+
+    if save_path:
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+
+    seaborn.set_theme(style="whitegrid")
+
+    pyplot.figure()
+    seaborn.violinplot(x='algorithm', y='reg_corr', data=all_models)
+    pyplot.title('Mean cross-correlation of replicates')
+    pyplot.tight_layout()
+    if save_path is not None:
+        pyplot.savefig(save_path + 'clustering_vs_reg_corr.pdf')
+        pyplot.close()
+
+    pyplot.figure()
+    seaborn.violinplot(x='algorithm', y='reg_grouping', data=all_models)
+    pyplot.title('Mean grouping of replicates')
+    pyplot.tight_layout()
+    if save_path is not None:
+        pyplot.savefig(save_path + 'clustering_vs_reg_grouping.pdf')
+        pyplot.close()
+
+    pyplot.figure()
+    seaborn.violinplot(x='algorithm', y='batch_vc', data=all_models)
+    pyplot.title('Mean batch VC')
+    pyplot.tight_layout()
+    if save_path is not None:
+        pyplot.savefig(save_path + 'clustering_vs_batch_vc.pdf')
+        pyplot.close()
+
+    pyplot.figure()
+    seaborn.violinplot(x='algorithm', y='ivc_percent', data=all_models)
+    pyplot.title('Mean percent of samples with increased VC')
+    pyplot.tight_layout()
+    if save_path is not None:
+        pyplot.savefig(save_path + 'clustering_vs_ivc_percent.pdf')
+        pyplot.close()
+
+    timing = pandas.DataFrame({
+        'algorithm': ['BIRCH', 'MeanShift', 'OPTICS', 'Spectral', 'UPGMA', 'HDBSCAN'],
+        'time': [6., 10.7, 6.7, 6.2, 5.9, 5.4]})
+
+    pyplot.figure()
+    seaborn.barplot(x='algorithm', y='time', data=timing)
+    pyplot.title('Mean RALPS run time (30 epochs)')
+    pyplot.ylabel('Time, minutes')
+    pyplot.tight_layout()
+    if save_path is not None:
+        pyplot.savefig(save_path + 'clustering_vs_time.pdf')
+        pyplot.close()
+
+    if save_path is None:
+        pyplot.show()
+
+
 def plot_missing_values(save_path=None):
 
     common_path = 'D:\ETH\projects\\normalization\\res\\ablations_SRM_SPP\\na_fraction={}\\'
@@ -445,5 +534,7 @@ if __name__ == "__main__":
     # plot_removed_batches(save_path=save_path)
     # plot_variance_ratio(save_path=save_path)
 
-    save_path = 'D:\ETH\projects\\normalization\\res\lambdas_SRM_SPP\\plots\\'
-    plot_lambdas(save_path=save_path)
+    # save_path = 'D:\ETH\projects\\normalization\\res\lambdas_SRM_SPP\\plots\\'
+    # plot_lambdas(save_path=save_path)
+    save_path = 'D:\ETH\projects\\normalization\\res\clustering_SRM_SPP\\plots\\'
+    plot_clustering(save_path=save_path)
