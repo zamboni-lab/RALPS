@@ -56,8 +56,7 @@ Config file contains paths to the data and batch information files, as well as o
 
 For most parameters, _coma separated values_ (e.g., batch_size) or _dash separated intervals_ (e.g., d_lr) can be provided.
 For those parameters values will be _uniformly sampled_ during the grid search, using supplied options / intervals.
-Otherwise, the exact values provided will be used.  
-__Default parameter values can be used by just setting -1__.
+Otherwise, the exact values provided will be used. _Default_ parameter values can be used by just setting __-1__.
 
 ### Data file structure
 
