@@ -3,9 +3,30 @@ import numpy, pandas, seaborn, umap, time, hdbscan, torch, matplotlib
 from matplotlib import pyplot
 from sklearn.preprocessing import RobustScaler, StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.cluster import MeanShift, OPTICS, Birch, SpectralClustering
+from scipy.cluster.hierarchy import linkage, fcluster
+
+from constants import clustering_algorithm as algorithm
+from constants import clustering_metric as metric
 
 
-from models.ae import Autoencoder
+def compute_samples_vcs(data):
+    """ This method computes sample-wise variation coefs. """
+    vcs = []
+    for i in range(data.shape[0]):
+        vcs.append(data.iloc[i,:].std() / data.iloc[i,:].mean())
+    return vcs
+
+
+def compute_percent_of_increased_vcs(normalized, init_vcs, increase_percent=0.05):
+    """ This method computes percent of increased VCs in normalized data, compared to the initial ones.
+        Note that normalized and initial data have the same index. """
+    count = 0
+    for i in range(normalized.shape[0]):
+        norm_vc = normalized.iloc[i,:].std() / normalized.iloc[i,:].mean()
+        if norm_vc - init_vcs[i] > init_vcs[i] * increase_percent:
+            count += 1
+    return round(count / normalized.shape[0] * 100, 1)
 
 
 def get_samples_by_types_dict(samples_names, types_of_interest):
@@ -27,33 +48,45 @@ def get_samples_by_types_dict(samples_names, types_of_interest):
     return samples_by_types
 
 
+def get_shortened_samples_names(samples_names):
+    """ This method shortens samples' names for better visualization. """
+
+    for i in [-5, -4, -3, -2]:
+        new_names = ['_'.join(name.split('_')[-i:]) for name in samples_names]
+        are_all_short = sum([len(name) > 10 for name in new_names]) == 0
+        if are_all_short:
+            return new_names
+    return [name[-10:] for name in samples_names]
+
+
 def plot_batch_cross_correlations(data, method_name, parameters, sample_types_of_interest, save_to='/Users/andreidm/ETH/projects/normalization/res/', save_plot=False):
     """ This method plots heatmaps of intra-batch correaltions of the same samples of interest. """
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
     # plot one by one
-    for i, type in enumerate(samples_by_types):
+    for i, s_type in enumerate(samples_by_types):
         pyplot.figure()
-        df = data.loc[numpy.array(samples_by_types[type]), :]
+        df = data.loc[numpy.array(samples_by_types[s_type]), :]
         df = df.T  # transpose to call corr() on samples, not metabolites
-        df.columns = sorted([x[-6:] for x in df.columns])
+        df = df.reindex(sorted(df.columns), axis=1)  # sort column names
+        df.columns = get_shortened_samples_names(df.columns)
         df = df.corr()
 
         seaborn.heatmap(df, vmin=0, vmax=1)
-        pyplot.title(type)
+        pyplot.title(s_type)
         pyplot.suptitle('Cross correlations: {}'.format(method_name))
         pyplot.tight_layout()
 
         if save_plot:
-            pyplot.savefig(save_to / 'correlations_{}_{}_{}.{}'.format(type, method_name.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
+            pyplot.savefig(save_to / 'correlations_{}_{}_{}.{}'.format(s_type, method_name.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
         else:
             pyplot.show()
         pyplot.close()
 
 
 def get_sample_cross_correlation_estimate(data, sample_types_of_interest, percent=50):
-    """ This method computes intra-batch correlations for the samples of interest.
+    """ This method computes mean intra-batch correlations for the samples of interest.
         A simple statistic is computed then to give an estimate (ex., median, or 25th percentile). """
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
@@ -65,22 +98,33 @@ def get_sample_cross_correlation_estimate(data, sample_types_of_interest, percen
         values = df.values.flatten()
         corrs.append(numpy.percentile(values, percent))
 
-    return numpy.sum(corrs)
+    return numpy.mean(corrs)
 
 
-def compute_cv_for_samples_types(data, sample_types_of_interest):
+def compute_vc_for_batches(data, batch_labels):
+    """ This method computes variation coefs for entire batches. """
+
+    batch_vcs = {}
+    for label in batch_labels.unique():
+        batch_values = data.loc[batch_labels == label, :].values.flatten()
+        batch_vcs[label] = numpy.std(batch_values) / numpy.mean(batch_values)
+
+    return batch_vcs
+
+
+def compute_vc_for_samples_types(data, sample_types_of_interest):
     """ This method computes variation coefs for samples of interest. """
 
     samples_by_types = get_samples_by_types_dict(data.index.values, sample_types_of_interest)
 
-    cv_dict = {}
+    vc_dict = {}
     for i, type in enumerate(samples_by_types):
         values = data.loc[numpy.array(samples_by_types[type]), :].values
         values = values[values > 0]  # exclude negative values, that the model might predict
         values = values.flatten()
-        cv_dict[type] = numpy.std(values) / numpy.mean(values)
+        vc_dict[type] = numpy.std(values) / numpy.mean(values)
 
-    return cv_dict
+    return vc_dict
 
 
 def get_pca_reduced_data(data, parameters):
@@ -94,46 +138,66 @@ def get_pca_reduced_data(data, parameters):
     return pca_reduced
 
 
-def plot_full_data_umaps(data, encodings, reconstruction, batch_labels, parameters, common_plot_label, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_batch_vcs(vc_batch_initial, vc_batch_normalized, parameters, save_to=None):
+    """ This methos plots variation coefs of batches before and after normalization. """
+
+    data = {'batch': [], 'vc': [], 'label': []}
+    # merge into a single container
+    for key, value in vc_batch_initial.items():
+        data['batch'].append(key)
+        data['vc'].append(value)
+        data['label'].append('Initial')
+    for key, value in vc_batch_normalized.items():
+        data['batch'].append(key)
+        data['vc'].append(value)
+        data['label'].append('Normalized')
+
+    data = pandas.DataFrame(data)
+    data = data.sort_values('batch')
+
+    pyplot.figure()
+    seaborn.set_theme(style="whitegrid")
+    seaborn.barplot(x='batch', y='vc', hue='label', data=data)
+    pyplot.title('Batch variation coefs')
+    pyplot.legend(bbox_to_anchor=(1.01, 1))
+    pyplot.tight_layout()
+    if save_to:
+        pyplot.savefig(save_to / 'batch_vc_initial_vs_normalized_{}.{}'.format(parameters['id'], parameters['plots_extension']))
+        pyplot.close()
+    else:
+        pyplot.show()
+
+
+def plot_full_data_umaps(data, reconstruction, batch_labels, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
     """ This method plots UMAP embeddings of PCA reduced data (initial, normalized and model encoded). """
 
     # plot initial data
-    initial_data_reduced = get_pca_reduced_data(data, parameters)
-    initial_data_reduced.insert(0, 'batch', batch_labels.values)
-    plot_encodings_umap(initial_data_reduced, 'initial data', parameters, save_to=save_to)
+    initial_reduced = get_pca_reduced_data(data, parameters)
+    normalized_reduced = get_pca_reduced_data(reconstruction, parameters)
 
-    # plot normalized data
-    normalized_data_reduced = get_pca_reduced_data(reconstruction, parameters)
-    normalized_data_reduced.insert(0, 'batch', batch_labels.values)
-    plot_encodings_umap(normalized_data_reduced, 'normalized data ' + common_plot_label, parameters, save_to=save_to)
-
-    # plot encodings
-    encodings.insert(0, 'batch', batch_labels.values)
-    plot_encodings_umap(encodings, 'encodings ' + common_plot_label, parameters, save_to=save_to)
+    plot_umap(initial_reduced, batch_labels.values, parameters, 'initial data', save_to=save_to)
+    plot_umap(normalized_reduced, batch_labels.values, parameters, 'normalized data', save_to=save_to)
 
 
-def plot_encodings_umap(encodings, plot_label, parameters, save_to='/Users/andreidm/ETH/projects/normalization/res/'):
+def plot_umap(data, batch_labels, parameters, plot_name, metric='braycurtis', save_to='/Users/andreidm/ETH/projects/normalization/res/'):
     """ This method visualizes UMAP embeddings of the data encodings.
         It helps to assess batch effects on the high level."""
 
-    batches = encodings['batch'].values
-    values = encodings.iloc[:, 1:].values
-
     neighbors = int(parameters['n_batches'] * parameters['n_replicates'])
-    metric = 'braycurtis'
 
     reducer = umap.UMAP(n_neighbors=neighbors, metric=metric, min_dist=0.9, random_state=77)
-    embeddings = reducer.fit_transform(values)
+    embeddings = reducer.fit_transform(data)
 
     # plot coloring batches
     seaborn.set()
     pyplot.figure(figsize=(7, 6))
+    palette = seaborn.color_palette('deep', n_colors=len(set(batch_labels)))
 
-    seaborn.scatterplot(x=embeddings[:, 0], y=embeddings[:, 1], hue=batches, alpha=.8, palette=seaborn.color_palette('deep', n_colors=len(set(batches))))
+    seaborn.scatterplot(x=embeddings[:, 0], y=embeddings[:, 1], hue=batch_labels, alpha=.8, palette=palette)
     pyplot.legend(title='Batch', loc=1, borderaxespad=0., fontsize=10)
-    pyplot.title('UMAP: {}: n={}, metric={}'.format(plot_label, neighbors, metric))
+    pyplot.title('UMAP: {}'.format(plot_name, neighbors, metric))
     pyplot.tight_layout()
-    pyplot.savefig(save_to / 'umap_{}_{}.{}'.format(plot_label.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
+    pyplot.savefig(save_to / 'umap_{}_{}.{}'.format(plot_name.replace(' ', '_'), parameters['id'], parameters['plots_extension']))
     pyplot.close()
 
 
@@ -141,13 +205,10 @@ def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, samp
     """ Produces a plot with UMAP embeddings, colored after specified samples.
         Seems to be not very useful. """
 
-    values = encodings.iloc[:, 1:].values
-
     neighbors = int(parameters['n_batches'] * parameters['n_replicates'])
-    metric = 'braycurtis'
 
     reducer = umap.UMAP(n_neighbors=neighbors, metric=metric, min_dist=0.9, random_state=77)
-    embeddings = reducer.fit_transform(values)
+    embeddings = reducer.fit_transform(encodings.values)
 
     # define colors of benchmark samples
     samples_by_types = get_samples_by_types_dict(encodings.index.values, sample_types_of_interest)
@@ -184,8 +245,34 @@ def plot_full_data_umap_with_benchmarks(encodings, method_name, parameters, samp
     pyplot.close()
 
 
-def compute_number_of_clusters_with_hdbscan(encodings, parameters, sample_types_of_interest, print_info=True):
-    """ This method applied HDBSCAN clustering on the encodings,
+def get_clustering_labels(data, parameters, metric='braycurtis'):
+
+    n_clusters = int(parameters['n_batches'])
+    if algorithm == 'upgma':
+        Z = linkage(data, method='average', metric=metric)
+        labels = fcluster(Z, t=n_clusters, criterion='maxclust')
+        return labels-1
+
+    else:
+        min_cluster_size = int(parameters['n_batches'] * parameters['n_replicates'])
+        if algorithm == 'mean_shift':
+            clusterer = MeanShift(cluster_all=False, n_jobs=1)
+        elif algorithm == 'optics':
+            clusterer = OPTICS(min_cluster_size=min_cluster_size, metric=metric, n_jobs=1)
+        elif algorithm == 'birch':
+            clusterer = Birch(branching_factor=min_cluster_size, n_clusters=n_clusters)
+        elif algorithm == 'spectral':
+            clusterer = SpectralClustering(n_clusters=n_clusters, n_neighbors=min_cluster_size, affinity='nearest_neighbors', n_jobs=1)
+        else:
+            # default clustering algorithm
+            clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=min_cluster_size, allow_single_cluster=False)
+
+        clusterer.fit(data)
+        return clusterer.labels_
+
+
+def compute_number_of_clusters(encodings, parameters, sample_types_of_interest, print_info=True):
+    """ This method applies clustering on the encodings,
         and returns assigned clusters to the samples of interest.  """
 
     samples_by_types = get_samples_by_types_dict(encodings.index.values, sample_types_of_interest)
@@ -195,15 +282,12 @@ def compute_number_of_clusters_with_hdbscan(encodings, parameters, sample_types_
 
     n_comp = int(parameters['latent_dim'] / 3)
     neighbors = int(parameters['n_batches'] * parameters['n_replicates'])
-    metric = 'braycurtis'
 
     reducer = umap.UMAP(n_components=n_comp, n_neighbors=neighbors, metric=metric, min_dist=0.1, random_state=77)
     embeddings = reducer.fit_transform(values)
-
-    clusterer = hdbscan.HDBSCAN(metric=metric, min_cluster_size=neighbors, allow_single_cluster=False)
-    clusterer.fit(embeddings)
-
-    total = clusterer.labels_.max() + 1
+    # cluster
+    labels = get_clustering_labels(embeddings, parameters, metric=metric)
+    total = max(labels) + 1
     if print_info:
         print('CLUSTERING INFO:\n')
         print('Total of clusters:', total)
@@ -213,10 +297,7 @@ def compute_number_of_clusters_with_hdbscan(encodings, parameters, sample_types_
         indices_of_type = [list(encodings.index.values).index(x) for x in samples_by_types[type]]
         type_batches = batches[numpy.array(indices_of_type)]
 
-        type_labels = clusterer.labels_[numpy.array(indices_of_type)]
-        type_probs = clusterer.probabilities_[numpy.array(indices_of_type)]
-        type_outlier_probs = clusterer.outlier_scores_[numpy.array(indices_of_type)]
-
+        type_labels = labels[numpy.array(indices_of_type)]
         labels_dict[type] = list(type_labels)
 
         if print_info:
@@ -224,8 +305,6 @@ def compute_number_of_clusters_with_hdbscan(encodings, parameters, sample_types_
             print('n clusters:', len(set(type_labels)))
             print('true batches:', list(type_batches))
             print('labels:', list(type_labels))
-            print('probs:', list(type_probs))
-            print('outlier probs:', list(type_outlier_probs), '\n')
 
     return labels_dict, total
 
@@ -236,7 +315,7 @@ if __name__ == '__main__':
     # data = data.iloc[:, 1:]
     #
     # pars = {'id': '', 'plots_extension': 'pdf'}
-    # plot_batch_cross_correlations(data.T, 'original samples', '', ['P1_FA_0001', 'P2_SF_0001',
+    # plot_batch_cross_correlations(data.T, 'initial samples', '', ['P1_FA_0001', 'P2_SF_0001',
     #                                                                'P2_SFA_0001', 'P2_SRM_0001',
     #                                                                'P2_SFA_0002', 'P1_FA_0008'])
     #
@@ -249,7 +328,7 @@ if __name__ == '__main__':
     # encodings = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/autoencoder/encodings.csv', index_col=0)
     #
     # pars = {'n_batches': 7, 'n_replicates': 3, 'id': '', 'plots_extension': 'pdf'}
-    # plot_encodings_umap(encodings, 'original samples', pars,
+    # plot_encodings_umap(encodings, 'initial samples', pars,
     #                     save_to='/Users/andreidm/ETH/projects/normalization/res/')
     #
     # pars = {'latent_dim': 100, 'n_batches': 7, 'n_replicates': 3}
@@ -265,8 +344,8 @@ if __name__ == '__main__':
 
     from ralps import get_data
     raw_data = get_data({'data_path': '/Users/andreidm/ETH/projects/normalization/data/filtered_data_v5.csv',
-                               'info_path': '/Users/andreidm/ETH/projects/normalization/data/batch_info_v5_SRM+SPP.csv',
-                               'min_relevant_intensity': 1000})
+                         'info_path': '/Users/andreidm/ETH/projects/normalization/data/batch_info_v5_SRM+SPP.csv'},
+                        {'min_relevant_intensity': 1000})
 
     transformer = PCA()
     scaler = StandardScaler()
@@ -300,26 +379,24 @@ if __name__ == '__main__':
             batch.append(6)
         else:
             batch.append(7)
-    encodings_normalized.insert(0, 'batch', batch)
 
     save_to = '/Users/andreidm/ETH/projects/normalization/res/SRM+SPP-disc/'
 
     pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'before', 'plots_extension': 'pdf'}
-    plot_encodings_umap(encodings_raw, 'original', pars, save_to=save_to)
-    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'after', 'plots_extension': 'pdf'}
-    plot_encodings_umap(encodings_normalized, 'normalized', pars, save_to=save_to)
+    plot_umap(encodings_raw, numpy.array(batch), pars, 'initial', save_to=save_to)
+    plot_umap(encodings_normalized, numpy.array(batch), pars, 'normalized', save_to=save_to)
 
     samples = ['P2_SRM_0001', 'P2_SPP_0001']
 
     pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'reg_samples_before'}
-    plot_full_data_umap_with_benchmarks(encodings_raw, 'original', pars, sample_types_of_interest=samples, save_to=save_to)
+    plot_full_data_umap_with_benchmarks(encodings_raw, 'initial', pars, sample_types_of_interest=samples, save_to=save_to)
     pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'reg_samples_after'}
     plot_full_data_umap_with_benchmarks(encodings_normalized, 'normalized', pars, sample_types_of_interest=samples, save_to=save_to)
 
     samples = ['P1_FA_0008', 'P2_SF_0001', 'P2_SFA_0002', 'P1_FA_0001', 'P2_SFA_0001']
 
     pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'benchmarks_before'}
-    plot_full_data_umap_with_benchmarks(encodings_raw, 'original', pars, sample_types_of_interest=samples, save_to=save_to)
+    plot_full_data_umap_with_benchmarks(encodings_raw, 'initial', pars, sample_types_of_interest=samples, save_to=save_to)
     pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'benchmarks_after'}
     plot_full_data_umap_with_benchmarks(encodings_normalized, 'normalized', pars, sample_types_of_interest=samples, save_to=save_to)
 

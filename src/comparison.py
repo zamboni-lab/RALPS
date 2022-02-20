@@ -3,10 +3,10 @@ import numpy, pandas, seaborn, time
 from matplotlib import pyplot
 from sklearn.preprocessing import MinMaxScaler
 
-import harmae
+import ralps, processing
 from constants import default_parameters_values
-from batch_analysis import plot_batch_cross_correlations, compute_cv_for_samples_types
-from batch_analysis import compute_number_of_clusters_with_hdbscan
+from batch_analysis import plot_batch_cross_correlations, compute_vc_for_samples_types
+from batch_analysis import compute_number_of_clusters
 from batch_analysis import get_sample_cross_correlation_estimate
 from utils import combat
 
@@ -29,18 +29,18 @@ def plot_benchmarks_corrs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = harmae.get_data({'data_path': data_path, 'info_path': info_path,
-                            'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+    data = ralps.get_data({'data_path': data_path, 'info_path': info_path},
+                          {'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
-    _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
+    _, benchmarks = processing.extract_reg_types_and_benchmarks(data)
 
     for method in methods:
 
         if method == 'none':
             normalized = data.iloc[:, 1:]
-        elif method == 'harmAE':
+        elif method == 'ralps':
             # hardcode
             normalized = pandas.read_csv(path_to_my_best, index_col=0).T
 
@@ -89,19 +89,19 @@ def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = harmae.get_data({'data_path': data_path, 'info_path': info_path,
-                            'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+    data = ralps.get_data({'data_path': data_path, 'info_path': info_path},
+                          {'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
-    _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
+    _, benchmarks = processing.extract_reg_types_and_benchmarks(data)
 
     for method in methods:
 
         if method == 'none':
             normalized = data.iloc[:, 1:]
 
-        elif method == 'harmAE':
+        elif method == 'ralps':
             # hardcode
             normalized = pandas.read_csv(path_to_my_best, index_col=0).T
 
@@ -124,7 +124,7 @@ def plot_benchmarks_cvs_for_methods(scenario=1, save_plot=False):
             normalized = pandas.read_csv(path_to_others + '{}.csv'.format(method), index_col=0)
             normalized = add_prefixes_to_samples_names(normalized, batch_info)
 
-        res = compute_cv_for_samples_types(normalized, benchmarks)
+        res = compute_vc_for_samples_types(normalized, benchmarks)
         res = pandas.DataFrame({'method': [method for x in range(len(res))],
                                 'sample': list(res.keys()),
                                 'cv': [res[key] for key in res.keys()]})
@@ -168,12 +168,12 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = harmae.get_data({'data_path': data_path, 'info_path': info_path,
-                            'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+    data = ralps.get_data({'data_path': data_path, 'info_path': info_path},
+                          {'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
-    regs, _ = harmae.extract_reg_types_and_benchmarks(data)
+    regs, _ = processing.extract_reg_types_and_benchmarks(data)
 
     corrs = []
     for method in methods:
@@ -181,7 +181,7 @@ def plot_samples_corrs_for_methods(scenario=1, save_plot=False):
         if method == 'none':
             normalized = data.iloc[:, 1:]
 
-        elif method == 'harmAE':
+        elif method == 'ralps':
             normalized = pandas.read_csv(path_to_my_best, index_col=0).T
 
         elif method == 'normAE':
@@ -245,18 +245,18 @@ def get_grouping_coefs_for_samples(method, clustering, total_clusters, benchmark
 def get_paths_and_methods(scenario):
 
     if scenario == 1:
-        methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'harmAE']
+        methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'ralps']
         path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/no_reference_samples/best_model/2d48bfb2_best/normalized_2d48bfb2.csv'
         path_to_others = '/Users/andreidm/ETH/projects/normalization/res/no_reference_samples/other_methods/'
         save_to = '/Users/andreidm/ETH/projects/normalization/res/no_reference_samples/other_methods/plots/'
     elif scenario == 2:
-        methods = ['none', 'normAE', 'harmAE']
+        methods = ['none', 'normAE', 'ralps']
         path_to_my_best = path_to_my_best_method_2
         path_to_others = path_to_other_methods_2
         save_to = '/Users/andreidm/ETH/projects/normalization/res/fake_reference_samples/other_methods/plots/'
     elif scenario == 3:
         # it's actually scenario 2, but on another dataset
-        methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'harmAE']
+        methods = ['none', 'lev+eig', 'pqn+pow', 'combat', 'eigenMS', 'waveICA', 'normAE', 'ralps']
         path_to_my_best = '/Users/andreidm/ETH/projects/normalization/res/sarahs/b2a75470/normalized_b2a75470.csv'
         path_to_others = '/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/'
         save_to = '/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/plots/'
@@ -280,12 +280,12 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = harmae.get_data({'data_path': data_path, 'info_path': info_path,
-                            'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+    data = ralps.get_data({'data_path': data_path, 'info_path': info_path},
+                          {'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     batch_info = pandas.read_csv(info_path, keep_default_na=False)
 
-    _, benchmarks = harmae.extract_reg_types_and_benchmarks(data)
+    _, benchmarks = processing.extract_reg_types_and_benchmarks(data)
 
     pars = {'latent_dim': data.shape[1]-1,
             'n_batches': len(data['batch'].unique()),
@@ -297,7 +297,7 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
 
         if method == 'none':
             normalized = data
-        elif method == 'harmAE':
+        elif method == 'ralps':
             normalized = pandas.read_csv(path_to_my_best, index_col=0).T
             # keep the ordering as in initial data to insert batches
             normalized = normalized.loc[data.index, :]
@@ -336,7 +336,7 @@ def plot_benchmarks_grouping_coefs_for_methods(scenario=1, save_plot=False):
             normalized = normalized.loc[data.index, :]
             normalized['batch'] = data['batch']
 
-        clustering, total_clusters = compute_number_of_clusters_with_hdbscan(normalized, pars, benchmarks, print_info=False)
+        clustering, total_clusters = compute_number_of_clusters(normalized, pars, benchmarks, print_info=False)
         grouping_dict = get_grouping_coefs_for_samples(method, clustering, total_clusters, benchmarks)
 
         res = pandas.DataFrame({'method': [method for x in range(len(grouping_dict))],
@@ -394,7 +394,7 @@ def plot_normalized_spectra_for_methods(scenario=1, file_ext='pdf', save_plot=Fa
         if method == 'none':
             normalized = data_with_mz
 
-        elif method == 'harmAE':
+        elif method == 'ralps':
             normalized = pandas.read_csv(path_to_my_best, index_col=0)
             if scenario == 3:
                 # previously the output was transposed
@@ -484,13 +484,13 @@ def check_relevant_intensities_for_methods(scenario=1):
     else:
         raise ValueError('Indicate scenario.')
 
-    data = harmae.get_data({'data_path': data_path, 'info_path': info_path,
-                            'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+    data = ralps.get_data({'data_path': data_path, 'info_path': info_path},
+                          {'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
 
     for method in methods:
         if method == 'none':
             normalized = data.iloc[:, 1:]
-        elif method == 'harmAE':
+        elif method == 'ralps':
             normalized = pandas.read_csv(path_to_my_best, index_col=0).T
         # elif method == 'normAE':
         #     # it doesn't output intensities, but I'm curious how much negative values they produce
@@ -514,11 +514,11 @@ def plot_percent_of_unique_values(save_to='/Users/andreidm/ETH/projects/normaliz
     data_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/filtered_data.csv'
     info_path = '/Users/andreidm/ETH/projects/normalization/data/sarah/batch_info.csv'
 
-    original_data = harmae.get_data({'data_path': data_path, 'info_path': info_path, 'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
-    original_data = original_data.iloc[:, 1:].T
-    reg_samples_cols = [x for x in original_data.columns if 'MDAMB231_Medium1_BREAST_JB' in x]
-    original_values = original_data.loc[:, reg_samples_cols].values.flatten()
-    print('original:', len(set(original_values)) / len(original_values) * 100)
+    initial_data = ralps.get_data({'data_path': data_path, 'info_path': info_path}, {'min_relevant_intensity': default_parameters_values['min_relevant_intensity']})
+    initial_data = initial_data.iloc[:, 1:].T
+    reg_samples_cols = [x for x in initial_data.columns if 'MDAMB231_Medium1_BREAST_JB' in x]
+    initial_values = initial_data.loc[:, reg_samples_cols].values.flatten()
+    print('initial:', len(set(initial_values)) / len(initial_values) * 100)
 
     normae_path = '/Users/andreidm/ETH/projects/normalization/res/sarahs/other_methods/normAE.csv'
     normae_normalized = pandas.read_csv(normae_path, index_col=0)
@@ -526,16 +526,16 @@ def plot_percent_of_unique_values(save_to='/Users/andreidm/ETH/projects/normaliz
     normae_values = normae_normalized.loc[:, reg_samples_cols].values.flatten()
     print('normae:', len(set(normae_values)) / len(normae_values) * 100)
 
-    harmae_path = '/Users/andreidm/ETH/projects/normalization/res/sarahs/b2a75470/normalized_b2a75470.csv'
-    harmae_normalized = pandas.read_csv(harmae_path, index_col=0)
-    reg_samples_cols = [x for x in harmae_normalized.columns if 'MDAMB231_Medium1_BREAST_JB' in x]
-    harmae_values = harmae_normalized.loc[:, reg_samples_cols].values.flatten()
-    print('harmae:', len(set(harmae_values)) / len(harmae_values) * 100)
+    ralps_path = '/Users/andreidm/ETH/projects/normalization/res/sarahs/b2a75470/normalized_b2a75470.csv'
+    ralps_normalized = pandas.read_csv(ralps_path, index_col=0)
+    reg_samples_cols = [x for x in ralps_normalized.columns if 'MDAMB231_Medium1_BREAST_JB' in x]
+    ralps_values = ralps_normalized.loc[:, reg_samples_cols].values.flatten()
+    print('ralps:', len(set(ralps_values)) / len(ralps_values) * 100)
 
     data = pandas.DataFrame({
-        'method': ['None', 'HarmAE', 'NormAE'],
-        'percent': [len(set(original_values)) / len(original_values) * 100,
-                    len(set(harmae_values)) / len(harmae_values) * 100,
+        'method': ['None', 'ralps', 'NormAE'],
+        'percent': [len(set(initial_values)) / len(initial_values) * 100,
+                    len(set(ralps_values)) / len(ralps_values) * 100,
                     len(set(normae_values)) / len(normae_values) * 100]
     })
 
@@ -545,20 +545,223 @@ def plot_percent_of_unique_values(save_to='/Users/andreidm/ETH/projects/normaliz
     pyplot.savefig(save_to + 'unique_values.pdf')
 
 
-if __name__ == "__main__":
+def plot_percent_of_increased_vcs_for_methods(path_to_init_data, path_to_my_method, path_to_other_methods,
+                                              allowed_percent=0.05):
+    """ This method computes percent of increased (compared to initial data) VCs for samples. """
+
+    initial_data = pandas.read_csv(path_to_init_data, index_col=0).T
+
+    percent_of_increased_vc = {}
+    for method in ['None', 'normAE', 'combat', 'eigenMS', 'lev+eig', 'pqn+pow', 'waveICA', 'RALPS']:
+
+        if method == 'None':
+            percent_of_increased_vc[method] = 0
+            continue
+
+        elif method == 'RALPS':
+            normalized = pandas.read_csv(path_to_my_method, index_col=0).T
+        elif method == 'normAE':
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
+        else:
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
+
+        count = 0
+        initial_data = initial_data.sort_index()
+        normalized = normalized.sort_index()
+
+        for i in range(initial_data.shape[0]):
+
+            init_vc = initial_data.iloc[i,:].std() / initial_data.iloc[i,:].mean()
+            sample_vc = normalized.iloc[i,:].std() / normalized.iloc[i,:].mean()
+
+            if sample_vc - init_vc > init_vc * allowed_percent:
+                count += 1
+        percent_of_increased_vc[method] = int(count / normalized.shape[0] * 100)
+
+    for key, value in percent_of_increased_vc.items():
+        print('{}: {}%'.format(key, value))
+
+    data = pandas.DataFrame({'method': [key for key in percent_of_increased_vc],
+                            'percent': [percent_of_increased_vc[key] for key in percent_of_increased_vc]})
+
+    seaborn.set_style('whitegrid')
+    seaborn.barplot(x='method', y='percent', data=data)
+    pyplot.show()
+
+
+def plot_mean_batch_vc_for_methods(path_to_init_data, path_to_my_method, path_to_other_methods,
+                                   batch_labels=('0108', '0110', '0124', '0219', '0221', '0304', '0306')):
+    """ This method plots mean batch VCs for methods to compare. """
+
+    initial_data = pandas.read_csv(path_to_init_data, index_col=0).T
+
+    mean_batch_vc = {}
+    for method in ['None', 'normAE', 'combat', 'eigenMS', 'lev+eig', 'pqn+pow', 'waveICA', 'RALPS']:
+
+        if method == 'None':
+            normalized = initial_data
+        elif method == 'RALPS':
+            normalized = pandas.read_csv(path_to_my_method, index_col=0).T
+        elif method == 'normAE':
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0).T
+        else:
+            normalized = pandas.read_csv(path_to_other_methods + '{}.csv'.format(method), index_col=0)
+
+        batch = []
+        # parse batch labels from samples' names
+        for name in list(normalized.index):
+            for i in range(len(batch_labels)):
+
+                if batch_labels[i] in name:
+                    batch.append(i)
+                    break
+
+        normalized['batch'] = batch
+
+        batch_vcs = []
+        for i in range(len(batch_labels)):
+            batch_values = normalized.loc[normalized['batch'] == i]
+            batch_values = batch_values.iloc[:, :-1].values.flatten()
+            if (batch_values < 0).sum() > 0:
+                # some methods produce arbitrary values < 0
+                batch_values = batch_values[batch_values > 0]
+            batch_vcs.append(numpy.std(batch_values) / numpy.mean(batch_values))
+
+        mean_batch_vc[method] = numpy.mean(batch_vcs)
+
+    data = pandas.DataFrame({'method': [key for key in mean_batch_vc],
+                            'batch_vc': [mean_batch_vc[key] for key in mean_batch_vc]})
+
+    seaborn.set_style('whitegrid')
+    seaborn.barplot(x='method', y='batch_vc', data=data)
+    pyplot.show()
+
+
+def plot_mean_samples_corrs_for_ralps(path_to_init_data, path_to_my_method,
+                                      batch_labels=('0108', '0110', '0124', '0219', '0221', '0304', '0306')):
+    """ This method visualizes how cross-correlation coefs change after RALPS. """
+
+    initial_data = pandas.read_csv(path_to_init_data, index_col=0).T
+    normalized = pandas.read_csv(path_to_my_method, index_col=0).T
+
+    new_index = ['_'.join(name.split('_')[:3]) for name in initial_data.index]
+    initial_data.index = new_index
+    new_index = ['_'.join(name.split('_')[:3]) for name in normalized.index]
+    normalized.index = new_index
+
+    u_index = list(set(new_index))
+    corrs_before = []
+    corrs_after = []
+    for index in u_index:
+        # cross correlations for initial data
+        corr_map = initial_data.loc[initial_data.index == index].T.corr()
+        median_corr = numpy.median(corr_map.values.flatten())
+        corrs_before.append(median_corr)
+        # cross correlations for normalized data
+        corr_map = normalized.loc[normalized.index == index].T.corr()
+        median_corr = numpy.median(corr_map.values.flatten())
+        corrs_after.append(median_corr)
+
+    data = pandas.DataFrame({
+        'type': [*['Initial' for x in corrs_before], *['Normalized' for x in corrs_after]],
+        'corr': [*[x for x in corrs_before], *[x for x in corrs_after]]
+    })
+
+    seaborn.set_style('whitegrid')
+    ax = seaborn.kdeplot(x='corr', hue='type', data=data, fill=True, alpha=0.5)
+    pyplot.ylim(0, 4)
+    pyplot.xlim(0.3, 1.02)
+    ax.legend_._set_loc(2)
+    # pyplot.show()
+    pyplot.savefig('D:\ETH\projects\\normalization\\res\\0.6.26\\all_refs\d3cc414f\\corrs.pdf')
+
+
+def plot_single_spectrum(mz, data, title, batches):
+    """ Plots a spectrum of data for the benchmarking dataset. """
+
+    # hardcoded batch ids and colors
+    color_dict = dict(zip(batches, 'kgrcmyb'))
+
+    samples = data.index
+    pyplot.figure(figsize=(8, 6))
+    for i in range(data.shape[0]):
+        batch_id = [batch in samples[i] for batch in batches].index(True)
+        color = color_dict[batches[batch_id]]
+        if color == 'b':
+            pyplot.plot(mz, data.values[i, :], '{}o'.format(color), alpha=0.2)
+        else:
+            pyplot.plot(mz, data.values[i, :], '{}o'.format(color), alpha=0.4)
+
+    pyplot.title(title)
+    pyplot.xlabel('mz')
+    pyplot.ylabel('scaled normalized intensities')
+    pyplot.grid()
+    pyplot.show()
+
+
+def compare_methods_v5():
 
     save_plots = False
     scenario = 3
 
-    # # benchmarks
-    # plot_benchmarks_cvs_for_methods(scenario=scenario, save_plot=save_plots)
-    # plot_benchmarks_grouping_coefs_for_methods(scenario=scenario, save_plot=save_plots)
-    # plot_benchmarks_corrs_for_methods(scenario=scenario, save_plot=save_plots)
-    #
-    # # all samples
-    # check_relevant_intensities_for_methods(scenario=scenario)
-    # plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)
-    # plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
+    # benchmarks
+    plot_benchmarks_cvs_for_methods(scenario=scenario, save_plot=save_plots)
+    plot_benchmarks_grouping_coefs_for_methods(scenario=scenario, save_plot=save_plots)
+    plot_benchmarks_corrs_for_methods(scenario=scenario, save_plot=save_plots)
+
+    # all samples
+    check_relevant_intensities_for_methods(scenario=scenario)
+    plot_samples_corrs_for_methods(scenario=scenario, save_plot=save_plots)
+    plot_normalized_spectra_for_methods(scenario=scenario, file_ext='png', save_plot=save_plots)
 
     plot_percent_of_unique_values()
 
+
+def plot_normalized_vs_initial_spectra(path_to_initial_data_with_mz, path_to_normalized_data,
+                                       batch_labels=('0108', '0110', '0124', '0219', '0221', '0304', '0306')):
+
+    initial_data = pandas.read_csv(path_to_initial_data_with_mz, index_col=0)
+    mz = initial_data['mz']
+    initial_data = initial_data.drop(columns=['name', 'mz']).T
+    plot_single_spectrum(mz, initial_data, 'Initial', batch_labels)
+    normalized = pandas.read_csv(path_to_normalized_data, index_col=0).T
+    plot_single_spectrum(mz, normalized, 'Normalized', batch_labels)
+
+
+if __name__ == "__main__":
+
+    # # application: SRM+SPP
+    # plot_percent_of_increased_vcs_for_methods(
+    #     'D:\ETH\projects\\normalization\data\\filtered_data.csv',
+    #     'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv',
+    #     'D:\ETH\projects\\normalization\\res\\SRM_SPP_other_methods\\')
+    # # application: Sarah
+    # plot_percent_of_increased_vcs_for_methods(
+    #     'D:\ETH\projects\\normalization\data\\sarah\\filtered_data.csv',
+    #     'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
+    #     'D:\ETH\projects\\normalization\\res\\sarah_other_methods\\')
+
+    # # application: SRM+SPP
+    # plot_normalized_vs_initial_spectra('D:\ETH\projects\\normalization\data\\filtered_data_with_mz.csv',
+    #                                    'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv')
+    # # application: Sarah
+    # plot_normalized_vs_initial_spectra('D:\ETH\projects\\normalization\data\\sarah\\data_with_mzs.csv',
+    #                                    'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
+    #                                    batch_labels=['Batch' + str(i) for i in range(1,8)])
+
+    # # application: SRM+SPP
+    # plot_mean_batch_vc_for_methods(
+    #     'D:\ETH\projects\\normalization\data\\filtered_data.csv',
+    #     'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv',
+    #     'D:\ETH\projects\\normalization\\res\\SRM_SPP_other_methods\\')
+    # # application: Sarah
+    # plot_mean_batch_vc_for_methods(
+    #     'D:\ETH\projects\\normalization\data\\sarah\\filtered_data.csv',
+    #     'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
+    #     'D:\ETH\projects\\normalization\\res\\sarah_other_methods\\',
+    #     batch_labels=['Batch' + str(i) for i in range(1,8)])
+
+    # application: all ref
+    plot_mean_samples_corrs_for_ralps(
+        'D:\ETH\projects\\normalization\data\\filtered_data.csv',
+        'D:\ETH\projects\\normalization\\res\\0.6.26\\all_refs\d3cc414f\\normalized_d3cc414f.csv')

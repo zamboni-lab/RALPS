@@ -1,36 +1,15 @@
 
+
 import numpy, pandas, scipy, seaborn, math, time, umap, h5py, json
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from matplotlib import pyplot
-from sklearn.preprocessing import RobustScaler
 
 # constants
 user = 'andreidm'
 min_relevant_intensity = 1000
-# batches = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
-# sps = []  # set shared perturbations
-
-
-def split_to_train_and_test(values, batches, scaler, proportion=0.7):
-    """ Split data for the classifier of the adversarial training loop. """
-
-    n_samples, n_features = values.shape
-
-    # scale
-    scaled = scaler.transform(values)
-    # split values to train and val
-    x_train = scaled[:int(proportion * n_samples), :]
-    x_val = scaled[int(proportion * n_samples):, :]
-    y_train = batches[:int(proportion * n_samples)]
-    y_val = batches[int(proportion * n_samples):]
-
-    if numpy.min(batches) == 1:
-        # enumerate batches from 0 to n
-        y_train -= 1
-        y_val -= 1
-
-    return x_train, x_val, y_train, y_val
+bids = ['0108', '0110', '0124', '0219', '0221', '0304', '0306']
+sps = []  # set shared perturbations
 
 
 def run_pca(data, n=100):
