@@ -17,17 +17,17 @@ def plot_lambdas(save_path=None):
     all_models = pandas.DataFrame()
 
     best_models = pandas.read_csv('D:\ETH\projects\\normalization\\res\lambdas_SRM_SPP\\v=0,d=0,g=0\\best_models.csv')
-    best_models = best_models[best_models['best'] == True]
+    best_models = best_models[best_models['rec_loss'] >= numpy.percentile(best_models['rec_loss'], 90)]
     best_models['lambdas'] = 'lv=0,\nld=0,\nlg=0'
     all_models = pandas.concat([all_models, best_models])
 
     best_models = pandas.read_csv('D:\ETH\projects\\normalization\\res\lambdas_SRM_SPP\\v=0,d=0\\best_models.csv')
-    best_models = best_models[best_models['best'] == True]
+    best_models = best_models[best_models['rec_loss'] >= numpy.percentile(best_models['rec_loss'], 90)]
     best_models['lambdas'] = 'lv=0,\nld=0,\nlg>0'
     all_models = pandas.concat([all_models, best_models])
 
     best_models = pandas.read_csv('D:\ETH\projects\\normalization\\res\lambdas_SRM_SPP\\v=0\\best_models.csv')
-    best_models = best_models[best_models['best'] == True]
+    best_models = best_models[best_models['rec_loss'] >= numpy.percentile(best_models['rec_loss'], 90)]
     best_models['lambdas'] = 'lv=0,\nld>0,\nlg>0'
     all_models = pandas.concat([all_models, best_models])
 
@@ -534,7 +534,7 @@ if __name__ == "__main__":
     # plot_removed_batches(save_path=save_path)
     # plot_variance_ratio(save_path=save_path)
 
-    # save_path = 'D:\ETH\projects\\normalization\\res\lambdas_SRM_SPP\\plots\\'
-    # plot_lambdas(save_path=save_path)
-    save_path = 'D:\ETH\projects\\normalization\\res\clustering_SRM_SPP\\plots\\'
-    plot_clustering(save_path=save_path)
+    save_path = 'D:\ETH\projects\\normalization\\res\lambdas_SRM_SPP\\plots\\'
+    plot_lambdas(save_path=save_path)
+    # save_path = 'D:\ETH\projects\\normalization\\res\clustering_SRM_SPP\\plots\\'
+    # plot_clustering(save_path=save_path)
