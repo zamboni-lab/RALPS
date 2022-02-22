@@ -19,7 +19,7 @@ torch==1.8.1
 umap-learn==0.5.1
 ```
 RALPS has been tested on CPU and GPU under MacOS and Windows.  
-Training time required to normalize a dataset with ~3000 samples and ~150 metabolites was below 6 minutes per run on average (30 epochs).
+Training time required to normalize a dataset with ~3000 samples and ~150 metabolites was 5.82 minutes per run on average (30 epochs).
 
 ## How to run
 
