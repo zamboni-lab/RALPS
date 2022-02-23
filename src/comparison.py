@@ -546,14 +546,16 @@ def plot_percent_of_unique_values(save_to='/Users/andreidm/ETH/projects/normaliz
 
 
 def plot_percent_of_increased_vcs_for_methods(path_to_init_data, path_to_my_method, path_to_other_methods,
-                                              allowed_percent=0.05):
+                                              allowed_percent=0.05, iqr_factor=None):
     """ This method computes percent of increased (compared to initial data) VCs for samples. """
 
     initial_data = pandas.read_csv(path_to_init_data, index_col=0).T
 
     percent_of_increased_vc = {}
+    metabolites_lost = {}
     for method in ['None', 'normAE', 'combat', 'eigenMS', 'lev+eig', 'pqn+pow', 'waveICA', 'RALPS']:
 
+        metabolites_lost[method] = [0]
         if method == 'None':
             percent_of_increased_vc[method] = 0
             continue
@@ -575,18 +577,45 @@ def plot_percent_of_increased_vcs_for_methods(path_to_init_data, path_to_my_meth
             sample_vc = normalized.iloc[i,:].std() / normalized.iloc[i,:].mean()
 
             if sample_vc - init_vc > init_vc * allowed_percent:
-                count += 1
+
+                if iqr_factor:
+                    # filter with boxplot
+                    sample = normalized.iloc[i,:]
+                    q1 = numpy.percentile(sample, 25)
+                    q3 = numpy.percentile(sample, 75)
+                    iqr = q3 - q1
+                    filtered_sample = sample[(sample > q1 - iqr_factor * iqr) & (sample < q3 + iqr_factor * iqr)]
+                    # recalculate sample vc after filtering
+                    sample_vc = filtered_sample.std() / filtered_sample.mean()
+                    metabolites_lost[method].append(len(sample) - len(filtered_sample))
+
+                if sample_vc - init_vc > init_vc * allowed_percent:
+                    count += 1
+
         percent_of_increased_vc[method] = int(count / normalized.shape[0] * 100)
 
     for key, value in percent_of_increased_vc.items():
-        print('{}: {}%'.format(key, value))
+        print('{}: {}%\n'.format(key, value))
 
     data = pandas.DataFrame({'method': [key for key in percent_of_increased_vc],
-                            'percent': [percent_of_increased_vc[key] for key in percent_of_increased_vc]})
-
+                             'increased_vc_percent': [percent_of_increased_vc[key] for key in percent_of_increased_vc]})
+    pyplot.figure()
     seaborn.set_style('whitegrid')
-    seaborn.barplot(x='method', y='percent', data=data)
+    seaborn.barplot(x='method', y='increased_vc_percent', data=data)
     pyplot.show()
+
+    if iqr_factor:
+        method = ['None']
+        information_loss = [0]
+        for key, values in metabolites_lost.items():
+            method.extend([key for value in values])
+            information_loss.extend([value for value in values])
+
+        data = pandas.DataFrame({'method': method, 'metabolites_lost': information_loss})
+        pyplot.figure()
+        seaborn.set_style('whitegrid')
+        seaborn.barplot(x='method', y='metabolites_lost', data=data)
+        pyplot.show()
 
 
 def plot_mean_batch_vc_for_methods(path_to_init_data, path_to_my_method, path_to_other_methods,
@@ -672,8 +701,7 @@ def plot_mean_samples_corrs_for_ralps(path_to_init_data, path_to_my_method,
     pyplot.ylim(0, 4)
     pyplot.xlim(0.3, 1.02)
     ax.legend_._set_loc(2)
-    # pyplot.show()
-    pyplot.savefig('D:\ETH\projects\\normalization\\res\\0.6.26\\all_refs\d3cc414f\\corrs.pdf')
+    pyplot.show()
 
 
 def plot_single_spectrum(mz, data, title, batches):
@@ -730,16 +758,17 @@ def plot_normalized_vs_initial_spectra(path_to_initial_data_with_mz, path_to_nor
 
 if __name__ == "__main__":
 
-    # # application: SRM+SPP
-    # plot_percent_of_increased_vcs_for_methods(
-    #     'D:\ETH\projects\\normalization\data\\filtered_data.csv',
-    #     'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv',
-    #     'D:\ETH\projects\\normalization\\res\\SRM_SPP_other_methods\\')
-    # # application: Sarah
-    # plot_percent_of_increased_vcs_for_methods(
-    #     'D:\ETH\projects\\normalization\data\\sarah\\filtered_data.csv',
-    #     'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
-    #     'D:\ETH\projects\\normalization\\res\\sarah_other_methods\\')
+    # application: SRM+SPP
+    plot_percent_of_increased_vcs_for_methods(
+        'D:\ETH\projects\\normalization\data\\filtered_data.csv',
+        'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv',
+        'D:\ETH\projects\\normalization\\res\\SRM_SPP_other_methods\\', iqr_factor=11)
+
+    # application: Sarah
+    plot_percent_of_increased_vcs_for_methods(
+        'D:\ETH\projects\\normalization\data\\sarah\\filtered_data.csv',
+        'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
+        'D:\ETH\projects\\normalization\\res\\sarah_other_methods\\', iqr_factor=450)
 
     # # application: SRM+SPP
     # plot_normalized_vs_initial_spectra('D:\ETH\projects\\normalization\data\\filtered_data_with_mz.csv',
@@ -761,7 +790,7 @@ if __name__ == "__main__":
     #     'D:\ETH\projects\\normalization\\res\\sarah_other_methods\\',
     #     batch_labels=['Batch' + str(i) for i in range(1,8)])
 
-    # application: all ref
-    plot_mean_samples_corrs_for_ralps(
-        'D:\ETH\projects\\normalization\data\\filtered_data.csv',
-        'D:\ETH\projects\\normalization\\res\\0.6.26\\all_refs\d3cc414f\\normalized_d3cc414f.csv')
+    # # application: all ref
+    # plot_mean_samples_corrs_for_ralps(
+    #     'D:\ETH\projects\\normalization\data\\filtered_data.csv',
+    #     'D:\ETH\projects\\normalization\\res\\0.6.26\\all_refs\d3cc414f\\normalized_d3cc414f.csv')

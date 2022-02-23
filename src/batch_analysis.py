@@ -5,6 +5,7 @@ from sklearn.preprocessing import RobustScaler, StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import MeanShift, OPTICS, Birch, SpectralClustering
 from scipy.cluster.hierarchy import linkage, fcluster
+from pathlib import Path
 
 from constants import clustering_algorithm as algorithm
 from constants import clustering_metric as metric
@@ -310,99 +311,6 @@ def compute_number_of_clusters(encodings, parameters, sample_types_of_interest, 
 
 
 if __name__ == '__main__':
-
-    # data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/data/filtered_data.csv')
-    # data = data.iloc[:, 1:]
-    #
-    # pars = {'id': '', 'plots_extension': 'pdf'}
-    # plot_batch_cross_correlations(data.T, 'initial samples', '', ['P1_FA_0001', 'P2_SF_0001',
-    #                                                                'P2_SFA_0001', 'P2_SRM_0001',
-    #                                                                'P2_SFA_0002', 'P1_FA_0008'])
-    #
-    # res = compute_cv_for_samples_types(data.T, ['P1_FA_0001', 'P2_SF_0001',
-    #                                             'P2_SFA_0001', 'P2_SRM_0001',
-    #                                             'P2_SFA_0002', 'P1_FA_0008'])
-    # print(res)
-    #
-    # # get encodings of the SEPARATELY TRAINED autoencoder
-    # encodings = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/autoencoder/encodings.csv', index_col=0)
-    #
-    # pars = {'n_batches': 7, 'n_replicates': 3, 'id': '', 'plots_extension': 'pdf'}
-    # plot_encodings_umap(encodings, 'initial samples', pars,
-    #                     save_to='/Users/andreidm/ETH/projects/normalization/res/')
-    #
-    # pars = {'latent_dim': 100, 'n_batches': 7, 'n_replicates': 3}
-    # res, _ = compute_number_of_clusters_with_hdbscan(encodings, pars, ['P1_FA_0001', 'P2_SF_0001',
-    #                                                                    'P2_SFA_0001', 'P2_SRM_0001',
-    #                                                                    'P2_SFA_0002', 'P1_FA_0008'],
-    #                                                  print_info=True)
-    # print(res)
-
-    # encodings_raw = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/SRM+SPP-disc/c461e5f6/encodings_c461e5f6.csv', index_col=0)
-    # encodings_normalized = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/P2_SRM_0001+P2_SPP_0001/da9e81db/encodings_da9e81db.csv', index_col=0)
-    # all_samples = encodings_raw.index
-
-    from ralps import get_data
-    raw_data = get_data({'data_path': '/Users/andreidm/ETH/projects/normalization/data/filtered_data_v5.csv',
-                         'info_path': '/Users/andreidm/ETH/projects/normalization/data/batch_info_v5_SRM+SPP.csv'},
-                        {'min_relevant_intensity': 1000})
-
-    transformer = PCA()
-    scaler = StandardScaler()
-
-    scaled_raw_data = scaler.fit_transform(raw_data.iloc[:, 1:])
-    encodings_raw = transformer.fit_transform(scaled_raw_data)
-    encodings_raw = pandas.DataFrame(encodings_raw)
-    encodings_raw.insert(0, 'batch', raw_data.iloc[:, 0].values)
-    encodings_raw.index = raw_data.index
-    encodings_raw.columns = raw_data.columns
-
-    normalized_data = pandas.read_csv('/Users/andreidm/ETH/projects/normalization/res/SRM+SPP-disc/c461e5f6/normalized_c461e5f6.csv', index_col=0).T
-    scaled_normalized_data = scaler.fit_transform(normalized_data)
-    encodings_normalized = transformer.fit_transform(scaled_normalized_data)
-    encodings_normalized = pandas.DataFrame(encodings_normalized)
-    encodings_normalized.index = normalized_data.index
-    encodings_normalized.columns = normalized_data.columns
-    batch = []
-    for sample in normalized_data.index:
-        if '_0108_' in sample:
-            batch.append(1)
-        elif '_0110_' in sample:
-            batch.append(2)
-        elif '_0124_' in sample:
-            batch.append(3)
-        elif '_0219_' in sample:
-            batch.append(4)
-        elif '_0221_' in sample:
-            batch.append(5)
-        elif '_0304_' in sample:
-            batch.append(6)
-        else:
-            batch.append(7)
-
-    save_to = '/Users/andreidm/ETH/projects/normalization/res/SRM+SPP-disc/'
-
-    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'before', 'plots_extension': 'pdf'}
-    plot_umap(encodings_raw, numpy.array(batch), pars, 'initial', save_to=save_to)
-    plot_umap(encodings_normalized, numpy.array(batch), pars, 'normalized', save_to=save_to)
-
-    samples = ['P2_SRM_0001', 'P2_SPP_0001']
-
-    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'reg_samples_before'}
-    plot_full_data_umap_with_benchmarks(encodings_raw, 'initial', pars, sample_types_of_interest=samples, save_to=save_to)
-    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'reg_samples_after'}
-    plot_full_data_umap_with_benchmarks(encodings_normalized, 'normalized', pars, sample_types_of_interest=samples, save_to=save_to)
-
-    samples = ['P1_FA_0008', 'P2_SF_0001', 'P2_SFA_0002', 'P1_FA_0001', 'P2_SFA_0001']
-
-    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'benchmarks_before'}
-    plot_full_data_umap_with_benchmarks(encodings_raw, 'initial', pars, sample_types_of_interest=samples, save_to=save_to)
-    pars = {'n_features': 170, 'latent_dim': 50, 'n_batches': 7, 'n_replicates': 3, 'id': 'benchmarks_after'}
-    plot_full_data_umap_with_benchmarks(encodings_normalized, 'normalized', pars, sample_types_of_interest=samples, save_to=save_to)
-
-
-
-
-
+    pass
 
 
