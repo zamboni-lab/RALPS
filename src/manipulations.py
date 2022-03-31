@@ -94,19 +94,20 @@ def get_all_data_from_h5(path):
 def check_shared_perturbations():
     """ Check how many perturbations are done in each batch and how many are shared. """
 
-    path = '/Users/{}/ETH/projects/normalization/data/'.format(user)
+    path = '/Users/{}/ETH/projects/normalization/data/raw/'.format(user)
 
     perturbations = []
     unique_perturbations = set()
 
-    for name in ['harm_4_0108 DATA.h5', 'harm_4_0110 DATA.h5', 'harm_4_0124 DATA.h5',
-                 'harm_4_0219 DATA.h5', 'harm_4_0221 DATA.h5', 'harm_4_0304 DATA.h5',
-                 'harm_4_0306 DATA.h5']:
+    for name in ['harm_4_0108_DATA.h5', 'harm_4_0110_DATA.h5', 'harm_4_0124_DATA.h5',
+                 'harm_4_0219_DATA.h5', 'harm_4_0221_DATA.h5', 'harm_4_0304_DATA.h5',
+                 'harm_4_0306_DATA.h5']:
 
         data = get_all_data_from_h5(path + name)
 
         print()
         print('processing {}'.format(name))
+        print('n ions = {}'.format(len(data['samples']['mzs'])))
         print('n perturbations = {}'.format(set(data['samples']['names']).__len__()))
 
         perturbations.append(list(set(data['samples']['names'])))
