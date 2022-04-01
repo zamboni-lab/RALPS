@@ -704,6 +704,76 @@ def plot_mean_samples_corrs_for_ralps(path_to_init_data, path_to_my_method,
     pyplot.show()
 
 
+def plot_inter_and_within_batch_corrs(path_to_init_data, path_to_my_method,
+                                      batch_labels=('0108', '0110', '0124', '0219', '0221', '0304', '0306')):
+    """ This method visualizes how cross-correlation coefs change after RALPS. """
+
+    initial_data = pandas.read_csv(path_to_init_data, index_col=0).T
+    normalized = pandas.read_csv(path_to_my_method, index_col=0).T
+
+    new_index = ['_'.join(name.split('_')[:3]) for name in initial_data.index]
+    initial_data.index = new_index
+    new_index = ['_'.join(name.split('_')[:3]) for name in normalized.index]
+    normalized.index = new_index
+
+    u_index = list(set(new_index))
+    corrs_inter_batch = []
+    corrs_within_batch = []
+
+    indices = [x for x in range(0, 22, 3)]
+    for index in u_index:
+        # cross correlations for initial data
+        corr_map = initial_data.loc[initial_data.index == index].T.corr()
+
+        for j in range(len(indices)-1):
+            corrs_within_batch.append(
+                numpy.median(corr_map.iloc[indices[j]:indices[j+1], indices[j]:indices[j+1]].values.flatten())
+            )
+            corrs_inter_batch.append(
+                numpy.median(corr_map.iloc[indices[j]:indices[j+1], indices[j+1]:].values.flatten())
+            )
+
+    data = pandas.DataFrame({
+        'type': [*['Between batches' for x in corrs_inter_batch], *['Within batches' for x in corrs_within_batch]],
+        'corr': [*[x for x in corrs_inter_batch], *[x for x in corrs_within_batch]]
+    })
+
+    seaborn.set_style('whitegrid')
+    ax = seaborn.kdeplot(x='corr', hue='type', data=data, fill=True, alpha=0.5)
+    pyplot.ylim(0, 5)
+    pyplot.xlim(0.3, 1.02)
+    ax.legend_._set_loc(2)
+    pyplot.savefig('D:\ETH\projects\\normalization\\res\comparison\\all_ref_initial.pdf')
+
+    corrs_inter_batch = []
+    corrs_within_batch = []
+    indices = [x for x in range(0, 22, 3)]
+    for index in u_index:
+        # cross correlations for initial data
+        corr_map = normalized.loc[normalized.index == index].T.corr()
+
+        for j in range(len(indices)-1):
+            corrs_within_batch.append(
+                numpy.median(corr_map.iloc[indices[j]:indices[j+1], indices[j]:indices[j+1]].values.flatten())
+            )
+            corrs_inter_batch.append(
+                numpy.median(corr_map.iloc[indices[j]:indices[j+1], indices[j+1]:].values.flatten())
+            )
+
+    data = pandas.DataFrame({
+        'type': [*['Between batches' for x in corrs_inter_batch], *['Within batches' for x in corrs_within_batch]],
+        'corr': [*[x for x in corrs_inter_batch], *[x for x in corrs_within_batch]]
+    })
+
+    pyplot.figure()
+    seaborn.set_style('whitegrid')
+    ax = seaborn.kdeplot(x='corr', hue='type', data=data, fill=True, alpha=0.5)
+    pyplot.ylim(0, 5)
+    pyplot.xlim(0.3, 1.02)
+    ax.legend_._set_loc(2)
+    pyplot.savefig('D:\ETH\projects\\normalization\\res\comparison\\all_ref_ralps.pdf')
+
+
 def plot_single_spectrum(mz, data, title, batches):
     """ Plots a spectrum of data for the benchmarking dataset. """
 
@@ -758,17 +828,16 @@ def plot_normalized_vs_initial_spectra(path_to_initial_data_with_mz, path_to_nor
 
 if __name__ == "__main__":
 
-    # application: SRM+SPP
-    plot_percent_of_increased_vcs_for_methods(
-        'D:\ETH\projects\\normalization\data\\filtered_data.csv',
-        'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv',
-        'D:\ETH\projects\\normalization\\res\\SRM_SPP_other_methods\\', iqr_factor=11)
-
-    # application: Sarah
-    plot_percent_of_increased_vcs_for_methods(
-        'D:\ETH\projects\\normalization\data\\sarah\\filtered_data.csv',
-        'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
-        'D:\ETH\projects\\normalization\\res\\sarah_other_methods\\', iqr_factor=450)
+    # # application: SRM+SPP
+    # plot_percent_of_increased_vcs_for_methods(
+    #     'D:\ETH\projects\\normalization\data\\filtered_data.csv',
+    #     'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv',
+    #     'D:\ETH\projects\\normalization\\res\\SRM_SPP_other_methods\\', iqr_factor=11)
+    # # application: Sarah
+    # plot_percent_of_increased_vcs_for_methods(
+    #     'D:\ETH\projects\\normalization\data\\sarah\\filtered_data.csv',
+    #     'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
+    #     'D:\ETH\projects\\normalization\\res\\sarah_other_methods\\', iqr_factor=450)
 
     # # application: SRM+SPP
     # plot_normalized_vs_initial_spectra('D:\ETH\projects\\normalization\data\\filtered_data_with_mz.csv',
@@ -794,3 +863,8 @@ if __name__ == "__main__":
     # plot_mean_samples_corrs_for_ralps(
     #     'D:\ETH\projects\\normalization\data\\filtered_data.csv',
     #     'D:\ETH\projects\\normalization\\res\\0.6.26\\all_refs\d3cc414f\\normalized_d3cc414f.csv')
+
+    # application: all ref
+    plot_inter_and_within_batch_corrs(
+        'D:\ETH\projects\\normalization\data\\filtered_data.csv',
+        'D:\ETH\projects\\normalization\\res\\0.6.26\\all_refs\d3cc414f\\normalized_d3cc414f.csv')
