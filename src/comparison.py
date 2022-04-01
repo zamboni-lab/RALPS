@@ -743,7 +743,6 @@ def plot_inter_and_within_batch_corrs(path_to_init_data, path_to_my_method,
     pyplot.ylim(0, 5)
     pyplot.xlim(0.3, 1.02)
     ax.legend_._set_loc(2)
-    pyplot.savefig('D:\ETH\projects\\normalization\\res\comparison\\all_ref_initial.pdf')
 
     corrs_inter_batch = []
     corrs_within_batch = []
@@ -771,7 +770,43 @@ def plot_inter_and_within_batch_corrs(path_to_init_data, path_to_my_method,
     pyplot.ylim(0, 5)
     pyplot.xlim(0.3, 1.02)
     ax.legend_._set_loc(2)
-    pyplot.savefig('D:\ETH\projects\\normalization\\res\comparison\\all_ref_ralps.pdf')
+    pyplot.show()
+
+
+def plot_batch_vcs_before_and_after(path_to_init_data, path_to_my_method,
+                                      batch_labels=('0108', '0110', '0124', '0219', '0221', '0304', '0306')):
+    """ This method visualizes how cross-correlation coefs change after RALPS. """
+
+    initial_data = pandas.read_csv(path_to_init_data, index_col=0).T
+    normalized = pandas.read_csv(path_to_my_method, index_col=0).T
+
+    # hardcoded for the benchmarking dataset samples' names
+    new_index = [name.split('_')[3] for name in initial_data.index]
+    initial_data.index = new_index
+    new_index = [name.split('_')[3] for name in normalized.index]
+    normalized.index = new_index
+
+    batches = [x+1 for x in range(len(batch_labels))]
+    d = {'batch': batches, 'vc': []}
+    for label in batch_labels:
+        values = initial_data.loc[label].values.flatten()
+        d['vc'].append(numpy.std(values) / numpy.mean(values))
+    df = pandas.DataFrame(d)
+
+    seaborn.set_style('whitegrid')
+    seaborn.barplot(x='batch', y='vc', data=df, palette='crest', saturation=0.8)
+    pyplot.ylim(0,8.5)
+
+    d = {'batch': batches, 'vc': []}
+    for label in batch_labels:
+        values = normalized.loc[label].values.flatten()
+        d['vc'].append(numpy.std(values) / numpy.mean(values))
+    df = pandas.DataFrame(d)
+
+    pyplot.figure()
+    seaborn.barplot(x='batch', y='vc', data=df, palette='crest', saturation=0.8)
+    pyplot.ylim(0,8.5)
+    pyplot.show()
 
 
 def plot_single_spectrum(mz, data, title, batches):
@@ -864,7 +899,12 @@ if __name__ == "__main__":
     #     'D:\ETH\projects\\normalization\data\\filtered_data.csv',
     #     'D:\ETH\projects\\normalization\\res\\0.6.26\\all_refs\d3cc414f\\normalized_d3cc414f.csv')
 
+    # # application: all ref
+    # plot_inter_and_within_batch_corrs(
+    #     'D:\ETH\projects\\normalization\data\\filtered_data.csv',
+    #     'D:\ETH\projects\\normalization\\res\\0.6.26\\all_refs\d3cc414f\\normalized_d3cc414f.csv')
+
     # application: all ref
-    plot_inter_and_within_batch_corrs(
+    plot_batch_vcs_before_and_after(
         'D:\ETH\projects\\normalization\data\\filtered_data.csv',
         'D:\ETH\projects\\normalization\\res\\0.6.26\\all_refs\d3cc414f\\normalized_d3cc414f.csv')
