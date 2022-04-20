@@ -340,5 +340,4 @@ def plot_n_clusters(clusters_dict, clusters_dict_initial, id, save_to='/Users/an
 
 
 if __name__ == '__main__':
-    # TODO: implement full model evaluation for checkpoints
     pass

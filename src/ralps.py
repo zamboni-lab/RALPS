@@ -1,5 +1,5 @@
 
-import pandas, sys, uuid, random, os, numpy, traceback, torch
+import pandas, sys, uuid, random, os, numpy, traceback, torch, argparse
 from tqdm import tqdm
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -12,12 +12,8 @@ from constants import required_config_fields
 import processing
 
 
-def parse_config(path=None):
-    if path is not None:
-        config = dict(pandas.read_csv(Path(path), index_col=0).iloc[:,0])
-    else:
-        config = dict(pandas.read_csv(Path(sys.argv[1]), index_col=0).iloc[:,0])
-
+def parse_config(path):
+    config = dict(pandas.read_csv(Path(path), index_col=0).iloc[:,0])
     return config
 
 
@@ -326,6 +322,33 @@ def ralps(config):
         print(warning)
 
 
+def parse_arguments():
+    """ This method reads arguements from the command line for either of three tasks:
+        - normalize the data,
+        - evaluate pretrained checkpoints,
+        - remove outliers from the normalized data with a boxplot variant. """
+
+    parser = argparse.ArgumentParser()
+    group = parser.add_mutually_exclusive_group()
+
+    group.add_argument('-n', '--normalize', action='store_true', help='normalize data with RALPS')
+    group.add_argument('-e', '--evaluate', action='store_true', help='evaluate checkpoints')
+    group.add_argument('-r', '--remove', action='store_true', help='remove outliers in the normalized data (boxplot)')
+    parser.add_argument('path', type=str)
+
+    args, unknown = parser.parse_known_args()
+    return parser, args
+
+
 if __name__ == "__main__":
-    config = parse_config()
-    ralps(config)
+
+    parser, args = parse_arguments()
+    if args.normalize:
+        config = parse_config(args.path)
+        ralps(config)
+    elif args.evaluate:
+        pass
+    elif args.remove:
+        pass
+    else:
+        print(parser.print_help())
