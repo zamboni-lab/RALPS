@@ -251,8 +251,8 @@ def get_paths_and_methods(scenario):
         save_to = '/Users/andreidm/ETH/projects/normalization/res/no_reference_samples/other_methods/plots/'
     elif scenario == 2:
         methods = ['none', 'normAE', 'ralps']
-        path_to_my_best = path_to_my_best_method_2
-        path_to_others = path_to_other_methods_2
+        path_to_my_best = ''
+        path_to_others = ''
         save_to = '/Users/andreidm/ETH/projects/normalization/res/fake_reference_samples/other_methods/plots/'
     elif scenario == 3:
         # it's actually scenario 2, but on another dataset
@@ -805,32 +805,24 @@ def plot_batch_vcs_before_and_after(path_to_init_data, path_to_my_method,
 
     pyplot.figure()
     seaborn.barplot(x='batch', y='vc', data=df, palette='crest', saturation=0.8)
-    pyplot.ylim(0,8.5)
+    pyplot.ylim(0, 8.5)
     pyplot.show()
 
 
-def plot_single_spectrum(mz, data, title, batches):
+def plot_single_spectrum(mz, data, title, plot_name=''):
     """ Plots a spectrum of data for the benchmarking dataset. """
 
-    # hardcoded batch ids and colors
-    color_dict = dict(zip(batches, 'kgrcmyb'))
-
-    samples = data.index
     pyplot.figure(figsize=(8, 6))
+    data = (data.values - numpy.mean(data.values)) / numpy.std(data.values)
     for i in range(data.shape[0]):
-        batch_id = [batch in samples[i] for batch in batches].index(True)
-        color = color_dict[batches[batch_id]]
-        if color == 'b':
-            pyplot.plot(mz, data.values[i, :], '{}o'.format(color), alpha=0.2)
-        else:
-            pyplot.plot(mz, data.values[i, :], '{}o'.format(color), alpha=0.4)
+        pyplot.plot(mz, data[i, :], 'ko', alpha=0.2)
 
     pyplot.title(title)
     pyplot.xlabel('mz')
     pyplot.ylabel('scaled normalized intensities')
+    pyplot.ylim(-5, 60)
     pyplot.grid()
     pyplot.show()
-
 
 def compare_methods_v5():
 
@@ -850,15 +842,14 @@ def compare_methods_v5():
     plot_percent_of_unique_values()
 
 
-def plot_normalized_vs_initial_spectra(path_to_initial_data_with_mz, path_to_normalized_data,
-                                       batch_labels=('0108', '0110', '0124', '0219', '0221', '0304', '0306')):
+def plot_normalized_vs_initial_spectra(path_to_initial_data_with_mz, path_to_normalized_data):
 
     initial_data = pandas.read_csv(path_to_initial_data_with_mz, index_col=0)
     mz = initial_data['mz']
     initial_data = initial_data.drop(columns=['name', 'mz']).T
-    plot_single_spectrum(mz, initial_data, 'Initial', batch_labels)
-    normalized = pandas.read_csv(path_to_normalized_data, index_col=0).T
-    plot_single_spectrum(mz, normalized, 'Normalized', batch_labels)
+    plot_single_spectrum(mz, initial_data, 'Initial')
+    normalized = pandas.read_csv(path_to_normalized_data, index_col=0)
+    plot_single_spectrum(mz, normalized, 'Normalized')
 
 
 if __name__ == "__main__":
@@ -876,11 +867,13 @@ if __name__ == "__main__":
 
     # # application: SRM+SPP
     # plot_normalized_vs_initial_spectra('D:\ETH\projects\\normalization\data\\filtered_data_with_mz.csv',
-    #                                    'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv')
-    # # application: Sarah
-    # plot_normalized_vs_initial_spectra('D:\ETH\projects\\normalization\data\\sarah\\data_with_mzs.csv',
-    #                                    'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv',
-    #                                    batch_labels=['Batch' + str(i) for i in range(1,8)])
+    #                                    # 'D:\ETH\projects\\normalization\\res\SRM+SPP\\445e9bdf\\normalized_445e9bdf.csv')
+    #                                    'D:\ETH\projects\\normalization\\res\SRM_SPP_other_methods\\waveICA.csv')
+
+    # application: Sarah
+    plot_normalized_vs_initial_spectra('D:\ETH\projects\\normalization\data\\sarah\\data_with_mzs.csv',
+                                       # 'D:\ETH\projects\\normalization\\res\sarah\\610427de\\normalized_610427de.csv')
+                                       'D:\ETH\projects\\normalization\\res\sarah_other_methods\\waveICA.csv')
 
     # # application: SRM+SPP
     # plot_mean_batch_vc_for_methods(

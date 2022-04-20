@@ -130,7 +130,7 @@ def compute_vc_for_samples_types(data, sample_types_of_interest):
 
 def get_pca_reduced_data(data, parameters):
 
-    transformer = PCA(n_components=parameters['latent_dim'])
+    transformer = PCA(n_components=parameters['latent_dim'], random_state=77)
     scaler = StandardScaler()
 
     scaled_data = scaler.fit_transform(data)
