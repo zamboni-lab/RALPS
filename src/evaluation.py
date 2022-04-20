@@ -1,10 +1,9 @@
 
-import seaborn, pandas, numpy, os
+import seaborn, pandas, numpy, os, torch
 from matplotlib import pyplot
 from pathlib import Path
 
 from models.ae import Autoencoder
-from ralps import get_data
 from constants import grouping_threshold_percent as g_percent
 from constants import correlation_threshold_percent as c_percent
 from constants import n_best_models
@@ -351,15 +350,22 @@ def evaluate_checkpoints(path_to_weights, device='cpu'):
 
     # read the corresponding parameters
     parameters = pandas.read_csv(path.parent / 'parameters_{}.csv'.format(run_id), index_col=0).to_dict()['values']
+    parameters['n_features'] = int(parameters['n_features'])
+    parameters['latent_dim'] = int(parameters['latent_dim'])
+    parameters['n_replicates'] = int(parameters['n_replicates'])
+    parameters['n_batches'] = int(parameters['n_batches'])
+    parameters['min_relevant_intensity'] = int(parameters['min_relevant_intensity'])
     # parse out the samples used for benchmarking
     benchmarks = parameters['benchmarks'].split(',') if parameters['benchmarks'] != '' else []
 
+    from ralps import get_data
     data = get_data(parameters, parameters)
     # split to values and batches
     data_batch_labels = data.iloc[:, 0]
     data_values = data.iloc[:, 1:]
 
     # create and fit the scaler
+    from sklearn.preprocessing import RobustScaler
     scaler = RobustScaler().fit(data_values)
     scaled_data_values = scaler.transform(data_values.values)
 
@@ -381,6 +387,7 @@ def evaluate_checkpoints(path_to_weights, device='cpu'):
         encodings = pandas.DataFrame(encodings.detach().cpu().numpy(), index=data_values.index)
         reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
         reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
+        from src import evaluation
         reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
 
         # plot umaps of initial and normalized data
@@ -407,6 +414,101 @@ def evaluate_checkpoints(path_to_weights, device='cpu'):
         reconstruction.T.to_csv(save_to / 'normalized_{}.csv'.format(parameters['id']))
 
         print('results saved to {}\n'.format(save_to))
+
+
+def remove_outliers(path_to_data, device='cpu'):
+    """ This method removes outliers from the normalized data using a variant of a boxplot outlier detection. """
+
+    path = Path(path_to_data)
+    run_id = path.parent.name
+
+    # read the corresponding parameters
+    parameters = pandas.read_csv(path.parent / 'parameters_{}.csv'.format(run_id), index_col=0).to_dict()['values']
+    parameters['n_features'] = int(parameters['n_features'])
+    parameters['latent_dim'] = int(parameters['latent_dim'])
+    parameters['n_replicates'] = int(parameters['n_replicates'])
+    parameters['n_batches'] = int(parameters['n_batches'])
+    parameters['min_relevant_intensity'] = int(parameters['min_relevant_intensity'])
+    # parameters['allowed_vc_increase'] = float(parameters['allowed_vc_increase'])
+    # parse out the samples used for benchmarking
+    benchmarks = parameters['benchmarks'].split(',') if parameters['benchmarks'] != '' else []
+
+    from ralps import get_data
+    data = get_data(parameters, parameters)
+    # split to values and batches
+    data_batch_labels = data.iloc[:, 0]
+    data_values = data.iloc[:, 1:]
+
+    # create and fit the scaler
+    from sklearn.preprocessing import RobustScaler
+    scaler = RobustScaler().fit(data_values)
+    scaled_data_values = scaler.transform(data_values.values)
+
+    # LOAD MODEL
+    generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
+    best_model = [x for x in os.listdir(path.parent / 'checkpoints') if x.startswith('best')][0]
+    generator.load_state_dict(torch.load(path.parent / 'checkpoints' / best_model, map_location=device))
+    generator.eval()
+
+    # APPLY NORMALIZATION
+    encodings = generator.encode(torch.Tensor(scaled_data_values).to(device))
+    reconstruction = generator.decode(encodings)
+
+    reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
+    reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
+    from src import evaluation
+    reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
+
+    factor = 1.5
+    sample_percent = 100  # as if all samples had increased VCs
+    while int(sample_percent) > 0:
+        filtered, sample_percent, metabolite_mean = filter_outliers_with_boxplot_iqr_factor(data_values, reconstruction,
+                                                                                            iqr_factor=factor, allowed_percent=0.05)
+        factor = int(factor + 1)
+
+    print('filtering is complete with iqr_factor={}'.format(factor))
+    print('{} metabolites per sample were dropped (on average)'.format(int(metabolite_mean)))
+    from src import processing
+    reconstruction.index = processing.get_initial_samples_names(reconstruction.index)  # reindex to original names
+    reconstruction.T.to_csv(path.parent / 'filtered_normalized_{}.csv'.format(parameters['id']))
+
+
+def filter_outliers_with_boxplot_iqr_factor(initial, normalized, iqr_factor=1.5, allowed_percent=0.05):
+    """ This method applies a variant of boxplot outlier removal for each sample in the normalized data,
+        if it has an increased VC compared to the initial data. Outliers are  replaced with numpy.nan. """
+
+    count = 0  # of samples with increased VCs found
+    metabolites_lost = []  # of metabolites dropped after filtering
+    for i in range(initial.shape[0]):
+
+        init_vc = initial.iloc[i, :].std() / initial.iloc[i, :].mean()
+        sample_vc = normalized.iloc[i, :].std() / normalized.iloc[i, :].mean()
+
+        if sample_vc - init_vc > init_vc * allowed_percent:
+
+            # filter with boxplot
+            sample = normalized.iloc[i, :]
+            q1 = numpy.percentile(sample, 25)
+            q3 = numpy.percentile(sample, 75)
+            iqr = q3 - q1
+            filtered_sample = sample.copy()
+
+            # mark outliers with nans
+            filtered_sample[~((sample > q1 - iqr_factor * iqr) & (sample < q3 + iqr_factor * iqr))] = numpy.nan
+
+            # recalculate sample vc after filtering
+            sample_vc = filtered_sample.std() / filtered_sample.mean()
+            metabolites_lost.append(filtered_sample.isna().sum())
+
+            normalized.iloc[i, :] = filtered_sample
+
+            if sample_vc - init_vc > init_vc * allowed_percent:
+                count += 1
+
+    percent_of_increased_vc = int(count / normalized.shape[0] * 100)
+    mean_number_of_dropped_metabolites = numpy.mean(metabolites_lost)
+
+    return normalized, percent_of_increased_vc, mean_number_of_dropped_metabolites
 
 
 if __name__ == '__main__':

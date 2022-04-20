@@ -6,7 +6,7 @@ from sklearn.decomposition import PCA
 from pathlib import Path
 
 from models.adversarial import run_normalization
-from evaluation import evaluate_models, evaluate_checkpoints
+from evaluation import evaluate_models, evaluate_checkpoints, remove_outliers
 from constants import default_parameters_values, default_labels, default_parameters_ranges
 from constants import required_config_fields
 import processing
@@ -351,6 +351,7 @@ if __name__ == "__main__":
         # evaluate selected checkpoints
         evaluate_checkpoints(args.path)
     elif args.remove:
-        pass
+        # remove outliers from the normalized data
+        remove_outliers(args.path)
     else:
         print(parser.print_help())
