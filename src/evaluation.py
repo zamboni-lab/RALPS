@@ -3,6 +3,8 @@ import seaborn, pandas, numpy, os
 from matplotlib import pyplot
 from pathlib import Path
 
+from models.ae import Autoencoder
+from ralps import get_data
 from constants import grouping_threshold_percent as g_percent
 from constants import correlation_threshold_percent as c_percent
 from constants import n_best_models
@@ -337,6 +339,74 @@ def plot_n_clusters(clusters_dict, clusters_dict_initial, id, save_to='/Users/an
             pyplot.legend()
             pyplot.savefig(save_to + 'clustering_{}_{}.pdf'.format(type, id))
             pyplot.close()
+
+
+def evaluate_checkpoints(path_to_weights, device='cpu'):
+    """ This method loads the weights of the selected checkpoints
+        and evaluates their normalization effects on the data.
+        NB: the weights directory is assumed to be consistent with the default RALPS output. """
+
+    path = Path(path_to_weights)
+    run_id = path.parent.name
+
+    # read the corresponding parameters
+    parameters = pandas.read_csv(path.parent / 'parameters_{}.csv'.format(run_id), index_col=0).to_dict()['values']
+    # parse out the samples used for benchmarking
+    benchmarks = parameters['benchmarks'].split(',') if parameters['benchmarks'] != '' else []
+
+    data = get_data(parameters, parameters)
+    # split to values and batches
+    data_batch_labels = data.iloc[:, 0]
+    data_values = data.iloc[:, 1:]
+
+    # create and fit the scaler
+    scaler = RobustScaler().fit(data_values)
+    scaled_data_values = scaler.transform(data_values.values)
+
+    checkpoints = [x for x in os.listdir(path) if x.endswith('.torch')]
+    for cp in checkpoints:
+        # create a folder for a checkpoint
+        save_to = path / cp.replace('.torch', '')
+        os.makedirs(save_to)
+
+        # LOAD MODEL
+        generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
+        generator.load_state_dict(torch.load(path / cp, map_location=device))
+        generator.eval()
+
+        # APPLY NORMALIZATION AND PLOT RESULTS
+        encodings = generator.encode(torch.Tensor(scaled_data_values).to(device))
+        reconstruction = generator.decode(encodings)
+
+        encodings = pandas.DataFrame(encodings.detach().cpu().numpy(), index=data_values.index)
+        reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
+        reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
+        reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
+
+        # plot umaps of initial and normalized data
+        batch_analysis.plot_full_data_umaps(data_values, reconstruction, data_batch_labels, parameters, save_to=save_to)
+        # plot batch variation coefs in initial and normalized data
+        vc_batch_normalized = batch_analysis.compute_vc_for_batches(reconstruction, data_batch_labels)
+        batch_analysis.plot_batch_vcs(vc_batch_original, vc_batch_normalized, parameters, save_to=save_to)
+
+        if len(benchmarks) > 0:
+            os.makedirs(save_to / 'benchmarks')
+            # plot metrics and variation coefs for benchmarks
+            cv_bench_original = batch_analysis.compute_vc_for_samples_types(data_values, benchmarks)
+            evaluation.plot_variation_coefs(benchmarks_variation_coefs, cv_bench_original, best_epoch, parameters,
+                                            save_to=save_to / 'benchmarks')
+            # plot cross correlations of benchmarks in initial and normalized data
+            batch_analysis.plot_batch_cross_correlations(data_values, 'initial', parameters, benchmarks,
+                                                         save_to=save_to / 'benchmarks', save_plot=True)
+            batch_analysis.plot_batch_cross_correlations(reconstruction, 'normalized', parameters, benchmarks,
+                                                         save_to=save_to / 'benchmarks', save_plot=True)
+
+        # SAVE ENCODED AND NORMALIZED DATA
+        encodings.to_csv(save_to / 'encodings_{}.csv'.format(parameters['id']))
+        reconstruction.index = processing.get_initial_samples_names(reconstruction.index)  # reindex to original names
+        reconstruction.T.to_csv(save_to / 'normalized_{}.csv'.format(parameters['id']))
+
+        print('results saved to {}\n'.format(save_to))
 
 
 if __name__ == '__main__':

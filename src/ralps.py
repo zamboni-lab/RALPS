@@ -6,7 +6,7 @@ from sklearn.decomposition import PCA
 from pathlib import Path
 
 from models.adversarial import run_normalization
-from evaluation import evaluate_models
+from evaluation import evaluate_models, evaluate_checkpoints
 from constants import default_parameters_values, default_labels, default_parameters_ranges
 from constants import required_config_fields
 import processing
@@ -344,10 +344,12 @@ if __name__ == "__main__":
 
     parser, args = parse_arguments()
     if args.normalize:
+        # run normalization with RALPS
         config = parse_config(args.path)
         ralps(config)
     elif args.evaluate:
-        pass
+        # evaluate selected checkpoints
+        evaluate_checkpoints(args.path)
     elif args.remove:
         pass
     else:
