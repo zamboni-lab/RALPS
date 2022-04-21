@@ -1,8 +1,9 @@
 
-import seaborn, pandas, numpy, os
+import seaborn, pandas, numpy, os, torch
 from matplotlib import pyplot
 from pathlib import Path
 
+from models.ae import Autoencoder
 from constants import grouping_threshold_percent as g_percent
 from constants import correlation_threshold_percent as c_percent
 from constants import n_best_models
@@ -339,6 +340,233 @@ def plot_n_clusters(clusters_dict, clusters_dict_initial, id, save_to='/Users/an
             pyplot.close()
 
 
+def evaluate_checkpoints(path_to_weights, device='cpu'):
+    """ This method loads the weights of the selected checkpoints
+        and evaluates their normalization effects on the data.
+        NB: the weights directory is assumed to be consistent with the default RALPS output. """
+
+    path = Path(path_to_weights)
+
+    if os.path.exists(path):
+        checkpoints = [x for x in os.listdir(path) if x.endswith('.torch')]
+        if len(checkpoints) > 0:
+            # read the corresponding parameters
+            parameters = pandas.read_csv(path.parent / 'parameters_{}.csv'.format(path.parent.name), index_col=0).to_dict()['values']
+            parameters['n_features'] = int(parameters['n_features'])
+            parameters['latent_dim'] = int(parameters['latent_dim'])
+            parameters['n_replicates'] = int(parameters['n_replicates'])
+            parameters['n_batches'] = int(parameters['n_batches'])
+            parameters['min_relevant_intensity'] = int(parameters['min_relevant_intensity'])
+            # parse out the samples used for benchmarking
+            benchmarks = parameters['benchmarks'].split(',') if parameters['benchmarks'] != '' else []
+
+            from ralps import get_data
+            data = get_data(parameters, parameters)
+            # split to values and batches
+            data_batch_labels = data.iloc[:, 0]
+            data_values = data.iloc[:, 1:]
+
+            # create and fit the scaler
+            from sklearn.preprocessing import RobustScaler
+            scaler = RobustScaler().fit(data_values)
+            scaled_data_values = scaler.transform(data_values.values)
+
+            for cp in checkpoints:
+                # create a folder for a checkpoint
+                save_to = path / cp.replace('.torch', '')
+                if not os.path.exists(save_to):
+                    os.makedirs(save_to)
+
+                # LOAD MODEL
+                generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
+                generator.load_state_dict(torch.load(path / cp, map_location=device))
+                generator.eval()
+
+                # APPLY NORMALIZATION AND PLOT RESULTS
+                encodings = generator.encode(torch.Tensor(scaled_data_values).to(device))
+                reconstruction = generator.decode(encodings)
+
+                encodings = pandas.DataFrame(encodings.detach().cpu().numpy(), index=data_values.index)
+                reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
+                reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
+                from src import evaluation
+                reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
+
+                from src import batch_analysis
+                # plot umaps of initial and normalized data
+                batch_analysis.plot_full_data_umaps(data_values, reconstruction, data_batch_labels, parameters, save_to=save_to)
+                # plot batch variation coefs in initial and normalized data
+                vc_batch_original = batch_analysis.compute_vc_for_batches(data_values, data_batch_labels)
+                vc_batch_normalized = batch_analysis.compute_vc_for_batches(reconstruction, data_batch_labels)
+                batch_analysis.plot_batch_vcs(vc_batch_original, vc_batch_normalized, parameters, save_to=save_to)
+
+                if len(benchmarks) > 0:
+                    if not os.path.exists(save_to / 'benchmarks'):
+                        os.makedirs(save_to / 'benchmarks')
+                    # plot cross correlations of benchmarks in initial and normalized data
+                    batch_analysis.plot_batch_cross_correlations(data_values, 'initial', parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
+                    batch_analysis.plot_batch_cross_correlations(reconstruction, 'normalized', parameters, benchmarks, save_to=save_to / 'benchmarks', save_plot=True)
+
+                # SAVE ENCODED AND NORMALIZED DATA
+                encodings.to_csv(save_to / 'encodings_{}.csv'.format(parameters['id']))
+                from src import processing
+                reconstruction.index = processing.get_initial_samples_names(reconstruction.index)  # reindex to original names
+                reconstruction.T.to_csv(save_to / 'normalized_{}.csv'.format(parameters['id']))
+                print('results saved to {}'.format(save_to))
+        else:
+            print('No checkpoint is found to evaluate.')
+    else:
+        print('No checkpoint is found to evaluate.')
+
+
+def check_paths_for_filtering(path_to_data):
+    """ This method checks that all necessary paths exist. """
+
+    parameters_path = None
+    best_model_path = None
+    flag = True  # assume all files are there
+
+    if not os.path.exists(path_to_data):
+        print("Missing files to perform filtering:")
+        print('- Data file is not found.')
+        flag = False
+
+    if os.path.exists(path_to_data.parent / 'parameters_{}.csv'.format(path_to_data.parent.name)):
+        # main results directory
+        parameters_path = path_to_data.parent / 'parameters_{}.csv'.format(path_to_data.parent.name)
+
+        if os.path.exists(path_to_data.parent / 'checkpoints'):
+            cp_paths = [path_to_data.parent / 'checkpoints' / x for x in os.listdir(path_to_data.parent / 'checkpoints') if
+                        x.startswith('best') and x.endswith('.torch')]
+            if len(cp_paths) > 0:
+                best_model_path = cp_paths[0]
+            else:
+                if flag:
+                    print("Missing files to perform filtering:")
+                print('- Checkpoint file (best model) is not found.')
+                flag = False
+        else:
+            if flag:
+                print("Missing files to perform filtering:")
+            print('- Checkpoint file (best model) is not found.')
+            flag = False
+
+    elif path_to_data.parent.parent.name == 'checkpoints':
+        # directory of a particular checkpoint
+
+        if os.path.exists(path_to_data.parent.parent.parent / 'parameters_{}.csv'.format(path_to_data.parent.parent.parent.name)):
+            parameters_path = path_to_data.parent.parent.parent / 'parameters_{}.csv'.format(path_to_data.parent.parent.parent.name)
+        else:
+            if flag:
+                print("Missing files to perform filtering:")
+            print('- Parameters file is not found.')
+            flag = False
+
+        if os.path.exists(Path(str(path_to_data.parent) + '.torch')):
+            best_model_path = Path(str(path_to_data.parent) + '.torch')
+        else:
+            if flag:
+                print("Missing files to perform filtering:")
+            print('- Checkpoint file (best model) is not found.')
+            flag = False
+    else:
+        if flag:
+            print("Missing files to perform filtering:")
+        print('- Parameters file is not found.')
+        flag = False
+
+    return parameters_path, best_model_path, flag
+
+
+def remove_outliers(path_to_data, device='cpu'):
+    """ This method removes outliers from the normalized data using a variant of a boxplot outlier detection. """
+
+    parameters_path, best_model_path, all_good = check_paths_for_filtering(Path(path_to_data))
+
+    if all_good:
+        # read the corresponding parameters
+        parameters = pandas.read_csv(parameters_path, index_col=0).to_dict()['values']
+        parameters['n_features'] = int(parameters['n_features'])
+        parameters['latent_dim'] = int(parameters['latent_dim'])
+        parameters['n_replicates'] = int(parameters['n_replicates'])
+        parameters['n_batches'] = int(parameters['n_batches'])
+        parameters['min_relevant_intensity'] = int(parameters['min_relevant_intensity'])
+        parameters['allowed_vc_increase'] = float(parameters['allowed_vc_increase'])
+
+        from ralps import get_data
+        data = get_data(parameters, parameters)
+        data_values = data.iloc[:, 1:]
+
+        # create and fit the scaler
+        from sklearn.preprocessing import RobustScaler
+        scaler = RobustScaler().fit(data_values)
+        scaled_data_values = scaler.transform(data_values.values)
+
+        # LOAD MODEL
+        generator = Autoencoder(input_shape=parameters['n_features'], latent_dim=parameters['latent_dim']).to(device)
+        generator.load_state_dict(torch.load(best_model_path, map_location=device))
+        generator.eval()
+
+        # APPLY NORMALIZATION
+        encodings = generator.encode(torch.Tensor(scaled_data_values).to(device))
+        reconstruction = generator.decode(encodings)
+
+        reconstruction = scaler.inverse_transform(reconstruction.detach().cpu().numpy())
+        reconstruction = pandas.DataFrame(reconstruction, index=data_values.index, columns=data_values.columns)
+        from src import evaluation
+        reconstruction = evaluation.mask_non_relevant_intensities(reconstruction, parameters['min_relevant_intensity'])
+
+        factor = 1.5  # default boxplot method
+        sample_percent = 100  # as if all samples had increased VCs
+        while int(sample_percent) > 0:
+            filtered, sample_percent, metabolite_mean = filter_outliers_with_boxplot_iqr_factor(data_values, reconstruction, iqr_factor=factor,
+                                                                                                allowed_percent=parameters['allowed_vc_increase'])
+            factor = int(factor + 1)
+
+        from src import processing
+        reconstruction.index = processing.get_initial_samples_names(reconstruction.index)  # reindex to original names
+        reconstruction.T.to_csv(Path(path_to_data).parent / 'filtered_normalized_{}.csv'.format(parameters['id']))
+        print('Filtering is complete with iqr_factor={}.'.format(factor))
+        print('{} metabolites per sample were dropped (on average).'.format(int(metabolite_mean)))
+
+
+def filter_outliers_with_boxplot_iqr_factor(initial, normalized, iqr_factor=1.5, allowed_percent=0.05):
+    """ This method applies a variant of boxplot outlier removal for each sample in the normalized data,
+        if it has an increased VC compared to the initial data. Outliers are  replaced with numpy.nan. """
+
+    count = 0  # of samples with increased VCs found
+    metabolites_lost = []  # of metabolites dropped after filtering
+    for i in range(initial.shape[0]):
+
+        init_vc = initial.iloc[i, :].std() / initial.iloc[i, :].mean()
+        sample_vc = normalized.iloc[i, :].std() / normalized.iloc[i, :].mean()
+
+        if sample_vc - init_vc > init_vc * allowed_percent:
+
+            # filter with boxplot
+            sample = normalized.iloc[i, :]
+            q1 = numpy.percentile(sample, 25)
+            q3 = numpy.percentile(sample, 75)
+            iqr = q3 - q1
+            filtered_sample = sample.copy()
+
+            # mark outliers with nans
+            filtered_sample[~((sample > q1 - iqr_factor * iqr) & (sample < q3 + iqr_factor * iqr))] = numpy.nan
+
+            # recalculate sample vc after filtering
+            sample_vc = filtered_sample.std() / filtered_sample.mean()
+            metabolites_lost.append(filtered_sample.isna().sum())
+
+            normalized.iloc[i, :] = filtered_sample
+
+            if sample_vc - init_vc > init_vc * allowed_percent:
+                count += 1
+
+    percent_of_increased_vc = int(count / normalized.shape[0] * 100)
+    mean_number_of_dropped_metabolites = numpy.mean(metabolites_lost)
+
+    return normalized, percent_of_increased_vc, mean_number_of_dropped_metabolites
+
+
 if __name__ == '__main__':
-    # TODO: implement full model evaluation for checkpoints
     pass

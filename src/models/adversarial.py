@@ -33,8 +33,8 @@ def v_criterion(inputs, recs, increase_percent=0.05):
     return v_loss
 
 
-def run_normalization(data, parameters):
-    """ Main function of RALPS,
+def ralps(data, parameters):
+    """ Main function of RALPS (Regularized Adversarial Learning Preserving Similarity)
         includes preprocessing steps, adversarial training loop, evaluation,
         reporting and saving results. """
 

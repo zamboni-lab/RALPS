@@ -8,7 +8,7 @@ from pathlib import Path
 
 from ralps import get_data, check_input, generate_parameters_grid, parse_config
 from ralps import initialise_constant_parameters, get_grid_size
-from models.adversarial import run_normalization
+from models.adversarial import ralps
 from evaluation import evaluate_models
 
 
@@ -398,7 +398,7 @@ def ablate_n_batches(config, grid):
 
             for parameters in tqdm(grid):
                 try:
-                    run_normalization(data, parameters)
+                    ralps(data, parameters)
                 except Exception as e:
                     print("failed with", e)
                     log_path = Path(parameters['out_path']) / parameters['id'] / 'traceback.txt'
@@ -429,7 +429,7 @@ def ablate_m_fraction(config, grid):
 
             for parameters in tqdm(grid):
                 try:
-                    run_normalization(data, parameters)
+                    ralps(data, parameters)
                 except Exception as e:
                     print("failed with", e)
                     log_path = Path(parameters['out_path']) / parameters['id'] / 'traceback.txt'
@@ -459,7 +459,7 @@ def ablate_na_fraction(config, grid):
 
             for parameters in tqdm(grid):
                 try:
-                    run_normalization(data, parameters)
+                    ralps(data, parameters)
                 except Exception as e:
                     print("failed with", e)
                     log_path = Path(parameters['out_path']) / parameters['id'] / 'traceback.txt'
@@ -491,7 +491,7 @@ def ablate_variance_ratio(config, grid):
 
             for parameters in tqdm(grid):
                 try:
-                    run_normalization(data, parameters)
+                    ralps(data, parameters)
                 except Exception as e:
                     print("failed with", e)
                     log_path = Path(parameters['out_path']) / parameters['id'] / 'traceback.txt'
@@ -512,7 +512,7 @@ def run_ablations():
     """ This method is to be run from console.
         It gets a single config and runs ablations on it. """
 
-    config = parse_config()
+    config = parse_config(sys.argv[2])
 
     if sys.argv[2] == 'n_batches':
         ablate_n_batches(config, [7, 6, 5, 4, 3, 2])
