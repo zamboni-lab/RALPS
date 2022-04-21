@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from pathlib import Path
 
-from models.adversarial import run_normalization
+from models.adversarial import ralps
 from evaluation import evaluate_models, evaluate_checkpoints, remove_outliers
 from constants import default_parameters_values, default_labels, default_parameters_ranges
 from constants import required_config_fields
@@ -294,8 +294,12 @@ def check_input(config):
     return is_correct_input, message
 
 
-def ralps(config):
+def normalize_data(path_to_config):
+    """ This method reads a config file and checks consistency of the input. If successful,
+        it does some preprocessing on the data, generates a randomized grid with hyperparameters
+        and calls RALPS for each set in the grid. """
 
+    config = parse_config(path_to_config)
     is_correct, warning = check_input(config)
     if is_correct:
 
@@ -305,7 +309,7 @@ def ralps(config):
 
         for parameters in tqdm(grid):
             try:
-                run_normalization(data, parameters)
+                ralps(data, parameters)
             except Exception as e:
                 print("failed with", e)
                 log_path = Path(parameters['out_path']) / parameters['id'] / 'traceback.txt'
@@ -333,7 +337,7 @@ def parse_arguments():
 
     group.add_argument('-n', '--normalize', action='store_true', help='normalize data with RALPS')
     group.add_argument('-e', '--evaluate', action='store_true', help='evaluate checkpoints')
-    group.add_argument('-r', '--remove', action='store_true', help='remove outliers in the normalized data (boxplot)')
+    group.add_argument('-r', '--remove', action='store_true', help='remove outliers in the normalized data with boxplot')
     parser.add_argument('path', type=str)
 
     args, unknown = parser.parse_known_args()
@@ -345,8 +349,7 @@ if __name__ == "__main__":
     parser, args = parse_arguments()
     if args.normalize:
         # run normalization with RALPS
-        config = parse_config(args.path)
-        ralps(config)
+        normalize_data(args.path)
     elif args.evaluate:
         # evaluate selected checkpoints
         evaluate_checkpoints(args.path)
