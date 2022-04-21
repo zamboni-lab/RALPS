@@ -4,8 +4,6 @@ It's a novel method for eliminating batch effects in omics data, developed origi
 
 <img src="https://github.com/dmitrav/normalization/blob/master/schematic/figure.png" alt="RALPS" width="600"/>
 
-I've been working towards publishing it.
-
 ## Requirements
 ```
 hdbscan==0.8.27  
