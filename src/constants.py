@@ -1,5 +1,5 @@
 
-version = "v.0.6.75"
+version = "v.0.7.0"
 
 # CONFIG
 required_config_fields = ['data_path', 'info_path', 'out_path', 'latent_dim', 'variance_ratio', 'n_replicates',
