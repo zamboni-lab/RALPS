@@ -101,3 +101,8 @@ If you wish to remove outliers from the normalized data, as proposed in the pape
 `python ralps.py -r path/to/normalized/data.csv`
 
 __Important:__ This works only with default RALPS output (directories and filenames should not be changed).
+
+## How to change default configuration
+
+If you wish to reconfigure RALPS (e.g., to use a different clustering algorithm as default, or to change default parameter values),  
+you can do so by editing `src/constants.py`.
