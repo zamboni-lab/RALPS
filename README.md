@@ -104,5 +104,4 @@ __Important:__ This works only with default RALPS output (directories and filena
 
 ## How to change default configuration
 
-If you wish to reconfigure RALPS (e.g., to use a different clustering algorithm as default, or to change default parameter values),  
-you can do so by editing `src/constants.py`.
+If you wish to reconfigure RALPS (e.g., to use a different clustering algorithm as default, or to change default parameter values), you can do so by editing `src/constants.py`.
