@@ -73,9 +73,9 @@ def ralps(data, parameters):
     data_values = data.iloc[:, 1:]
 
     # create and fit the scaler
-    scaler = RobustScaler().fit(data_values)
+    scaler = RobustScaler().fit(data_values.values)
     # apply scaling and do train test split
-    X_train, X_test, y_train, y_test = processing.split_to_train_and_test(data_values, data_batch_labels, scaler, proportion=parameters['train_ratio'])
+    X_train, X_test, y_train, y_test = processing.split_to_train_and_test(data_values.values, data_batch_labels, scaler, proportion=parameters['train_ratio'])
 
     # make datasets
     train_dataset = TensorDataset(torch.Tensor(X_train), torch.LongTensor(y_train))
