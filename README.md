@@ -1,8 +1,16 @@
 # RALPS
-RALPS stands for Regularized Adversarial Learning Preserving Similarity.
-It's a novel method for eliminating batch effects in omics data, developed originally to harmonize distant-in-time multi-batch flow-injection mass-spectrometry measurements.
+RALPS stands for Regularized Adversarial Learning Preserving Similarity. It's a method for eliminating batch effects in omics data, developed originally to harmonize multi-batch metabolomics measurements by MS. RALPS exploits reference samples (e.g. pooled study samples, NIST 1950 SRM, you name it...) present in every batch to assess interbatch differences. RALPS tries to reconstruct the original data while (i) removing interbatch differences on the basis of replicate measurements across batches and (ii) avoiding an expansion of the overall variance. 
 
-<img src="https://github.com/dmitrav/normalization/blob/master/schematic/figure.png" alt="RALPS" width="600"/>
+In practice, **each batch should be first normalized individually to suppress intrabatch problems, e.g. temporal trends associated to drifts in LC-MS. RALPS is used in a second step to harmonize multiple batches.**
+
+RALPS is particularly flexible in the experimental design. In fact, reference samples can be identical across all batches, but also vary between each pair of batches. In principle, it is also possible to include some samples from the previous one in the next batch and use these replicate measurements for training RALPS. 
+
+RALPS preserves spectral properties and is robust against missing values.
+
+RALPS includes a heuristic to automatically, identify the best set of parameters.
+
+Principles and performance is described in the accompaining paper:
+> Dmitrenko A, Reid M and Zamboni N, *Regularized adversarial learning for normalization of multi-batch untargeted metabolomics data*, Bioinformatics (2023), in press
 
 ## Requirements
 ```
