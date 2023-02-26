@@ -10,7 +10,7 @@ RALPS preserves spectral properties and is robust against missing values.
 RALPS includes a heuristic to automatically, identify the best set of parameters.
 
 Principles and performance is described in the accompaining paper:
-> Dmitrenko A, Reid M and Zamboni N, *Regularized adversarial learning for normalization of multi-batch untargeted metabolomics data*, Bioinformatics (2023), in press
+> Dmitrenko A, Reid M and Zamboni N, *Regularized adversarial learning for normalization of multi-batch untargeted metabolomics data*, Bioinformatics (2023), [DOI](https://doi.org/10.1093/bioinformatics/btad096)
 
 ## Requirements
 ```
