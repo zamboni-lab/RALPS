@@ -1,4 +1,4 @@
-normFact <- function(fact,X,ref,refType,k=20,t=0.5,ref2=NULL,refType2=NULL,t2=0.5,alpha,...) {
+normFact <- function(fact, X, ref, refType, k = 20, t = 0.5, ref2 = NULL, refType2 = NULL, t2 = 0.5, alpha, ...) {
   #
   #    Function to normalize data X by factorizing X=A*t(B) and removing components having a R2(ref) value higher than threshold t.
   #    If ref2 is defined, the components with R2(ref2) higher than threshold t2 are kept.
@@ -29,67 +29,66 @@ normFact <- function(fact,X,ref,refType,k=20,t=0.5,ref2=NULL,refType2=NULL,t2=0.
 
 
 
-  if (fact=='stICA'){
-    obj = unbiased_stICA(X,k,alpha=alpha)
-    B=obj$B
-    A=obj$A
-  } else if (fact == 'SVD'){
-    obj = svd(X,nu=k,nv=k)
-    A = obj$u%*%diag(obj$d[1:k],k)
-    B = obj$v
+  if (fact == "stICA") {
+    obj <- unbiased_stICA(X, k, alpha = alpha)
+    B <- obj$B
+    A <- obj$A
+  } else if (fact == "SVD") {
+    obj <- svd(X, nu = k, nv = k)
+    A <- obj$u %*% diag(obj$d[1:k], k)
+    B <- obj$v
   } else {
     stop("Factorization method should be SVD or stICA")
   }
 
 
-  factR2 = R2(ref,B,refType,pval=T)
+  factR2 <- R2(ref, B, refType, pval = T)
 
-  idx = which(factR2$allpv<t)
-
-
+  idx <- which(factR2$allpv < t)
 
 
-  if (t <0 | t>1){stop("t not in [0 1]")}
 
-  if (!is.null(ref2)){
-    if (sum(t2 <0 | t2>1)){stop("t2 not in [0 1]")}
-    factR2_2 = R2(ref2,B,refType2,pval=T)
-    idx_2 = c()
-    if (length(t2)!=length(refType2)){
-      if(length(t2)==1){
-        t2=rep(t2,length(refType2))
-      }
-      else {
+
+  if (t < 0 | t > 1) {
+    stop("t not in [0 1]")
+  }
+
+  if (!is.null(ref2)) {
+    if (sum(t2 < 0 | t2 > 1)) {
+      stop("t2 not in [0 1]")
+    }
+    factR2_2 <- R2(ref2, B, refType2, pval = T)
+    idx_2 <- c()
+    if (length(t2) != length(refType2)) {
+      if (length(t2) == 1) {
+        t2 <- rep(t2, length(refType2))
+      } else {
         stop("length(t2) sould be equal to 1 or length(refType2)")
       }
     }
-    for (i in 1:length(refType2)){
-
-      idx_2 = c(idx_2,which(factR2_2$allpv[,i]<t2[i]))
+    for (i in 1:length(refType2)) {
+      idx_2 <- c(idx_2, which(factR2_2$allpv[, i] < t2[i]))
     }
 
 
-    idx2keep =intersect(idx,idx_2)
-    print(paste("Keeping",length(idx2keep), "cmpts with P value less than t2"))
-    idx = setdiff(idx, idx2keep)
-
+    idx2keep <- intersect(idx, idx_2)
+    print(paste("Keeping", length(idx2keep), "cmpts with P value less than t2"))
+    idx <- setdiff(idx, idx2keep)
   }
 
-  bestcmptA = A[,idx]
-  bestcmptB = B[,idx]
+  bestcmptA <- A[, idx]
+  bestcmptB <- B[, idx]
 
-  print(paste("Removing",length(idx),"components with P value less than",t))
-
-
-  Xn = X - bestcmptA%*% t(bestcmptB)
+  print(paste("Removing", length(idx), "components with P value less than", t))
 
 
-  R2=factR2$allR2
-  if (!is.null(ref2)){
-    R2 = cbind(R2,factR2_2$allR2)
+  Xn <- X - bestcmptA %*% t(bestcmptB)
+
+
+  R2 <- factR2$allR2
+  if (!is.null(ref2)) {
+    R2 <- cbind(R2, factR2_2$allR2)
   }
 
-  return(list(Xn=Xn,R2=R2,bestSV =bestcmptB,A=A,B=B))
-
+  return(list(Xn = Xn, R2 = R2, bestSV = bestcmptB, A = A, B = B))
 }
-
